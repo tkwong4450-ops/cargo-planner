@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo ULD Build Optimizer</title>
+    <title>LH Cargo Multi-Step ULD Builder</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -11,153 +11,276 @@
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
 
     <header class="bg-slate-900 border-b border-slate-800 p-4 shadow-xl">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div>
-                <h1 class="text-xl font-black text-amber-400 tracking-wide">LH Cargo Dynamic ULD Builder</h1>
-                <p class="text-xs text-slate-400 font-medium">True Geometry Contour & Base-Plate Matcher</p>
+                <h1 class="text-xl font-black text-amber-400 tracking-wide">LH Flight Load Planning Tool</h1>
+                <p class="text-xs text-slate-400 font-medium font-mono">Dynamic Multi-Stage Volumetric Optimizer</p>
             </div>
-            <span class="bg-slate-950 border border-slate-800 px-3 py-1 rounded-full text-xs text-amber-400 font-mono">Fleet v2025.2</span>
+            <div class="flex items-center space-x-2 text-xs font-bold font-mono">
+                <span id="stepBadge1" class="px-2 py-1 bg-amber-500 text-slate-950 rounded">1. CARGO</span>
+                <span class="text-slate-600">→</span>
+                <span id="stepBadge2" class="px-2 py-1 bg-slate-800 text-slate-400 rounded">2. ULD SELECT</span>
+                <span class="text-slate-600">→</span>
+                <span id="stepBadge3" class="px-2 py-1 bg-slate-800 text-slate-400 rounded">3. 3D MAP</span>
+            </div>
         </div>
     </header>
 
-    <div class="flex-1 flex flex-col lg:flex-row max-w-7xl w-full mx-auto p-4 gap-4 overflow-hidden" style="min-h: calc(100vh - 80px);">
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col justify-center items-center">
         
-        <div class="w-full lg:w-5/12 bg-slate-900 rounded-xl p-5 border border-slate-800 flex flex-col justify-between shadow-2xl overflow-y-auto">
-            <div class="space-y-5">
+        <div id="panelStage1" class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-6">
+            <div>
+                <h2 class="text-lg font-black text-amber-400 uppercase tracking-wider">📦 Step 1: Input Shipment Specifications</h2>
+                <p class="text-xs text-slate-400">Enter package weights, exact physical dimensions, and quantities below.</p>
+            </div>
+
+            <div class="space-y-3">
+                <div class="grid grid-cols-12 gap-2 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider px-1">
+                    <div class="col-span-2">Qty (Pcs)</div>
+                    <div class="col-span-3">Length (cm)</div>
+                    <div class="col-span-3">Width (cm)</div>
+                    <div class="col-span-3">Height (cm)</div>
+                    <div class="col-span-1"></div>
+                </div>
+                <div id="cargoRowsContainer" class="space-y-2.5 max-h-64 overflow-y-auto pr-1"></div>
                 
-                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 shadow-inner">
-                    <label class="block text-xs font-bold uppercase tracking-wider text-amber-400 mb-2">💡 Paste Client Cargo Specs</label>
-                    <textarea id="emailInput" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 placeholder-slate-700 font-mono text-xs" placeholder="Example: 4 pkgs of 236x47x16cm, 2 items of 106*67*127cm..."></textarea>
-                    <button onclick="parseEmailText()" class="w-full mt-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-2 px-4 rounded-md transition shadow-md uppercase tracking-wider">
-                        Parse & Load Dimensions
+                <button onclick="addManualRow()" class="text-xs text-amber-400 font-bold bg-slate-950 border border-slate-800 hover:bg-slate-800 transition px-3 py-1.5 rounded shadow-sm">
+                    + Add New Package Line
+                </button>
+            </div>
+
+            <div class="border-t border-slate-800 pt-4 flex justify-end">
+                <button onclick="goToStage2()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-2.5 rounded-lg shadow-lg transition text-xs uppercase tracking-wider">
+                    Proceed to ULD Matching →
+                </button>
+            </div>
+        </div>
+
+        <div id="panelStage2" class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-6 hidden">
+            <div>
+                <h2 class="text-lg font-black text-amber-400 uppercase tracking-wider">📋 Step 2: Select Independent Base &amp; Contour Matrix</h2>
+                <p class="text-xs text-slate-400">Select any standard pallet footprint or container body shell and pair it against active fuselage contour envelopes.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-2">
+                    <label class="block text-xs font-bold uppercase text-slate-400 tracking-wide">1. Base Pallet Footprint</label>
+                    <select id="basePalletSelect" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-amber-500">
+                        <option value="PMC">PMC / P6P Standard Pallet (318 x 244 cm / 125" x 96")</option>
+                        <option value="PAJ">PAJ / P1P Medium Pallet (318 x 224 cm / 125" x 88")</option>
+                        <option value="PLA">PLA Lower Deck Pallet (318 x 153 cm / 125" x 60.4")</option>
+                        <option value="PKC">PKC Narrow-Body Pallet (156 x 153 cm / 61.5" x 60.4")</option>
+                        <option value="PGE">PGE Maindeck Oversized Pallet (606 x 244 cm / 238.5" x 96")</option>
+                    </select>
+                </div>
+
+                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-2">
+                    <label class="block text-xs font-bold uppercase text-slate-400 tracking-wide">2. Target Aircraft Hull Contour</label>
+                    <select id="contourSelect" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-amber-500">
+                        <optgroup label="Lower Deck Configurations">
+                            <option value="Contour_A">Contour A (Lower Deck AKE / AKH Box Profile — H: 163 cm)</option>
+                            <option value="Contour_F">Contour F (Lower Deck Pallet Contour — H: 163 cm / Outward Belly Curves)</option>
+                            <option value="Contour_H_E">Contour H / E / N (Lower Deck Standard Slopes — H: 163 cm)</option>
+                        </optgroup>
+                        <optgroup label="B777F Maindeck Configurations">
+                            <option value="Contour_J3">Contour J3 (B777F Maindeck Position R — H: 300 cm / Left Asymmetric Taper)</option>
+                            <option value="Contour_J4">Contour J4 (B777F Maindeck Position R Rear — H: 300 cm / Extended Left Taper)</option>
+                            <option value="Contour_J1">Contour J1 (B777F Maindeck Standard Cross-Section — H: 244 cm / Dual Slope)</option>
+                        </optgroup>
+                        <optgroup label="A321F Narrowbody Configurations">
+                            <option value="Contour_Y">Contour Y (A321F Maindeck Mainline Profile — H: 208 cm / Arch Shape)</option>
+                            <option value="Contour_W">Contour W (A321F Lower Deck Sliding Matrix — H: 114 cm)</option>
+                        </optgroup>
+                        <optgroup label="Unrestricted Flat Profiles">
+                            <option value="No_Contour_96">Flat Box Envelope (Max H: 244 cm / 96" Linear Cube)</option>
+                            <option value="No_Contour_118">Flat Box Envelope (Max H: 300 cm / 118" Maindeck High-Cube)</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-4 flex justify-between items-center">
+                <button onclick="backToStage1()" class="text-xs font-bold text-slate-400 hover:text-slate-200 transition">
+                    ← Back to Dimensions
+                </button>
+                <button onclick="goToStage3()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-2.5 rounded-lg shadow-lg transition text-xs uppercase tracking-wider">
+                    Generate Interactive 3D Map →
+                </button>
+            </div>
+        </div>
+
+        <div id="panelStage3" class="w-full flex flex-col lg:flex-row gap-4 h-[550px] hidden">
+            <div class="w-full lg:w-4/12 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-2xl">
+                <div class="space-y-4">
+                    <div>
+                        <h2 class="text-md font-black text-amber-400 uppercase tracking-wider">🔍 Step 3: Interactive Fitment Map</h2>
+                        <p class="text-[11px] text-slate-400">Review space calculations below. Adjust elements using manual shift buttons if overlapping occurs.</p>
+                    </div>
+
+                    <div id="resultPanel" class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 shadow-inner font-sans">
+                        <h3 class="font-black text-xs uppercase mb-0.5 tracking-wider" id="statusTitle">Fit Analysis Pending</h3>
+                        <p class="text-xs text-slate-400 mb-2 font-mono" id="metricsText">Total Volume: -- cbm</p>
+                        <div id="warningLogs" class="text-xxs space-y-0.5 text-orange-400 font-mono max-h-32 overflow-y-auto border-t border-slate-900 pt-2"></div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
+                    <span class="block text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">🎯 Manual Cargo Alignment Controls</span>
+                    <div class="grid grid-cols-3 gap-1.5 max-w-[180px] mx-auto">
+                        <div></div>
+                        <button onclick="shiftCargo('Z-', 10)" class="bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs py-1 rounded border border-slate-700">▲ Z-</button>
+                        <div></div>
+                        <button onclick="shiftCargo('X-', 10)" class="bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs py-1 rounded border border-slate-700">◀ X-</button>
+                        <button onclick="resetPosition()" class="bg-slate-900 hover:bg-slate-800 text-amber-400 text-[10px] font-bold uppercase py-1 rounded border border-slate-700">Center</button>
+                        <button onclick="shiftCargo('X+', 10)" class="bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs py-1 rounded border border-slate-700">X+ ▶</button>
+                        <div></div>
+                        <button onclick="shiftCargo('Z+', 10)" class="bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs py-1 rounded border border-slate-700">▼ Z+</button>
+                        <div></div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-800 pt-3 flex justify-start">
+                    <button onclick="backToStage2()" class="text-xs font-bold text-slate-400 hover:text-slate-200 transition">
+                        ← Re-Select ULD Configuration
                     </button>
                 </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">📋 Select Specific Contour & Base Configuration</label>
-                    <div class="mb-4">
-                        <select id="uldConfigSelect" onchange="calculateAndRender()" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2.5 text-white text-sm focus:outline-none focus:border-amber-500 font-medium">
-                            <optgroup label="Lower Deck Configurations">
-                                <option value="F_PMC">Contour F on PMC Pallet (406 x 318 x 163 cm - Sloped Sides)</option>
-                                <option value="F_PAJ">Contour F on PAJ Pallet (406 x 224 x 163 cm - Sloped Sides)</option>
-                                <option value="Standard_PMC">Standard PMC No-Contour (318 x 244 x 163 cm - Flat Block)</option>
-                            </optgroup>
-                            <optgroup label="Main Deck / Freighter Configurations">
-                                <option value="J_B777F">Contour J1/J3 on PMC (B777F Main Deck — 318 x 244 x 300 cm - Top Sloped)</option>
-                                <option value="AAY_A321F">Contour Y on AAY Base (A321F Main Deck — 318 x 224 x 208 cm - Curve Side)</option>
-                            </optgroup>
-                        </select>
-                    </div>
-
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wide">Item Setup Matrix</span>
-                        <button onclick="addCargoRow()" class="bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs px-2.5 py-1 rounded font-bold transition border border-slate-700 shadow-sm">+ Add Line</button>
-                    </div>
-                    
-                    <div class="grid grid-cols-12 gap-2 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 px-1">
-                        <div class="col-span-2">Qty</div>
-                        <div class="col-span-3">L (cm)</div>
-                        <div class="col-span-3">W (cm)</div>
-                        <div class="col-span-3">H (cm)</div>
-                        <div class="col-span-1"></div>
-                    </div>
-
-                    <div id="cargoContainer" class="space-y-2 max-h-44 overflow-y-auto pr-1"></div>
-                </div>
             </div>
 
-            <div class="mt-4 border-t border-slate-800 pt-4">
-                <button onclick="calculateAndRender()" class="w-full bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-extrabold p-3 rounded-lg shadow-md transition text-xs uppercase tracking-wider mb-3">
-                    Recalculate Fitment Layout
-                </button>
-
-                <div id="resultPanel" class="bg-slate-950 p-4 rounded-lg border border-slate-800 shadow-inner hidden">
-                    <h3 class="font-black text-xs tracking-wide uppercase mb-1" id="statusTitle">Fit Calculation Status</h3>
-                    <p class="text-xs text-slate-400 mb-2 font-medium" id="metricsText">Total Volume: -- cbm</p>
-                    <div id="warningLogs" class="text-xs space-y-1 text-orange-400 font-mono"></div>
+            <div class="w-full lg:w-8/12 bg-slate-950 rounded-xl border border-slate-800 overflow-hidden relative flex flex-col shadow-inner">
+                <div id="canvasContainer" class="w-full flex-1 min-h-0"></div>
+                <div class="absolute bottom-3 left-3 bg-slate-900 bg-opacity-95 px-3 py-1.5 rounded-lg text-[10px] text-slate-400 border border-slate-800 shadow-md pointer-events-none font-medium">
+                    🖱️ <b>Rotate Angle:</b> Left Click + Drag | <b>Pan Scene:</b> Right Click + Drag | <b>Zoom:</b> Scroll Wheel
                 </div>
             </div>
         </div>
 
-        <div class="w-full lg:w-7/12 relative bg-slate-950 rounded-xl border border-slate-800 overflow-hidden flex flex-col shadow-2xl min-h-[450px]">
-            <div id="canvasContainer" class="w-full flex-1 min-h-0"></div>
-            
-            <div class="absolute bottom-3 left-3 bg-slate-900 bg-opacity-95 px-3 py-2 rounded-lg text-[11px] text-slate-400 border border-slate-800 shadow-lg pointer-events-none space-y-0.5">
-                <p>🖱️ <b class="text-slate-200">Left Click + Drag:</b> Rotate Space View</p>
-                <p>🖱️ <b class="text-slate-200">Right Click + Drag:</b> Move/Pan Camera</p>
-                <p>📜 <b class="text-slate-200">Scroll Wheel:</b> Zoom In/Out</p>
-            </div>
-        </div>
-    </div>
+    </main>
 
     <script>
+        // --- Global Stage Management Variables ---
         let scene, camera, renderer, controls;
         let cargoGroup = new THREE.Group();
         let contourWireframe = null;
+        let globalOffset = { x: 0, z: 0 };
 
-        // Exact Structural Profiles mapped from your Lufthansa Manual
-        const CONFIGS = {
-            F_PMC: { type: "lower-deck-slope", L: 406, W: 318, H: 163, baseW: 230, slopeStartH: 50 },
-            F_PAJ: { type: "lower-deck-slope", L: 406, W: 224, H: 163, baseW: 150, slopeStartH: 50 },
-            Standard_PMC: { type: "flat-box", L: 318, W: 244, H: 163 },
-            J_B777F: { type: "main-deck-top-slope", L: 318, W: 244, H: 300, topW: 160, slopeStartH: 200 },
-            AAY_A321F: { type: "main-deck-side-curve", L: 318, W: 224, H: 208, topW: 140, slopeStartH: 140 }
+        // Real Fleet metrics dimensions arrays (all metrics processed in cm units)
+        const BASES = {
+            PMC: { length: 318, width: 244 },
+            PAJ: { length: 318, width: 224 },
+            PLA: { length: 318, width: 153 },
+            PKC: { length: 156, width: 153 },
+            PGE: { length: 606, width: 244 }
+        };
+
+        const CONTOURS = {
+            Contour_A: { maxHeight: 163, type: "lower-deck-container-ake", slopeStartH: 0, narrowWidth: 156 },
+            Contour_F: { maxHeight: 163, type: "lower-deck-slope", slopeStartH: 50, narrowWidth: 200 },
+            Contour_H_E: { maxHeight: 163, type: "lower-deck-slope", slopeStartH: 45, narrowWidth: 160 },
+            Contour_J3: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 195, topWidth: 162 },
+            Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 160, topWidth: 120 },
+            Contour_J1: { maxHeight: 244, type: "main-deck-symmetric-taper", slopeStartH: 180, topWidth: 180 },
+            Contour_Y: { maxHeight: 208, type: "main-deck-symmetric-arch", slopeStartH: 140, topWidth: 140 },
+            Contour_W: { maxHeight: 114, type: "flat" },
+            No_Contour_96: { maxHeight: 244, type: "flat" },
+            No_Contour_118: { maxHeight: 300, type: "flat" }
         };
 
         window.onload = function() {
-            init3D();
-            addCargoRow(4, 236, 47, 16);
-            addCargoRow(2, 106, 67, 127);
-            calculateAndRender();
-            window.addEventListener('resize', onWindowResize);
+            // Seed base input parameters initial fields matching standard dimensions patterns
+            addManualRow(4, 236, 47, 16);
+            addManualRow(2, 106, 67, 127);
         };
 
-        function parseEmailText() {
-            const text = document.getElementById('emailInput').value;
-            if(!text.trim()) return alert("Please paste text specifications first!");
-
-            document.getElementById('cargoContainer').innerHTML = "";
-            const regexPattern = /(?:(\d+)\s*(?:pcs|pkgs|packages|pallets|items)?\s*(?:of|total)?[\s:,]*)?(\d{2,4})\s*[\*xX×]\s*(\d{2,4})\s*[\*xX×]\s*(\d{2,4})/g;
-            
-            let match, itemsFound = 0;
-            while ((match = regexPattern.exec(text)) !== null) {
-                let qty = parseInt(match[1]) || 1;
-                let l = parseFloat(match[2]), w = parseFloat(match[3]), h = parseFloat(match[4]);
-                addCargoRow(qty, l, w, h);
-                itemsFound++;
-            }
-            if (itemsFound === 0) { alert("Format unrecognized. Adding empty row."); addCargoRow(); }
-            else { calculateAndRender(); }
-        }
-
-        function addCargoRow(qty='', l='', w='', h='') {
-            const container = document.getElementById('cargoContainer');
+        // --- Dynamic DOM Rows Manager Logic ---
+        function addManualRow(qty='', l='', w='', h='') {
+            const container = document.getElementById('cargoRowsContainer');
             const rowId = 'row_' + Math.random().toString(36).substr(2, 9);
             const div = document.createElement('div');
             div.id = rowId;
-            div.className = "grid grid-cols-12 gap-2 items-center bg-slate-900 border border-slate-800 p-1.5 rounded-md";
+            div.className = "grid grid-cols-12 gap-2 items-center bg-slate-950 border border-slate-800 p-2 rounded-lg";
             div.innerHTML = `
-                <input type="number" placeholder="Qty" value="${qty}" class="col-span-2 qty bg-slate-950 border border-slate-700 rounded p-1 text-center text-white text-xs focus:border-amber-500">
-                <input type="number" placeholder="L" value="${l}" class="col-span-3 length bg-slate-950 border border-slate-700 rounded p-1 text-center text-white text-xs focus:border-amber-500">
-                <input type="number" placeholder="W" value="${w}" class="col-span-3 width bg-slate-950 border border-slate-700 rounded p-1 text-center text-white text-xs focus:border-amber-500">
-                <input type="number" placeholder="H" value="${h}" class="col-span-3 height bg-slate-950 border border-slate-700 rounded p-1 text-center text-white text-xs focus:border-amber-500">
-                <button onclick="removeCargoRow('${rowId}')" class="col-span-1 text-red-400 hover:text-red-500 font-bold text-center text-sm">×</button>
+                <input type="number" placeholder="Qty" value="${qty}" class="col-span-2 qty bg-slate-900 border border-slate-700 rounded p-1.5 text-center text-white text-xs focus:border-amber-500">
+                <input type="number" placeholder="L" value="${l}" class="col-span-3 length bg-slate-900 border border-slate-700 rounded p-1.5 text-center text-white text-xs focus:border-amber-500">
+                <input type="number" placeholder="W" value="${w}" class="col-span-3 width bg-slate-900 border border-slate-700 rounded p-1.5 text-center text-white text-xs focus:border-amber-500">
+                <input type="number" placeholder="H" value="${h}" class="col-span-3 height bg-slate-900 border border-slate-700 rounded p-1.5 text-center text-white text-xs focus:border-amber-500">
+                <button onclick="removeManualRow('${rowId}')" class="col-span-1 text-red-400 hover:text-red-500 font-bold text-center text-sm">×</button>
             `;
             container.appendChild(div);
         }
 
-        function removeCargoRow(id) { document.getElementById(id).remove(); calculateAndRender(); }
+        function removeManualRow(id) { document.getElementById(id).remove(); }
+
+        // --- Wizard Navigation Transitions Router Framework ---
+        function goToStage2() {
+            const rows = document.querySelectorAll('#cargoRowsContainer > div');
+            let hasValidData = false;
+            rows.forEach(r => {
+                if(parseInt(r.querySelector('.qty').value) > 0) hasValidData = true;
+            });
+            if(!hasValidData) return alert("Please specify at least one valid package array element count!");
+
+            document.getElementById('panelStage1').classList.add('hidden');
+            document.getElementById('panelStage2').classList.remove('hidden');
+            
+            document.getElementById('stepBadge1').className = "px-2 py-1 bg-slate-800 text-slate-400 rounded";
+            document.getElementById('stepBadge2').className = "px-2 py-1 bg-amber-500 text-slate-950 rounded";
+        }
+
+        function backToStage1() {
+            document.getElementById('panelStage2').classList.add('hidden');
+            document.getElementById('panelStage1').classList.remove('hidden');
+            
+            document.getElementById('stepBadge2').className = "px-2 py-1 bg-slate-800 text-slate-400 rounded";
+            document.getElementById('stepBadge1').className = "px-2 py-1 bg-amber-500 text-slate-950 rounded";
+        }
+
+        function goToStage3() {
+            document.getElementById('panelStage2').classList.add('hidden');
+            document.getElementById('panelStage3').classList.remove('hidden');
+            
+            document.getElementById('stepBadge2').className = "px-2 py-1 bg-slate-800 text-slate-400 rounded";
+            document.getElementById('stepBadge3').className = "px-2 py-1 bg-amber-500 text-slate-950 rounded";
+
+            // Initialize 3D Engine Frame on first display pass cleanly
+            if (!scene) { init3D(); }
+            resetPosition();
+        }
+
+        function backToStage2() {
+            document.getElementById('panelStage3').classList.add('hidden');
+            document.getElementById('panelStage2').classList.remove('hidden');
+            
+            document.getElementById('stepBadge3').className = "px-2 py-1 bg-slate-800 text-slate-400 rounded";
+            document.getElementById('stepBadge2').className = "px-2 py-1 bg-amber-500 text-slate-950 rounded";
+        }
+
+        // --- Core Layout Computations and Transformation Shifts Engine ---
+        function shiftCargo(direction, amount) {
+            if(direction === 'X-') globalOffset.x -= amount;
+            if(direction === 'X+') globalOffset.x += amount;
+            if(direction === 'Z-') globalOffset.z -= amount;
+            if(direction === 'Z+') globalOffset.z += amount;
+            calculateAndRender();
+        }
+
+        function resetPosition() {
+            globalOffset.x = 0;
+            globalOffset.z = 0;
+            calculateAndRender();
+        }
 
         function calculateAndRender() {
+            if(!scene) return;
+            
             while(cargoGroup.children.length > 0){ cargoGroup.remove(cargoGroup.children[0]); }
             if (contourWireframe) scene.remove(contourWireframe);
 
-            const selectedKey = document.getElementById('uldConfigSelect').value;
-            const profile = CONFIGS[selectedKey];
+            const base = BASES[document.getElementById('basePalletSelect').value];
+            const contour = CONTOURS[document.getElementById('contourSelect').value];
 
-            drawTrueContourWireframe(profile);
+            drawTrueAircraftMeshProfile(base, contour);
 
-            const rows = document.querySelectorAll('#cargoContainer > div');
+            const rows = document.querySelectorAll('#cargoRowsContainer > div');
             let totalVolCbm = 0, totalItemsCount = 0, criticalError = false;
             let warnings = [];
             let cargoItemsToPack = [];
@@ -172,137 +295,131 @@
                     totalVolCbm += ((l * w * h) / 1000000) * qty;
                     totalItemsCount += qty;
 
-                    if (h > profile.H) {
-                        warnings.push(`❌ Piece Height (${h}cm) physically punches through max envelope top ceiling (${profile.H}cm).`);
+                    if (h > contour.maxHeight) {
+                        warnings.push(`❌ Height Failure: Array piece (${h}cm) punches completely past max roof ceiling limits (${contour.maxHeight}cm).`);
                         criticalError = true;
                     }
                     for(let i=0; i<qty; i++) cargoItemsToPack.push({ l, w, h });
                 }
             });
 
-            // Layout coordinate packing sequencer
-            let currentX = -profile.L / 2, currentZ = -profile.W / 2;
+            // Map grid processing tracking vectors incorporating manual alignments shift inputs
+            let currentX = (-base.length / 2) + globalOffset.x;
+            let currentZ = (-base.width / 2) + globalOffset.z;
             let rowMaxZ = 0;
 
             cargoItemsToPack.forEach((item, index) => {
-                if (currentX + item.l > profile.L / 2) {
-                    currentX = -profile.L / 2;
+                if (currentX + item.l > (base.length / 2) + globalOffset.x) {
+                    currentX = (-base.length / 2) + globalOffset.x;
                     currentZ += rowMaxZ;
                     rowMaxZ = 0;
                 }
-                if (currentZ + item.w > profile.W / 2) {
-                    if(!criticalError) warnings.push("⚠️ Footprint Overflow: Freight extends past base-plate edge limits.");
+
+                // Mathematical intersection conflict check boundary matrices
+                if (contour.type === "main-deck-asymmetric-left" && item.h > contour.slopeStartH) {
+                    const allowedWidthAtH = base.width - ((item.h - contour.slopeStartH) * ((base.width - contour.topWidth) / (contour.maxHeight - contour.slopeStartH)));
+                    if ((currentZ + item.w) > (-base.width/2 + allowedWidthAtH)) {
+                        warnings.push(`⚠️ Asymmetric Taper Clash: Item #${index+1} clips through upper fuselage sidewall curves.`);
+                    }
+                }
+
+                if (currentZ + item.w > base.width / 2 || currentZ < -base.width / 2 || currentX + item.l > base.length / 2 || currentX < -base.length / 2) {
+                    if(!criticalError) warnings.push(`⚠️ Box Element #${index+1} shifts past structural edge bounds framework.`);
                 }
                 if (item.w > rowMaxZ) rowMaxZ = item.w;
 
                 const geometry = new THREE.BoxGeometry(item.l, item.h, item.w);
-                const colorHex = index % 2 === 0 ? 0x3b82f6 : 0xf59e0b; 
-                const material = new THREE.MeshPhongMaterial({ color: colorHex, opacity: 0.85, transparent: true });
+                const colorHex = index % 2 === 0 ? 0x2563eb : 0xd97706; 
+                const material = new THREE.MeshPhongMaterial({ color: colorHex, opacity: 0.85, transparent: true, shininess: 25 });
                 const mesh = new THREE.Mesh(geometry, material);
                 
                 mesh.position.set(currentX + (item.l / 2), item.h / 2, currentZ + (item.w / 2));
-                mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.3 })));
+                mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.25 })));
                 
                 cargoGroup.add(mesh);
                 currentX += item.l;
             });
 
-            // Update UI
-            const resultPanel = document.getElementById('resultPanel');
-            resultPanel.classList.remove('hidden');
-            document.getElementById('metricsText').innerHTML = `Total Pieces: <b>${totalItemsCount}</b> | Combined Vol: <b>${totalVolCbm.toFixed(2)} CBM</b>`;
-            
+            // Update DOM Dashboard Outputs Text nodes strings
+            document.getElementById('metricsText').innerHTML = `Total Pieces Loaded: <b>${totalItemsCount}</b> | Combined Volumetric Sum: <b>${totalVolCbm.toFixed(2)} CBM</b>`;
             const logs = document.getElementById('warningLogs'); logs.innerHTML = "";
             const title = document.getElementById('statusTitle');
-            if(criticalError) { title.innerText = "❌ OUT OF BOUNDS"; title.className = "font-bold text-sm text-red-500"; }
-            else if(warnings.length > 0) { title.innerText = "⚠️ REPACK WARNING"; title.className = "font-bold text-sm text-orange-400"; }
-            else { title.innerText = "✅ PHYSICAL FIT PASS"; title.className = "font-bold text-sm text-emerald-400"; }
+            
+            if(criticalError) { title.innerText = "❌ BOUNDS PROFILE CRITICAL BREACH"; title.className = "font-extrabold text-sm text-red-500"; }
+            else if(warnings.length > 0) { title.innerText = "⚠️ VOLUMETRIC EXCEEDED"; title.className = "font-extrabold text-sm text-orange-400"; }
+            else { title.innerText = "✅ OPTIMIZED COMPLIANT FIT"; title.className = "font-extrabold text-sm text-emerald-400"; }
 
+            if(warnings.length === 0) { logs.innerHTML = "<p class='text-emerald-500/80 font-mono'>No loading exceptions found inside this specific envelope combination configuration layout setup.</p>"; }
             warnings.forEach(w => { const p = document.createElement('p'); p.innerText = w; logs.appendChild(p); });
         }
 
-        function drawTrueContourWireframe(p) {
-            const material = new THREE.LineBasicMaterial({ color: 0x34d399, linewidth: 2 });
+        function drawTrueAircraftMeshProfile(b, c) {
+            const material = new THREE.LineBasicMaterial({ color: 0x34d399, linewidth: 2.5 });
             const geometry = new THREE.BufferGeometry();
             const vertices = [];
 
-            const halfL = p.L / 2, halfW = p.W / 2;
+            const halfL = b.length / 2, halfW = b.width / 2;
 
-            if (p.type === "flat-box") {
-                const boxGeo = new THREE.BoxGeometry(p.L, p.H, p.W);
+            if (c.type === "flat") {
+                const boxGeo = new THREE.BoxGeometry(b.length, c.maxHeight, b.width);
                 contourWireframe = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeo), material);
-                contourWireframe.position.y = p.H / 2;
+                contourWireframe.position.y = c.maxHeight / 2;
                 scene.add(contourWireframe);
                 return;
             }
 
-            if (p.type === "lower-deck-slope") {
-                const halfBW = p.baseW / 2;
-                // Generate complex contour cage shape mapping
-                // Bottom Base Profile Ring
-                vertices.push(-halfL, 0, -halfBW,  halfL, 0, -halfBW);
-                vertices.push(halfL, 0, -halfBW,   halfL, 0, halfBW);
-                vertices.push(halfL, 0, halfBW,    -halfL, 0, halfBW);
-                vertices.push(-halfL, 0, halfBW,   -halfL, 0, -halfBW);
-                // Outward Wing Break Ring
-                vertices.push(-halfL, p.slopeStartH, -halfW,  halfL, p.slopeStartH, -halfW);
-                vertices.push(halfL, p.slopeStartH, -halfW,   halfL, p.slopeStartH, halfW);
-                vertices.push(halfL, p.slopeStartH, halfW,    -halfL, p.slopeStartH, halfW);
-                vertices.push(-halfL, p.slopeStartH, halfW,   -halfL, p.slopeStartH, -halfW);
-                // Top Ceiling Ring
-                vertices.push(-halfL, p.H, -halfW,  halfL, p.H, -halfW);
-                vertices.push(halfL, p.H, -halfW,   halfL, p.H, halfW);
-                vertices.push(halfL, p.H, halfW,    -halfL, p.H, halfW);
-                vertices.push(-halfL, p.H, halfW,   -halfL, p.H, -halfW);
-                // Vertical Rib Ties
-                vertices.push(-halfL, 0, -halfBW,  -halfL, p.slopeStartH, -halfW);
-                vertices.push(-halfL, p.slopeStartH, -halfW, -halfL, p.H, -halfW);
-                vertices.push(halfL, 0, -halfBW,   halfL, p.slopeStartH, -halfW);
-                vertices.push(halfL, p.slopeStartH, -halfW,  halfL, p.H, -halfW);
-                vertices.push(-halfL, 0, halfBW,   -halfL, p.slopeStartH, halfW);
-                vertices.push(-halfL, p.slopeStartH, halfW,  -halfL, p.H, halfW);
-                vertices.push(halfL, 0, halfBW,    halfL, p.slopeStartH, halfW);
-                vertices.push(halfL, p.slopeStartH, halfW,   halfL, p.H, halfW);
+            if (c.type === "lower-deck-container-ake") {
+                vertices.push(-halfL, 0, -halfW,  halfL, 0, -halfW); vertices.push(halfL, 0, -halfW, halfL, 0, -halfW + c.narrowWidth);
+                vertices.push(halfL, 0, -halfW + c.narrowWidth, -halfL, 0, -halfW + c.narrowWidth); vertices.push(-halfL, 0, -halfW + c.narrowWidth, -halfL, 0, -halfW);
+                vertices.push(-halfL, c.maxHeight, -halfW,  halfL, c.maxHeight, -halfW); vertices.push(halfL, c.maxHeight, -halfW, halfL, c.maxHeight, halfW);
+                vertices.push(halfL, c.maxHeight, halfW, -halfL, c.maxHeight, halfW); vertices.push(-halfL, c.maxHeight, halfW, -halfL, c.maxHeight, -halfW);
+                vertices.push(-halfL, 0, -halfW + c.narrowWidth, -halfL, c.maxHeight, halfW); vertices.push(halfL, 0, -halfW + c.narrowWidth, halfL, c.maxHeight, halfW);
+                vertices.push(-halfL, 0, -halfW, -halfL, c.maxHeight, -halfW); vertices.push(halfL, 0, -halfW, halfL, c.maxHeight, -halfW);
             }
 
-            if (p.type === "main-deck-top-slope" || p.type === "main-deck-side-curve") {
-                const halfTW = p.topW / 2;
-                // Bottom Base
-                vertices.push(-halfL, 0, -halfW,  halfL, 0, -halfW);
-                vertices.push(halfL, 0, -halfW,   halfL, 0, halfW);
-                vertices.push(halfL, 0, halfW,    -halfL, 0, halfW);
-                vertices.push(-halfL, 0, halfW,   -halfL, 0, -halfW);
-                // Turn Point Shoulder Ring
-                vertices.push(-halfL, p.slopeStartH, -halfW,  halfL, p.slopeStartH, -halfW);
-                vertices.push(halfL, p.slopeStartH, -halfW,   halfL, p.slopeStartH, halfW);
-                vertices.push(halfL, p.slopeStartH, halfW,    -halfL, p.slopeStartH, halfW);
-                vertices.push(-halfL, p.slopeStartH, halfW,   -halfL, p.slopeStartH, -halfW);
-                // Upper Top Ceiling Ring
-                vertices.push(-halfL, p.H, -halfTW,  halfL, p.H, -halfTW);
-                vertices.push(halfL, p.H, -halfTW,   halfL, p.H, halfTW);
-                vertices.push(halfL, p.H, halfTW,    -halfL, p.H, halfTW);
-                vertices.push(-halfL, p.H, halfTW,   -halfL, p.H, -halfTW);
-                // Structural connections
-                vertices.push(-halfL, 0, -halfW, -halfL, p.slopeStartH, -halfW);
-                vertices.push(-halfL, p.slopeStartH, -halfW, -halfL, p.H, -halfTW);
-                vertices.push(halfL, 0, -halfW, halfL, p.slopeStartH, -halfW);
-                vertices.push(halfL, p.slopeStartH, -halfW, halfL, p.H, -halfTW);
-                vertices.push(-halfL, 0, halfW, -halfL, p.slopeStartH, halfW);
-                vertices.push(-halfL, p.slopeStartH, halfW, -halfL, p.H, halfTW);
-                vertices.push(halfL, 0, halfW, halfL, p.slopeStartH, halfW);
-                vertices.push(halfL, p.slopeStartH, halfW, halfL, p.H, halfTW);
+            if (c.type === "lower-deck-slope") {
+                const halfNW = c.narrowWidth / 2;
+                vertices.push(-halfL, 0, -halfNW,  halfL, 0, -halfNW); vertices.push(halfL, 0, -halfNW, halfL, 0, halfNW);
+                vertices.push(halfL, 0, halfNW, -halfL, 0, halfNW); vertices.push(-halfL, 0, halfNW, -halfL, 0, -halfNW);
+                vertices.push(-halfL, c.slopeStartH, -halfW,  halfL, c.slopeStartH, -halfW); vertices.push(halfL, c.slopeStartH, -halfW, halfL, c.slopeStartH, halfW);
+                vertices.push(halfL, c.slopeStartH, halfW, -halfL, c.slopeStartH, halfW); vertices.push(-halfL, c.slopeStartH, halfW, -halfL, c.slopeStartH, -halfW);
+                vertices.push(-halfL, c.maxHeight, -halfW,  halfL, c.maxHeight, -halfW); vertices.push(halfL, c.maxHeight, -halfW, halfL, c.maxHeight, halfW);
+                vertices.push(halfL, c.maxHeight, halfW, -halfL, c.maxHeight, halfW); vertices.push(-halfL, c.maxHeight, halfW, -halfL, c.maxHeight, -halfW);
+                vertices.push(-halfL, 0, -halfNW, -halfL, c.slopeStartH, -halfW); vertices.push(-halfL, c.slopeStartH, -halfW, -halfL, c.maxHeight, -halfW);
+                vertices.push(halfL, 0, -halfNW, halfL, c.slopeStartH, -halfW); vertices.push(halfL, c.slopeStartH, -halfW, halfL, c.maxHeight, -halfW);
+            }
+
+            if (c.type === "main-deck-asymmetric-left") {
+                const leftTopZ = -halfW + c.topWidth;
+                vertices.push(-halfL, 0, -halfW,  halfL, 0, -halfW); vertices.push(halfL, 0, -halfW, halfL, 0, halfW);
+                vertices.push(halfL, 0, halfW, -halfL, 0, halfW); vertices.push(-halfL, 0, halfW, -halfL, 0, -halfW);
+                vertices.push(-halfL, c.slopeStartH, -halfW,  halfL, c.slopeStartH, -halfW); vertices.push(halfL, c.slopeStartH, -halfW, halfL, c.slopeStartH, halfW);
+                vertices.push(halfL, c.slopeStartH, halfW, -halfL, c.slopeStartH, halfW); vertices.push(-halfL, c.slopeStartH, halfW, -halfL, c.slopeStartH, -halfW);
+                vertices.push(-halfL, c.maxHeight, leftTopZ,  halfL, c.maxHeight, leftTopZ); vertices.push(halfL, c.maxHeight, leftTopZ, halfL, c.maxHeight, halfW);
+                vertices.push(halfL, c.maxHeight, halfW, -halfL, c.maxHeight, halfW); vertices.push(-halfL, c.maxHeight, halfW, -halfL, c.maxHeight, leftTopZ);
+                vertices.push(-halfL, c.slopeStartH, -halfW, -halfL, c.maxHeight, leftTopZ); vertices.push(halfL, c.slopeStartH, -halfW, halfL, c.maxHeight, leftTopZ);
+            }
+
+            if (c.type === "main-deck-symmetric-taper" || c.type === "main-deck-symmetric-arch") {
+                const halfTW = c.topWidth / 2;
+                vertices.push(-halfL, 0, -halfW,  halfL, 0, -halfW); vertices.push(halfL, 0, -halfW, halfL, 0, halfW);
+                vertices.push(halfL, 0, halfW, -halfL, 0, halfW); vertices.push(-halfL, 0, halfW, -halfL, 0, -halfW);
+                vertices.push(-halfL, c.maxHeight, -halfTW,  halfL, c.maxHeight, -halfTW); vertices.push(halfL, c.maxHeight, -halfTW, halfL, c.maxHeight, halfTW);
+                vertices.push(halfL, c.maxHeight, halfTW, -halfL, c.maxHeight, halfTW); vertices.push(-halfL, c.maxHeight, halfTW, -halfL, c.maxHeight, -halfTW);
+                vertices.push(-halfL, 0, -halfW, -halfL, c.maxHeight, -halfTW); vertices.push(halfL, 0, -halfW, halfL, c.maxHeight, -halfTW);
             }
 
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
             contourWireframe = new THREE.LineSegments(geometry, material);
             scene.add(contourWireframe);
+            controls.target.set(0, c.maxHeight / 3, 0);
         }
 
         function init3D() {
             const c = document.getElementById('canvasContainer');
-            scene = new THREE.Scene(); scene.background = new THREE.Color(0x070a13);
+            scene = new THREE.Scene(); scene.background = new THREE.Color(0x060913);
             camera = new THREE.PerspectiveCamera(45, c.clientWidth / c.clientHeight, 1, 2000);
-            camera.position.set(450, 350, 500);
+            camera.position.set(450, 380, 520);
             
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(c.clientWidth, c.clientHeight);
@@ -312,5 +429,16 @@
             controls.maxPolarAngle = Math.PI / 2 - 0.05;
             controls.enableDamping = true;
 
-            scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-            let d = new THREE.DirectionalLight(0xffffff, 0.5); d.position.set(300, 600, 300); scene.add(d);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            let d = new THREE.DirectionalLight(0xffffff, 0.55); d.position.set(200, 600, 300); scene.add(d);
+            scene.add(new THREE.GridHelper(1200, 40, 0x1e293b, 0x0f172a));
+            
+            scene.add(cargoGroup);
+            animate();
+        }
+
+        function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+        function onWindowResize() { const c = document.getElementById('canvasContainer'); camera.aspect = c.clientWidth / c.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(c.clientWidth, c.clientHeight); }
+    </script>
+</body>
+</html>
