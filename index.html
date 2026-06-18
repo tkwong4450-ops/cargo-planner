@@ -149,17 +149,16 @@
                     <label>2. Target Safety Envelope</label>
                     <select id="contourSelect">
                         <optgroup label="Maindeck B777F">
-                            <option value="Contour_J3">Contour J3 (B777F Fwd/Mid — Left Taper)</option>
+                            <option value="Contour_Q">Contour Q (Maindeck Rectangular)</option>
+                            <option value="Contour_J3">Contour J3 (B777F Rectangular - Fwd/Mid)</option>
                             <option value="Contour_J4">Contour J4 (B777F Aft Tail — Heavy Taper)</option>
-                            <option value="Contour_J1">Contour J1 (B777F Center — Max 244cm)</option>
+                            <option value="Contour_J1">Contour J1 (B777F Center Taper)</option>
                         </optgroup>
                         <optgroup label="Lower Deck">
-                            <option value="Contour_F">Contour F (Pallet Base — Outward Belly)</option>
-                            <option value="Contour_A">Contour A (AKE/AKH Container Matrix)</option>
-                        </optgroup>
-                        <optgroup label="A321F / Flat">
-                            <option value="Contour_Y">Contour Y (A321F Maindeck Arch)</option>
-                            <option value="No_Contour_118">No Contour (300cm Flat Envelope)</option>
+                            <option value="Contour_P">Contour P (Lower Deck Rectangular)</option>
+                            <option value="Contour_F">Contour F (Lower Deck Outward Belly)</option>
+                            <option value="Contour_E">Contour E (AKE Container Envelope)</option>
+                            <option value="Contour_H">Contour H (AKH Container Envelope)</option>
                         </optgroup>
                     </select>
                 </div>
@@ -191,15 +190,17 @@
             <div class="map-layout">
                 <div class="controls-panel">
                     <div>
-                        <div style="background: white; border: 1px solid var(--lh-border); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                        <div style="background: white; border: 1px solid var(--lh-border); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
                             <h3 id="statusTitle" style="margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; font-weight: 900;">Analysis Pending</h3>
                             <div style="font-size: 12px; font-weight: bold; color: #4b5563; margin-bottom: 5px;" id="metricsVol">Volume: -- cbm</div>
                             <div style="font-size: 12px; font-weight: bold; color: #4b5563;" id="metricsWgt">Payload: -- kg</div>
-                            <div id="warningLogs" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--lh-border); font-size: 11px; color: #dc2626; font-weight: bold; line-height: 1.4; max-height: 150px; overflow-y: auto;"></div>
+                            <div id="warningLogs" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--lh-border); font-size: 11px; color: #dc2626; font-weight: bold; line-height: 1.4; max-height: 100px; overflow-y: auto;"></div>
                         </div>
                         
-                        <div style="background: #fffbeb; padding: 10px; border-radius: 6px; border: 1px solid #fde68a; font-size: 11px; font-weight: bold; color: #b45309; text-align: center;">
-                            ✋ CLICK & DRAG ANY BOX TO REPOSITION
+                        <div style="background: #fffbeb; padding: 15px; border-radius: 6px; border: 1px solid #fde68a; font-size: 11px; line-height: 1.5; color: #b45309;">
+                            <strong style="display:block; margin-bottom: 5px; font-size: 12px; text-align: center;">✋ 3D STACKING CONTROLS</strong>
+                            • Click and drag any box to reposition.<br>
+                            • To drag <b>VERTICALLY</b> and stack items, rotate the camera so you are looking at the pallet from the side, then drag upwards.
                         </div>
                     </div>
                     
@@ -216,7 +217,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // --- DATA STRUCTURES ---
+        // --- 1. ENHANCED IATA CONTOUR & BASE STRUCTURES ---
         const BASES = {
             PMC: { length: 318, width: 244, maxWeight: 5100 },
             PZA: { length: 411, width: 244, maxWeight: 6800 },
@@ -227,13 +228,16 @@
         };
 
         const CONTOURS = {
-            Contour_F: { maxHeight: 163, type: "lower-deck-slope", slopeStartH: 50, narrowWidth: 200 },
-            Contour_A: { maxHeight: 163, type: "lower-deck-container-ake", slopeStartH: 0, narrowWidth: 156 },
-            Contour_J3: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 195, topWidth: 162 },
+            // Main Deck
+            Contour_Q: { maxHeight: 300, type: "flat" }, // Full Rectangular
+            Contour_J3: { maxHeight: 300, type: "flat" }, // User Requested Rectangular
             Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 160, topWidth: 120 },
             Contour_J1: { maxHeight: 244, type: "main-deck-symmetric-taper", slopeStartH: 180, topWidth: 180 },
-            Contour_Y: { maxHeight: 208, type: "main-deck-symmetric-arch", slopeStartH: 140, topWidth: 140 },
-            No_Contour_118: { maxHeight: 300, type: "flat" }
+            // Lower Deck
+            Contour_P: { maxHeight: 163, type: "flat" }, // Lower deck full rectangular
+            Contour_F: { maxHeight: 163, type: "lower-deck-slope", slopeStartH: 50, topWidth: 200 }, // Outward Belly
+            Contour_E: { maxHeight: 163, type: "lower-deck-slope", slopeStartH: 0, topWidth: 156 }, // AKE Half Width
+            Contour_H: { maxHeight: 114, type: "flat" } // AKH Container
         };
 
         let scene, camera, renderer, controls, dragControls;
@@ -242,7 +246,7 @@
         let is3DReady = false;
 
         window.onload = function() {
-            addRow('', '', '', '', '', true);
+            addRow(21, 120, 100, 106, '', true);
             updateManifestSummary();
         };
 
@@ -287,17 +291,15 @@
         }
 
         function parseEmail() {
-            // Flatten text to search across line breaks
             const rawText = document.getElementById('emailInput').value;
             const flatText = rawText.replace(/\n/g, ' '); 
             
             if(!rawText.trim()) return alert("Please paste text into the box.");
             document.getElementById('cargoRows').innerHTML = '';
             
-            // Hunt for Data anywhere in the document
             const dimMatch = flatText.match(/(\d+(?:\.\d+)?)\s*[*xX×]\s*(\d+(?:\.\d+)?)\s*[*xX×]\s*(\d+(?:\.\d+)?)/);
-            const qtyMatch = flatText.match(/(\d+)\s*(?:plts|pallets|ctns|cartons|pcs|pieces|pkgs|packages|units)/i);
-            const wgtMatch = flatText.match(/(?:total\s*)?(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilos)/i);
+            const qtyMatch = flatText.match(/(?:Total\s*)?(\d+)\s*(?:plts|pallets|ctns|cartons|pcs|pieces|pkgs|packages|units)/i);
+            const wgtMatch = flatText.match(/(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilos)/i);
             const isNonStackable = /non-stackable|non stackable|no stack/i.test(flatText);
 
             if(wgtMatch) {
@@ -386,9 +388,9 @@
             const uldQty = parseInt(document.getElementById('uldQtyInput').value) || 1;
             const gap = 50; 
 
-            // Draw Solid Transparent Envelopes
+            // 1. Draw High-Fidelity Solid Safety Envelopes
             for(let u=0; u<uldQty; u++) {
-                drawEnvelope(base, contour, u * (base.length + gap));
+                drawSharpEnvelope(base, contour, u * (base.length + gap));
             }
             controls.target.set( ((uldQty-1) * (base.length + gap))/2, contour.maxHeight/3, 0 );
 
@@ -410,7 +412,7 @@
                 }
             });
 
-            // Improved Grid & Stack Packer Logic
+            // 2. Packing Logic
             let currentUld = 0;
             let cx = -base.length/2;
             let cz = -base.width/2;
@@ -419,30 +421,19 @@
             let rowMaxW = 0;
 
             items.forEach((it) => {
-                // Check if fits in current row (X axis)
                 if (cx + it.l > base.length/2) { 
-                    cx = -base.length/2; 
-                    cz += rowMaxW; 
-                    rowMaxW = 0; 
+                    cx = -base.length/2; cz += rowMaxW; rowMaxW = 0; 
                 }
                 
-                // Check if fits in current layer (Z axis)
                 if (cz + it.w > base.width/2) { 
-                    cx = -base.length/2; 
-                    cz = -base.width/2; 
-                    rowMaxW = 0; 
-                    currentY += layerMaxHeight;
-                    layerMaxHeight = 0;
+                    cx = -base.length/2; cz = -base.width/2; rowMaxW = 0; 
+                    currentY += layerMaxHeight; layerMaxHeight = 0;
                 }
                 
-                // If Stackable is False OR Height exceeds bounds, push to a new ULD entirely
+                // Jump to new ULD if Not Stackable OR hits max ceiling
                 if ((!it.stackable && currentY > 0) || (currentY + it.h > contour.maxHeight)) {
-                    currentUld++;
-                    cx = -base.length/2;
-                    cz = -base.width/2;
-                    currentY = 0;
-                    rowMaxW = 0;
-                    layerMaxHeight = 0;
+                    currentUld++; cx = -base.length/2; cz = -base.width/2;
+                    currentY = 0; rowMaxW = 0; layerMaxHeight = 0;
                 }
 
                 if(it.w > rowMaxW) rowMaxW = it.w;
@@ -455,19 +446,16 @@
                 const mat = new THREE.MeshPhongMaterial({ color: it.stackable ? 0xffaa00 : 0xdc2626, opacity: 0.95, transparent: true });
                 const mesh = new THREE.Mesh(geo, mat);
                 mesh.position.set(globalX, currentY + (it.h/2), globalZ);
-                
-                // Edge Highlighting
                 mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.6 })));
                 
-                // Store user data in mesh for bounds checking later if needed
-                mesh.userData = { l: it.l, w: it.w, h: it.h };
+                mesh.userData = { h: it.h }; // Used to bound dragging
                 cargoGroup.add(mesh);
                 
                 cx += it.l;
             });
 
             if (currentUld >= uldQty) {
-                warns.push(`⚠️ Cargo required ${currentUld + 1} ULDs to pack properly, but only ${uldQty} were selected.`);
+                warns.push(`⚠️ Cargo overflow! Pieces required ${currentUld + 1} ULDs to fit safely, but only ${uldQty} were selected.`);
             }
 
             document.getElementById('metricsVol').innerText = `Volume: ${vol.toFixed(2)} CBM | Pcs: ${count}`;
@@ -480,7 +468,7 @@
             else { title.innerText = "✅ SAFE FLEET FITMENT"; title.style.color = "#16a34a"; }
             logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
 
-            // Re-init Drag Controls with new meshes
+            // 3. Re-init Interactive Drag Controls
             if(dragControls) dragControls.dispose();
             dragControls = new THREE.DragControls(cargoGroup.children, camera, renderer.domElement);
             
@@ -489,9 +477,11 @@
                 event.object.material.emissive.set(0x444444);
             });
             
-            // Lock dragging to X/Z floor plane to prevent flying boxes
             dragControls.addEventListener('drag', function (event) {
-                event.object.position.y = event.object.userData.h / 2; 
+                // Allows Vertical dragging! Just stops it from clipping through the floor.
+                if (event.object.position.y < event.object.userData.h / 2) {
+                    event.object.position.y = event.object.userData.h / 2;
+                }
             });
 
             dragControls.addEventListener('dragend', function (event) {
@@ -500,49 +490,56 @@
             });
         }
 
-        // Renders the solid, translucent blue safety bounds
-        function drawEnvelope(b, c, offsetX) {
-            const material = new THREE.MeshPhysicalMaterial({ 
-                color: 0x3b82f6, transparent: true, opacity: 0.15, depthWrite: false, side: THREE.DoubleSide
-            });
-            const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x3b82f6, linewidth: 2 });
+        // --- NEW: High Fidelity Extruded Contour Engine ---
+        function drawSharpEnvelope(b, c, offsetX) {
+            const hW = b.width/2;
+            const sLeftH = c.slopeStartH !== undefined ? c.slopeStartH : c.maxHeight;
+            let sRightH = sLeftH;
             
-            const geometry = new THREE.BufferGeometry();
-            const v = [];
-            const hL = b.length/2, hW = b.width/2;
-
-            if(c.type === "flat") {
-                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW);
-                v.push(-hL,0,-hW,-hL,c.maxHeight,-hW, hL,0,-hW,hL,c.maxHeight,-hW, hL,0,hW,hL,c.maxHeight,hW, -hL,0,hW,-hL,c.maxHeight,hW);
-                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
-                v.push(-hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,-hW);
-            } else if(c.type === "main-deck-asymmetric-left") {
-                const lTZ = -hW + c.topWidth;
-                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
-                v.push(-hL,c.slopeStartH,-hW, hL,c.slopeStartH,-hW, hL,c.slopeStartH,hW, -hL,c.slopeStartH,hW, -hL,c.slopeStartH,-hW);
-                v.push(-hL,c.maxHeight,lTZ, hL,c.maxHeight,lTZ, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,lTZ);
-                v.push(-hL,0,-hW,-hL,c.slopeStartH,-hW, hL,0,-hW,hL,c.slopeStartH,-hW, -hL,c.slopeStartH,-hW,-hL,c.maxHeight,lTZ, hL,c.slopeStartH,-hW,hL,c.maxHeight,lTZ);
-                v.push(-hL,0,hW,-hL,c.maxHeight,hW, hL,0,hW,hL,c.maxHeight,hW);
-            } else {
-                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
-                v.push(-hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,-hW);
-                v.push(-hL,0,-hW,-hL,c.maxHeight,-hW, hL,0,-hW,hL,c.maxHeight,-hW, hL,0,hW,hL,c.maxHeight,hW, -hL,0,hW,-hL,c.maxHeight,hW);
+            let tL = -hW, tR = hW; 
+            if (c.type === 'main-deck-asymmetric-left') {
+                tL = -hW + c.topWidth; 
+                tR = hW;
+                sRightH = c.maxHeight; // Right side goes straight up to top
+            } else if (c.type === 'main-deck-symmetric-taper' || c.type === 'lower-deck-slope') {
+                const w = (c.topWidth || b.width)/2;
+                tL = -w; tR = w;
             }
 
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+            // Draw the precise 2D Profile Array
+            const shape = new THREE.Shape();
+            shape.moveTo(-hW, 0);
+            shape.lineTo(-hW, sLeftH);
+            shape.lineTo(tL, c.maxHeight);
+            shape.lineTo(tR, c.maxHeight);
+            shape.lineTo(hW, sRightH);
+            shape.lineTo(hW, 0);
+            shape.lineTo(-hW, 0);
+
+            // Extrude along the length of the pallet
+            const extrudeSettings = { depth: b.length, bevelEnabled: false };
+            const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
             
-            // Create Solid Mesh (approximated bounds)
-            const hullGeo = new THREE.BoxGeometry(b.length, c.maxHeight, b.width);
-            const hull = new THREE.Mesh(hullGeo, material);
-            hull.position.set(offsetX, c.maxHeight/2, 0);
+            // Reorient the extrusion to match our World Space
+            geometry.rotateY(Math.PI / 2);
+            geometry.translate( -b.length/2, 0, 0 );
+
+            // Neon Glass Materials
+            const material = new THREE.MeshPhysicalMaterial({ 
+                color: 0x00ccff, transparent: true, opacity: 0.15, depthWrite: false, side: THREE.DoubleSide
+            });
+            const edgeGeo = new THREE.EdgesGeometry(geometry);
+            const edgeMat = new THREE.LineBasicMaterial({ color: 0x00ccff, linewidth: 2 });
             
-            // Add crisp wireframes
-            const wire = new THREE.LineSegments(geometry, edgeMaterial);
-            wire.position.set(offsetX, c.maxHeight/2, 0);
+            const mesh = new THREE.Mesh(geometry, material);
+            const edges = new THREE.LineSegments(edgeGeo, edgeMat);
             
-            scene.add(hull);
-            scene.add(wire);
-            contourMeshes.push(hull, wire);
+            mesh.position.set(offsetX, 0, 0);
+            edges.position.set(offsetX, 0, 0);
+            
+            scene.add(mesh);
+            scene.add(edges);
+            contourMeshes.push(mesh, edges);
         }
 
         function init3D() {
