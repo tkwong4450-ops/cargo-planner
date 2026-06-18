@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Freight Smart Visualizer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col font-sans">
+
+    <header class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md">
+        <div>
+            <h1 class="text-xl font-bold text-green-400">Air Freight Cargo Smart Visualizer</h1>
+            <p class="text-xs text-gray-400">AI Text-Parsing & Interactive Multi-Contour Evaluator</p>
+        </div>
+    </header>
+
+    <div class="flex-1 flex flex-col md:flex-row h-full">
+        
+        <div class="w-full md:w-5/12 bg-gray-800 p-6 flex flex-col justify-between border-r border-gray-700 overflow-y-auto" style="max-h: calc(100vh - 70px);">
+            <div class="space-y-6">
+                
+                <div class="bg-gray-900 p-4 rounded border border-gray-700">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-green-400 mb-2">💡 Step 1: Paste Customer Email Content</label>
+                    <textarea id="emailInput" rows="4" class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm text-gray-200 focus:outline-none focus:border-green-500 placeholder-gray-500" placeholder="Example: Hi, we have a cargo ready on 25th Jun. Total 7 Pallets, dims: 120*100*150CM or 4 packages of 236 x 47 x 16 cm..."></textarea>
+                    <button onclick="parseEmailText()" class="w-full mt-2 bg-gray-700 hover:bg-gray-600 text-green-400 font-semibold text-xs py-2 px-4 rounded transition border border-gray-600">
+                        ⚡ Auto-Extract Dimensions
+                    </button>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">📋 Step 2: Verify & Select ULD Profile</label>
+                    <div class="mb-4">
+                        <select id="contourSelect" class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-white text-sm focus:outline-none focus:border-green-500">
+                            <option value="F">F Contour (Lower Deck — Max H: 163cm)</option>
+                            <option value="PMC_Standard">Standard PMC (Lower Deck No-Contour — Max H: 163cm)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-bold text-gray-400 uppercase">Item Matrix Breakdown</span>
+                        <button onclick="addCargoRow()" class="bg-green-600 hover:bg-green-500 text-white text-xs px-2 py-1 rounded transition">+ Add Row</button>
+                    </div>
+                    
+                    <div class="grid grid-cols-12 gap-1 text-center text-xs font-bold text-gray-400 mb-1 px-1">
+                        <div class="col-span-2">Qty</div>
+                        <div class="col-span-3">L (cm)</div>
+                        <div class="col-span-3">W (cm)</div>
+                        <div class="col-span-3">H (cm)</div>
+                        <div class="col-span-1"></div>
+                    </div>
+
+                    <div id="cargoContainer" class="space-y-2">
+                        </div>
+                </div>
+            </div>
+
+            <div class="mt-6 border-t border-gray-700 pt-4">
+                <button onclick="calculateAndRender()" class="w-full bg-green-500 hover:bg-green-400 text-gray-900 font-bold p-3 rounded shadow transition mb-4">
+                    Render Interactive 3D Model
+                </button>
+
+                <div id="resultPanel" class="bg-gray-900 p-4 rounded border border-gray-700 hidden">
+                    <h3 class="font-bold text-sm mb-1" id="statusTitle">Evaluation Status</h3>
+                    <p class="text-xs text-gray-400 mb-2" id="metricsText">Total Volume: -- cbm</p>
+                    <div id="warningLogs" class="text-xs space-y-1 text-yellow-400 font-mono"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full md:w-7/12 relative bg-black flex-1">
+            <div id="canvasContainer" class="w-full h-full min-h-[500px] md:min-h-0"></div>
+            <div class="absolute bottom-4 left-4 bg-gray-800 bg-opacity-80 px-3 py-2 rounded text-xxs text-gray-400 pointer-events-none border border-gray-700 space-y-0.5">
+                <p>🖱️ <b>Left Click + Drag:</b> Rotate view</p>
+                <p>🖱️ <b>Right Click + Drag:</b> Pan scene</p>
+                <p>📜 <b>Scroll Wheel:</b> Zoom</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 3D Context Elements ---
+        let scene, camera, renderer, controls;
+        let cargoGroup = new THREE.Group();
+        let envelopeWireframe = null;
+
+        const CONTOURS = {
+            F: { palletLength: 406, palletWidth: 318, maxHeight: 163, baseWidth: 230, wingHeight: 50 },
+            PMC_Standard: { palletLength: 318, palletWidth: 244, maxHeight: 163, baseWidth: 318, wingHeight: 163 }
+        };
+
+        window.onload = function() {
+            init3D();
+            // Seed a clean visual starting template
+            addCargoRow(1, 120, 100, 150);
+            calculateAndRender();
+            window.addEventListener('resize', onWindowResize);
+        };
+
+        // --- Core Smart Parser RegEx Engine ---
+        function parseEmailText() {
+            const text = document.getElementById('emailInput').value;
+            if(!text.trim()) return alert("Please paste or type cargo specifications in the text box first!");
+
+            // Clean the dynamic form area first
+            document.getElementById('cargoContainer').innerHTML = "";
+
+            // Matches patterns like: 4 pkgs of 236x47x16cm, 7 Pallets 120*100*150, 232*72*124cm etc.
+            const regexPattern = /(?:(\d+)\s*(?:pcs|pkgs|packages|pallets|items)?\s*(?:of|total)?[\s:,]*)?(\d{2,4})\s*[\*xX×]\s*(\d{2,4})\s*[\*xX×]\s*(\d{2,4})/g;
+            
+            let match;
+            let itemsFound = 0;
+
+            while ((match = regexPattern.exec(text)) !== null) {
+                let qty = parseInt(match[1]) || 1; // Default to 1 if user skips writing a quantity figure
+                let l = parseFloat(match[2]);
+                let w = parseFloat(match[3]);
+                let h = parseFloat(match[4]);
+
+                addCargoRow(qty, l, w, h);
+                itemsFound++;
+            }
+
+            if (itemsFound === 0) {
+                alert("Could not automatically parse text patterns. Standard templates are 'QTY L*W*H' or 'L x W x H'. Adding blank lines for manual entry.");
+                addCargoRow();
+            } else {
+                calculateAndRender();
+            }
+        }
+
+        function addCargoRow(qty='', l='', w='', h='') {
+            const container = document.getElementById('cargoContainer');
+            const rowId = 'row_' + Math.random().toString(36).substr(2, 9);
+            
+            const div = document.createElement('div');
+            div.id = rowId;
+            div.className = "grid grid-cols-12 gap-1 items-center bg-gray-700 bg-opacity-40 p-1 rounded border border-gray-700 transition hover:border-gray-500";
+            div.innerHTML = `
+                <input type="number" placeholder="Qty" value="${qty}" class="col-span-2 qty bg-gray-900 border border-gray-600 rounded p-1 text-center text-white text-sm focus:outline-none focus:border-green-500">
+                <input type="number" placeholder="L" value="${l}" class="col-span-3 length bg-gray-900 border border-gray-600 rounded p-1 text-center text-white text-sm focus:outline-none focus:border-green-500">
+                <input type="number" placeholder="W" value="${w}" class="col-span-3 width bg-gray-900 border border-gray-600 rounded p-1 text-center text-white text-sm focus:outline-none focus:border-green-500">
+                <input type="number" placeholder="H" value="${h}" class="col-span-3 height bg-gray-900 border border-gray-600 rounded p-1 text-center text-white text-sm focus:outline-none focus:border-green-500">
+                <button onclick="removeCargoRow('${rowId}')" class="col-span-1 text-red-400 hover:text-red-500 font-bold text-center">×</button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeCargoRow(id) {
+            const row = document.getElementById(id);
+            if(row) row.remove();
+        }
+
+        // --- Packing & Rendering Engine ---
+        function calculateAndRender() {
+            while(cargoGroup.children.length > 0){ cargoGroup.remove(cargoGroup.children[0]); }
+            if (envelopeWireframe) scene.remove(envelopeWireframe);
+
+            const limits = CONTOURS[document.getElementById('contourSelect').value];
+            buildContourEnvelope(limits);
+
+            const rows = document.querySelectorAll('#cargoContainer > div');
+            let totalVolCbm = 0, totalItemsCount = 0, criticalError = false;
+            let warnings = [];
+            let cargoItemsToPack = [];
+
+            rows.forEach(row => {
+                const qty = parseInt(row.querySelector('.qty').value) || 0;
+                const l = parseFloat(row.querySelector('.length').value) || 0;
+                const w = parseFloat(row.querySelector('.width').value) || 0;
+                const h = parseFloat(row.querySelector('.height').value) || 0;
+
+                if(qty > 0 && l > 0 && w > 0 && h > 0) {
+                    totalVolCbm += ((l * w * h) / 1000000) * qty;
+                    totalItemsCount += qty;
+
+                    if (h > limits.maxHeight) {
+                        warnings.push(`⚠️ Oversized Height: ${h}cm exceeds max envelope ceiling (${limits.maxHeight}cm).`);
+                        criticalError = true;
+                    }
+                    for(let i=0; i<qty; i++) cargoItemsToPack.push({ l, w, h });
+                }
+            });
+
+            // Layout mapping coordinates logic
+            let currentX = -limits.palletLength / 2, currentZ = -limits.palletWidth / 2;
+            let rowMaxZ = 0;
+
+            cargoItemsToPack.forEach((item, index) => {
+                if (currentX + item.l > limits.palletLength / 2) {
+                    currentX = -limits.palletLength / 2;
+                    currentZ += rowMaxZ;
+                    rowMaxZ = 0;
+                }
+                if (currentZ + item.w > limits.palletWidth / 2) {
+                    if(!criticalError) warnings.push("⚠️ Footprint space overflow alert! Items stack outside the strict bounds.");
+                }
+                if (item.w > rowMaxZ) rowMaxZ = item.w;
+
+                const geometry = new THREE.BoxGeometry(item.l, item.h, item.w);
+                const colorHex = index % 2 === 0 ? 0xef4444 : 0x3b82f6; 
+                const material = new THREE.MeshPhongMaterial({ color: colorHex, opacity: 0.85, transparent: true });
+                const mesh = new THREE.Mesh(geometry, material);
+                
+                mesh.position.set(currentX + (item.l / 2), item.h / 2, currentZ + (item.w / 2));
+                
+                const wireframe = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0xffffff }));
+                mesh.add(wireframe);
+                cargoGroup.add(mesh);
+                currentX += item.l;
+            });
+
+            // Update UI diagnostics 
+            const resultPanel = document.getElementById('resultPanel');
+            resultPanel.classList.remove('hidden');
+            document.getElementById('metricsText').innerHTML = `Total Packages: <b>${totalItemsCount}</b> | Total Volume: <b>${totalVolCbm.toFixed(2)} CBM</b>`;
+            
+            const logs = document.getElementById('warningLogs');
+            logs.innerHTML = "";
+            
+            const title = document.getElementById('statusTitle');
+            if(criticalError) { title.innerText = "❌ FAILED ENVELOPE FIT"; title.className = "font-bold text-sm text-red-500"; }
+            else if(warnings.length > 0) { title.innerText = "⚠️ RECONFIGURATION REQUIRED"; title.className = "font-bold text-sm text-yellow-500"; }
+            else { title.innerText = "✅ DIMENSIONS COMPLIANT"; title.className = "font-bold text-sm text-green-400"; }
+
+            warnings.forEach(w => { const p = document.createElement('p'); p.innerText = w; logs.appendChild(p); });
+        }
+
+        function buildContourEnvelope(lims) {
+            const envelopeGeo = new THREE.BoxGeometry(lims.palletLength, lims.maxHeight, lims.palletWidth);
+            envelopeWireframe = new THREE.LineSegments(new THREE.EdgesGeometry(envelopeGeo), new THREE.LineBasicMaterial({ color: 0x10b981 }));
+            envelopeWireframe.position.y = lims.maxHeight / 2;
+            scene.add(envelopeWireframe);
+        }
+
+        function init3D() {
+            const c = document.getElementById('canvasContainer');
+            scene = new THREE.Scene(); scene.background = new THREE.Color(0x0d1117);
+            camera = new THREE.PerspectiveCamera(45, c.clientWidth / c.clientHeight, 1, 2000);
+            camera.position.set(350, 250, 450);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(c.clientWidth, c.clientHeight);
+            c.appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.maxPolarAngle = Math.PI / 2 - 0.05;
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            let d = new THREE.DirectionalLight(0xffffff, 0.5); d.position.set(200,400,200); scene.add(d);
+            scene.add(new THREE.GridHelper(1000, 50, 0x444444, 0x222222));
+            scene.add(cargoGroup);
+            animate();
+        }
+
+        function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+        function onWindowResize() { const c = document.getElementById('canvasContainer'); camera.aspect = c.clientWidth / c.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(c.clientWidth, c.clientHeight); }
+    </script>
+</body>
+</html>
