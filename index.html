@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lufthansa Cargo Flight Load Planner</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
     <style>
         :root {
@@ -31,7 +29,7 @@
         .step { padding: 6px 12px; border-radius: 4px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
         .step.active { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 2px 8px rgba(255,170,0,0.4); }
         
-        /* Main Layout Frame Fix */
+        /* Main Layout */
         main { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 30px; display: flex; justify-content: center; }
         .panel { background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 30px; width: 100%; max-width: 1000px; display: none; border: 1px solid var(--lh-border); }
         .panel.active { display: block; }
@@ -107,7 +105,6 @@
     </header>
 
     <main>
-        <!-- STAGE 1 PANEL -->
         <div class="panel active" id="stage1">
             <h2 class="section-title">📦 Step 1: Shipment Manifest</h2>
             <p class="section-desc">Extract dimensions and weights via Semantic Parsing, or enter them manually.</p>
@@ -146,7 +143,6 @@
             </div>
         </div>
 
-        <!-- STAGE 2 PANEL -->
         <div class="panel" id="stage2">
             <h2 class="section-title">⚖️ Step 2: Fleet Optimization Engine</h2>
             <p class="section-desc">Select fuselage contour and scale the number of ULDs to support the total shipment weight.</p>
@@ -203,7 +199,6 @@
             </div>
         </div>
 
-        <!-- STAGE 3 PANEL -->
         <div class="panel" id="stage3">
             <h2 class="section-title">🔍 Step 3: Multi-ULD Fitment Map</h2>
             
@@ -233,6 +228,9 @@
         </div>
     </main>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
     <script>
         // --- DATA STRUCTURES ---
         const BASES = {
@@ -260,11 +258,15 @@
         let globalOffset = { x: 0, z: 0 };
         let is3DReady = false;
 
-        // --- INITIALIZATION ---
-        window.onload = function() {
-            addRow(20, 120, 80, 142, '');
-            updateManifestSummary();
-        };
+        // --- INITIALIZATION (Wrapped safely) ---
+        document.addEventListener("DOMContentLoaded", () => {
+            try {
+                addRow(20, 120, 80, 142, '');
+                updateManifestSummary();
+            } catch(e) {
+                console.error("Initialization Error:", e);
+            }
+        });
 
         // --- STAGE 1: LOGIC & SAFETY FALLBACKS ---
         function addRow(qty, l, w, h, wgt) {
@@ -288,7 +290,7 @@
             let pcs = 0, calcWeight = 0;
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
                 const q = parseInt(r.querySelector('.qty').value) || 0;
-                const w = parseFloat(r.querySelector('.weight').value) || 0; // Safeguarded to 0 if blank string
+                const w = parseFloat(r.querySelector('.weight').value) || 0; // Safe fallback if NaN/Blank
                 pcs += q;
                 calcWeight += (q * w);
             });
