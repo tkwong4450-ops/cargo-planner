@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Flight Load Planner</title>
+    <title>Lufthansa Cargo Fleet Optimization Engine</title>
     
     <style>
         :root {
@@ -17,35 +17,29 @@
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { margin: 0; background-color: var(--lh-light); color: var(--lh-text); min-height: 100vh; display: flex; flex-direction: column; }
         
-        /* Header */
         header { background-color: var(--lh-navy); border-bottom: 4px solid var(--lh-yellow); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: white; }
         .logo-group { display: flex; align-items: center; gap: 15px; }
         .lh-icon { background: var(--lh-yellow); color: var(--lh-navy); font-weight: 900; font-size: 20px; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
         .title h1 { margin: 0; font-size: 22px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; }
         .title p { margin: 2px 0 0 0; color: var(--lh-yellow); font-size: 11px; font-family: monospace; letter-spacing: 2px; }
         
-        /* Step Tracker */
         .step-tracker { display: flex; gap: 10px; align-items: center; font-size: 12px; font-weight: bold; }
         .step { padding: 6px 12px; border-radius: 4px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
         .step.active { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 2px 8px rgba(255,170,0,0.4); }
         
-        /* Main Layout */
         main { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 30px; display: flex; justify-content: center; }
         .panel { background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 30px; width: 100%; max-width: 1000px; display: none; border: 1px solid var(--lh-border); }
         .panel.active { display: block; }
         
-        /* Typography & Structure */
         .section-title { font-size: 18px; color: var(--lh-navy); margin-top: 0; margin-bottom: 5px; text-transform: uppercase; border-left: 4px solid var(--lh-yellow); padding-left: 10px; font-weight: 900; }
         .section-desc { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
         
-        /* Forms & Inputs */
         label { font-weight: 800; font-size: 11px; text-transform: uppercase; color: var(--lh-navy); margin-bottom: 8px; display: block; }
-        textarea, select, input { width: 100%; padding: 12px; border: 1px solid var(--lh-border); border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; background: #f9fafb; }
+        textarea, select, input[type="number"], input[type="text"] { width: 100%; padding: 12px; border: 1px solid var(--lh-border); border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; background: #f9fafb; }
         textarea:focus, select:focus, input:focus { border-color: var(--lh-yellow); box-shadow: 0 0 0 3px rgba(255,170,0,0.15); background: white; }
         
-        /* Buttons */
         .btn { padding: 12px 24px; font-weight: 800; border-radius: 6px; cursor: pointer; transition: 0.2s; border: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; display: inline-flex; align-items: center; justify-content: center; }
         .btn-primary { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 4px 10px rgba(255,170,0,0.3); }
         .btn-primary:hover { background: var(--lh-yellow-hover); transform: translateY(-1px); }
@@ -56,12 +50,10 @@
         .btn-danger { background: #fee2e2; color: #dc2626; padding: 8px; margin-left: 5px; }
         .btn-danger:hover { background: #fca5a5; }
         
-        /* Cargo Row Grid */
-        .row-grid { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr 40px; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .row-grid { display: grid; grid-template-columns: 60px 1fr 1fr 1fr 1.2fr 60px 40px; gap: 8px; margin-bottom: 8px; align-items: center; }
         .row-header { font-size: 10px; font-weight: 900; color: #6b7280; text-transform: uppercase; text-align: center; }
-        #cargoRows { max-height: 200px; overflow-y: auto; padding-right: 5px; }
+        #cargoRows { max-height: 250px; overflow-y: auto; padding-right: 5px; }
         
-        /* Dashboards */
         .summary-box { background: var(--lh-navy); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #002b66; box-shadow: inset 0 2px 10px rgba(0,0,0,0.3); }
         .weight-box { background: var(--lh-navy); border-radius: 8px; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border: 1px solid #002b66; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
         .status-badge { padding: 8px 16px; border-radius: 4px; font-weight: 900; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
@@ -69,16 +61,10 @@
         .badge-fail { background: #ef4444; color: white; animation: pulse 2s infinite; }
         .badge-warn { background: #f59e0b; color: white; }
         
-        /* 3D Visualizer Viewport */
-        .map-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; height: 600px; }
+        .map-layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; height: 600px; }
         .controls-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
-        #canvasContainer { background: #020813; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--lh-border); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); width: 100%; height: 100%; }
-        
-        /* D-PAD Controls */
-        .d-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; max-width: 150px; margin: 0 auto; }
-        .d-btn { background: var(--lh-navy); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        .d-btn:hover { background: #002b66; }
-        .d-btn.center { background: white; color: var(--lh-navy); border: 1px solid var(--lh-border); font-size: 10px; }
+        #canvasContainer { background: #020813; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--lh-border); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); width: 100%; height: 100%; cursor: grab; }
+        #canvasContainer:active { cursor: grabbing; }
         
         .actions { border-top: 1px solid var(--lh-border); padding-top: 20px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
         .text-link { background: none; border: none; color: #6b7280; font-weight: bold; cursor: pointer; padding: 0; font-size: 13px; }
@@ -100,7 +86,7 @@
         <div class="step-tracker">
             <div class="step active" id="badge1">1. MANIFEST & WEIGHTS</div>
             <div class="step" id="badge2">2. ULD MULTI-SELECTOR</div>
-            <div class="step" id="badge3">3. MULTI-PALLET MAP</div>
+            <div class="step" id="badge3">3. 3D DRAG & DROP MAP</div>
         </div>
     </header>
 
@@ -112,24 +98,24 @@
             <div style="background: #eef2ff; padding: 15px; border-radius: 8px; border: 1px solid #c7d2fe; margin-bottom: 20px;">
                 <label style="color: #3730a3;">Total Shipment Weight Override (Optional)</label>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="number" id="totalShipmentWeight" placeholder="e.g., 6400" oninput="updateManifestSummary()" style="max-width: 250px; border-color: #a5b4fc;">
+                    <input type="number" id="totalShipmentWeight" placeholder="e.g., 4683" oninput="updateManifestSummary()" style="max-width: 250px; border-color: #a5b4fc;">
                     <span style="font-size: 12px; color: #4f46e5; font-weight: bold;">kg (Overrides individual totals for capacity audits)</span>
                 </div>
             </div>
 
             <div class="grid-2">
                 <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
-                    <label>💡 Semantic Extract Parser</label>
-                    <textarea id="emailInput" rows="7" placeholder="Paste quote text here...&#13;e.g. Total 20 plts 6400.kg 27.21 cbm. Size 120*80*142cm"></textarea>
-                    <button class="btn btn-secondary" style="width: 100%; margin-top: 15px;" onclick="parseEmail()">⚡ Semantic Parse</button>
+                    <label>💡 Deep Semantic Parser</label>
+                    <textarea id="emailInput" rows="9" placeholder="Paste quote text here...&#13;e.g. Total 21 Pallets, 4683kgs, 26.712CBM&#13;PALLET SIZE : 120*100*106 CM&#13;General cargo and stackable"></textarea>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 15px;" onclick="parseEmail()">⚡ Auto-Extract Data</button>
                 </div>
                 
                 <div>
                     <div class="row-grid row-header">
-                        <div>Qty</div><div>L (cm)</div><div>W (cm)</div><div>H (cm)</div><div>Wgt (kg/ea)</div><div></div>
+                        <div>Qty</div><div>L</div><div>W</div><div>H</div><div>Wgt/ea</div><div>Stack</div><div></div>
                     </div>
                     <div id="cargoRows"></div>
-                    <button class="btn btn-outline" onclick="addRow('', '', '', '', '')">+ Add Manual Row</button>
+                    <button class="btn btn-outline" onclick="addRow('', '', '', '', '', true)">+ Add Manual Row</button>
                     
                     <div class="summary-box">
                         <span style="font-size: 11px; font-weight: 900; color: var(--lh-yellow); text-transform: uppercase;" id="manifestSummaryLabel">Manifest Totals</span>
@@ -200,7 +186,7 @@
         </div>
 
         <div class="panel" id="stage3">
-            <h2 class="section-title">🔍 Step 3: Multi-ULD Fitment Map</h2>
+            <h2 class="section-title">🔍 Step 3: Interactive Drag & Drop Map</h2>
             
             <div class="map-layout">
                 <div class="controls-panel">
@@ -212,11 +198,8 @@
                             <div id="warningLogs" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--lh-border); font-size: 11px; color: #dc2626; font-weight: bold; line-height: 1.4; max-height: 150px; overflow-y: auto;"></div>
                         </div>
                         
-                        <label style="text-align: center;">🎯 Master Cargo Shift</label>
-                        <div class="d-pad">
-                            <div></div><button class="d-btn" onclick="shiftCargo('Z-', 10)">▲</button><div></div>
-                            <button class="d-btn" onclick="shiftCargo('X-', 10)">◀</button><button class="d-btn center" onclick="resetPos()">CTR</button><button class="d-btn" onclick="shiftCargo('X+', 10)">▶</button>
-                            <div></div><button class="d-btn" onclick="shiftCargo('Z+', 10)">▼</button><div></div>
+                        <div style="background: #fffbeb; padding: 10px; border-radius: 6px; border: 1px solid #fde68a; font-size: 11px; font-weight: bold; color: #b45309; text-align: center;">
+                            ✋ CLICK & DRAG ANY BOX TO REPOSITION
                         </div>
                     </div>
                     
@@ -230,6 +213,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
         // --- DATA STRUCTURES ---
@@ -252,26 +236,21 @@
             No_Contour_118: { maxHeight: 300, type: "flat" }
         };
 
-        let scene, camera, renderer, controls;
+        let scene, camera, renderer, controls, dragControls;
         let cargoGroup = new THREE.Group();
-        let contourWireframes = [];
-        let globalOffset = { x: 0, z: 0 };
+        let contourMeshes = [];
         let is3DReady = false;
 
-        // --- INITIALIZATION (Wrapped safely) ---
-        document.addEventListener("DOMContentLoaded", () => {
-            try {
-                addRow(20, 120, 80, 142, '');
-                updateManifestSummary();
-            } catch(e) {
-                console.error("Initialization Error:", e);
-            }
-        });
+        window.onload = function() {
+            addRow('', '', '', '', '', true);
+            updateManifestSummary();
+        };
 
-        // --- STAGE 1: LOGIC & SAFETY FALLBACKS ---
-        function addRow(qty, l, w, h, wgt) {
+        // --- STAGE 1: UI & DEEP SEMANTIC PARSER ---
+        function addRow(qty, l, w, h, wgt, stackable) {
             const container = document.getElementById('cargoRows');
             const id = 'row_' + Date.now() + Math.floor(Math.random() * 1000);
+            const isChecked = stackable ? 'checked' : '';
             const html = `
                 <div class="row-grid" id="${id}">
                     <input type="number" min="1" placeholder="Qty" value="${qty}" class="qty" oninput="updateManifestSummary()" style="text-align:center; font-weight:bold;">
@@ -279,6 +258,7 @@
                     <input type="number" min="1" placeholder="W" value="${w}" class="width" style="text-align:center; font-weight:bold;">
                     <input type="number" min="1" placeholder="H" value="${h}" class="height" style="text-align:center; font-weight:bold;">
                     <input type="number" min="0" placeholder="Kg" value="${wgt}" class="weight" oninput="updateManifestSummary()" style="text-align:center; font-weight:bold; background:#e0f2fe; color:#0369a1;">
+                    <input type="checkbox" class="stackable" ${isChecked} style="width: 20px; height: 20px; margin: 0 auto; cursor:pointer;" title="Is Stackable?">
                     <button class="btn btn-danger" onclick="document.getElementById('${id}').remove(); updateManifestSummary();">×</button>
                 </div>
             `;
@@ -290,7 +270,7 @@
             let pcs = 0, calcWeight = 0;
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
                 const q = parseInt(r.querySelector('.qty').value) || 0;
-                const w = parseFloat(r.querySelector('.weight').value) || 0; // Safe fallback if NaN/Blank
+                const w = parseFloat(r.querySelector('.weight').value) || 0;
                 pcs += q;
                 calcWeight += (q * w);
             });
@@ -307,35 +287,35 @@
         }
 
         function parseEmail() {
-            const text = document.getElementById('emailInput').value;
-            if(!text.trim()) return alert("Please paste email text into the box.");
+            // Flatten text to search across line breaks
+            const rawText = document.getElementById('emailInput').value;
+            const flatText = rawText.replace(/\n/g, ' '); 
+            
+            if(!rawText.trim()) return alert("Please paste text into the box.");
             document.getElementById('cargoRows').innerHTML = '';
             
-            let found = 0;
-            const lines = text.split(/[.\n]/);
-            
-            lines.forEach(line => {
-                const dimMatch = line.match(/(\d+(?:\.\d+)?)\s*[*xX×]\s*(\d+(?:\.\d+)?)\s*[*xX×]\s*(\d+(?:\.\d+)?)/);
-                if(dimMatch) {
-                    let l = dimMatch[1], w = dimMatch[2], h = dimMatch[3];
-                    let qtyMatch = line.match(/(\d+)\s*(?:plts|pallets|ctns|cartons|pcs|pieces|pkgs|packages|units)/i) || line.match(/^(\d+)\s/);
-                    let qty = qtyMatch ? qtyMatch[1] : 1;
-                    let wgtMatch = line.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo)/i);
-                    let wgt = wgtMatch ? wgtMatch[1] : '';
-                    
-                    addRow(qty, l, w, h, wgt);
-                    found++;
-                }
-            });
-            
-            if(found === 0) {
-                alert("Could not detect standard dimensions (LxWxH) in the text. Please add manually.");
-                addRow('', '', '', '', '');
+            // Hunt for Data anywhere in the document
+            const dimMatch = flatText.match(/(\d+(?:\.\d+)?)\s*[*xX×]\s*(\d+(?:\.\d+)?)\s*[*xX×]\s*(\d+(?:\.\d+)?)/);
+            const qtyMatch = flatText.match(/(\d+)\s*(?:plts|pallets|ctns|cartons|pcs|pieces|pkgs|packages|units)/i);
+            const wgtMatch = flatText.match(/(?:total\s*)?(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilos)/i);
+            const isNonStackable = /non-stackable|non stackable|no stack/i.test(flatText);
+
+            if(wgtMatch) {
+                document.getElementById('totalShipmentWeight').value = wgtMatch[1];
+            }
+
+            if(dimMatch) {
+                let qty = qtyMatch ? qtyMatch[1] : 1;
+                let l = dimMatch[1], w = dimMatch[2], h = dimMatch[3];
+                addRow(qty, l, w, h, '', !isNonStackable);
+            } else {
+                alert("Could not detect standard dimensions (LxWxH). Added a manual row.");
+                addRow('', '', '', '', '', true);
             }
             updateManifestSummary();
         }
 
-        // --- STAGE 2: SOFT ALERTS & OPTIMIZER SUGGESTIONS ---
+        // --- STAGE 2: WIZARD & WEIGHT AUDIT ---
         function getTotalWeight() {
             const overrideInput = parseFloat(document.getElementById('totalShipmentWeight').value);
             if (!isNaN(overrideInput) && overrideInput > 0) return overrideInput;
@@ -390,24 +370,15 @@
 
             if(num === 3) {
                 if(!is3DReady) { setTimeout(init3D, 50); }
-                else { resetPos(); }
+                else { buildScene(); }
             }
         }
 
-        // --- STAGE 3: MULTI-ULD VISUALIZER ---
-        function shiftCargo(dir, val) {
-            if(dir === 'X-') globalOffset.x -= val;
-            if(dir === 'X+') globalOffset.x += val;
-            if(dir === 'Z-') globalOffset.z -= val;
-            if(dir === 'Z+') globalOffset.z += val;
-            buildScene();
-        }
-        function resetPos() { globalOffset = {x:0, z:0}; buildScene(); }
-
+        // --- STAGE 3: MULTI-ULD 3D DRAG & DROP MAP ---
         function buildScene() {
             if(!scene) return;
             while(cargoGroup.children.length > 0){ cargoGroup.remove(cargoGroup.children[0]); }
-            if(contourWireframes.length > 0){ contourWireframes.forEach(w => scene.remove(w)); contourWireframes = []; }
+            if(contourMeshes.length > 0){ contourMeshes.forEach(w => scene.remove(w)); contourMeshes = []; }
 
             const baseKey = document.getElementById('baseSelect').value;
             const base = BASES[baseKey];
@@ -415,12 +386,13 @@
             const uldQty = parseInt(document.getElementById('uldQtyInput').value) || 1;
             const gap = 50; 
 
+            // Draw Solid Transparent Envelopes
             for(let u=0; u<uldQty; u++) {
                 drawEnvelope(base, contour, u * (base.length + gap));
             }
             controls.target.set( ((uldQty-1) * (base.length + gap))/2, contour.maxHeight/3, 0 );
 
-            let vol = 0, count = 0, critical = false, warns = [];
+            let vol = 0, count = 0, warns = [];
             let items = [];
 
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
@@ -428,47 +400,74 @@
                 const l = parseFloat(r.querySelector('.length').value) || 0;
                 const w = parseFloat(r.querySelector('.width').value) || 0;
                 const h = parseFloat(r.querySelector('.height').value) || 0;
+                const stackable = r.querySelector('.stackable').checked;
 
                 if(q > 0 && l > 0 && w > 0 && h > 0) {
                     vol += ((l*w*h)/1000000)*q;
                     count += q;
-                    if(h > contour.maxHeight) { warns.push(`❌ Height breach: ${h}cm > ${contour.maxHeight}cm limit.`); critical = true; }
-                    for(let i=0; i<q; i++) items.push({l,w,h});
+                    if(h > contour.maxHeight) { warns.push(`❌ Height breach: ${h}cm > ${contour.maxHeight}cm limit.`); }
+                    for(let i=0; i<q; i++) items.push({l,w,h,stackable});
                 }
             });
 
+            // Improved Grid & Stack Packer Logic
             let currentUld = 0;
             let cx = -base.length/2;
             let cz = -base.width/2;
-            let rowMaxZ = 0;
+            let currentY = 0;
+            let layerMaxHeight = 0;
+            let rowMaxW = 0;
 
-            items.forEach((it, i) => {
-                if (cx + it.l > base.length/2) { cx = -base.length/2; cz += rowMaxZ; rowMaxZ = 0; }
-                if (cz + it.w > base.width/2)  { currentUld++; cx = -base.length/2; cz = -base.width/2; rowMaxZ = 0; }
-
-                if (contour.type === "main-deck-asymmetric-left" && it.h > contour.slopeStartH) {
-                    const ratio = (base.width - contour.topWidth) / (contour.maxHeight - contour.slopeStartH);
-                    const allow = base.width - ((it.h - contour.slopeStartH) * ratio);
-                    if((cz + it.w) > (-base.width/2 + allow)) { warns.push(`⚠️ Item #${i+1} hits upper left fuselage taper.`); }
+            items.forEach((it) => {
+                // Check if fits in current row (X axis)
+                if (cx + it.l > base.length/2) { 
+                    cx = -base.length/2; 
+                    cz += rowMaxW; 
+                    rowMaxW = 0; 
+                }
+                
+                // Check if fits in current layer (Z axis)
+                if (cz + it.w > base.width/2) { 
+                    cx = -base.length/2; 
+                    cz = -base.width/2; 
+                    rowMaxW = 0; 
+                    currentY += layerMaxHeight;
+                    layerMaxHeight = 0;
+                }
+                
+                // If Stackable is False OR Height exceeds bounds, push to a new ULD entirely
+                if ((!it.stackable && currentY > 0) || (currentY + it.h > contour.maxHeight)) {
+                    currentUld++;
+                    cx = -base.length/2;
+                    cz = -base.width/2;
+                    currentY = 0;
+                    rowMaxW = 0;
+                    layerMaxHeight = 0;
                 }
 
-                if(it.w > rowMaxZ) rowMaxZ = it.w;
+                if(it.w > rowMaxW) rowMaxW = it.w;
+                if(it.h > layerMaxHeight) layerMaxHeight = it.h;
 
-                let globalX = cx + (it.l/2) + (currentUld * (base.length + gap)) + globalOffset.x;
-                let globalZ = cz + (it.w/2) + globalOffset.z;
+                let globalX = cx + (it.l/2) + (currentUld * (base.length + gap));
+                let globalZ = cz + (it.w/2);
 
                 const geo = new THREE.BoxGeometry(it.l, it.h, it.w);
-                const mat = new THREE.MeshPhongMaterial({ color: i%2===0 ? 0xffaa00 : 0x001b44, opacity: 0.9, transparent: true });
+                const mat = new THREE.MeshPhongMaterial({ color: it.stackable ? 0xffaa00 : 0xdc2626, opacity: 0.95, transparent: true });
                 const mesh = new THREE.Mesh(geo, mat);
-                mesh.position.set(globalX, it.h/2, globalZ);
-                mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.4 })));
+                mesh.position.set(globalX, currentY + (it.h/2), globalZ);
+                
+                // Edge Highlighting
+                mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.6 })));
+                
+                // Store user data in mesh for bounds checking later if needed
+                mesh.userData = { l: it.l, w: it.w, h: it.h };
                 cargoGroup.add(mesh);
                 
                 cx += it.l;
             });
 
-            if (currentUld >= uldQty && !critical) {
-                warns.push(`⚠️ Volumetric Spillage: Generated ${uldQty} ULD(s), but cargo spilled over onto floor positions.`);
+            if (currentUld >= uldQty) {
+                warns.push(`⚠️ Cargo required ${currentUld + 1} ULDs to pack properly, but only ${uldQty} were selected.`);
             }
 
             document.getElementById('metricsVol').innerText = `Volume: ${vol.toFixed(2)} CBM | Pcs: ${count}`;
@@ -477,15 +476,37 @@
             const logs = document.getElementById('warningLogs');
             const title = document.getElementById('statusTitle');
             
-            if(critical) { title.innerText = "❌ BOUNDS VIOLATED"; title.style.color = "#dc2626"; }
-            else if(warns.length > 0) { title.innerText = "⚠️ REPACK REQUIRED"; title.style.color = "#ea580c"; }
+            if(warns.length > 0) { title.innerText = "⚠️ REPACK REQUIRED"; title.style.color = "#ea580c"; }
             else { title.innerText = "✅ SAFE FLEET FITMENT"; title.style.color = "#16a34a"; }
+            logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
 
-            logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All limits respected. Clear to load.</span>" : warns.join('<br>');
+            // Re-init Drag Controls with new meshes
+            if(dragControls) dragControls.dispose();
+            dragControls = new THREE.DragControls(cargoGroup.children, camera, renderer.domElement);
+            
+            dragControls.addEventListener('dragstart', function (event) {
+                controls.enabled = false;
+                event.object.material.emissive.set(0x444444);
+            });
+            
+            // Lock dragging to X/Z floor plane to prevent flying boxes
+            dragControls.addEventListener('drag', function (event) {
+                event.object.position.y = event.object.userData.h / 2; 
+            });
+
+            dragControls.addEventListener('dragend', function (event) {
+                controls.enabled = true;
+                event.object.material.emissive.set(0x000000);
+            });
         }
 
+        // Renders the solid, translucent blue safety bounds
         function drawEnvelope(b, c, offsetX) {
-            const material = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 2 });
+            const material = new THREE.MeshPhysicalMaterial({ 
+                color: 0x3b82f6, transparent: true, opacity: 0.15, depthWrite: false, side: THREE.DoubleSide
+            });
+            const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x3b82f6, linewidth: 2 });
+            
             const geometry = new THREE.BufferGeometry();
             const v = [];
             const hL = b.length/2, hW = b.width/2;
@@ -509,10 +530,19 @@
             }
 
             geometry.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
-            let mesh = new THREE.LineSegments(geometry, material);
-            mesh.position.set(offsetX, c.maxHeight/2, 0);
-            scene.add(mesh);
-            contourWireframes.push(mesh);
+            
+            // Create Solid Mesh (approximated bounds)
+            const hullGeo = new THREE.BoxGeometry(b.length, c.maxHeight, b.width);
+            const hull = new THREE.Mesh(hullGeo, material);
+            hull.position.set(offsetX, c.maxHeight/2, 0);
+            
+            // Add crisp wireframes
+            const wire = new THREE.LineSegments(geometry, edgeMaterial);
+            wire.position.set(offsetX, c.maxHeight/2, 0);
+            
+            scene.add(hull);
+            scene.add(wire);
+            contourMeshes.push(hull, wire);
         }
 
         function init3D() {
@@ -526,10 +556,12 @@
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.maxPolarAngle = Math.PI / 2 - 0.05;
             controls.enableDamping = true;
+            
             scene.add(new THREE.AmbientLight(0xffffff, 0.8));
             let d = new THREE.DirectionalLight(0xffffff, 0.6); d.position.set(200, 600, 300); scene.add(d);
             let grid = new THREE.GridHelper(2000, 60, 0x1e293b, 0x0f172a); grid.position.y = -0.5; scene.add(grid);
             scene.add(cargoGroup);
+            
             animate();
             is3DReady = true;
             window.addEventListener('resize', () => {
