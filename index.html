@@ -3,25 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Multi-Step ULD Builder</title>
+    <title>Lufthansa Cargo ULD Optimizer Tool</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        /* Lufthansa Corporate Brand Colors Styling Overrides */
+        .lh-navy { bg-color: #001b44; }
+        .text-lh-yellow { color: #ffaa00; }
+        .bg-lh-yellow { background-color: #ffaa00; }
+        .border-lh-yellow { border-color: #ffaa00; }
+    </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
 
-    <header class="bg-slate-900 border-b border-slate-800 p-4 shadow-xl">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div>
-                <h1 class="text-xl font-black text-amber-400 tracking-wide">LH Flight Load Planning Tool</h1>
-                <p class="text-xs text-slate-400 font-medium font-mono">Multi-Stage Volumetric Optimizer</p>
+    <header class="bg-[#001b44] border-b-4 border-[#ffaa00] p-4 shadow-xl">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-[#ffaa00] rounded-full flex items-center justify-center font-black text-[#001b44] text-lg tracking-tighter shadow-md">
+                    LH
+                </div>
+                <div>
+                    <h1 class="text-xl font-black text-white tracking-wide uppercase">Lufthansa Cargo</h1>
+                    <p class="text-xs text-slate-300 font-medium font-mono">Flight Operations Load Planning Matrix</p>
+                </div>
             </div>
-            <div class="flex items-center space-x-2 text-xs font-bold font-mono">
-                <span id="stepBadge1" class="px-2 py-1 bg-amber-500 text-slate-950 rounded">1. CARGO</span>
+            
+            <div class="flex items-center space-x-2 text-xxs sm:text-xs font-bold font-mono">
+                <span id="stepBadge1" class="px-2.5 py-1 bg-[#ffaa00] text-[#001b44] rounded shadow-sm transition-all duration-300">1. DIMENSIONS</span>
+                <span class="text-slate-400">→</span>
+                <span id="stepBadge2" class="px-2.5 py-1 bg-slate-800 text-slate-400 rounded transition-all duration-300">2. ULD SELECT</span>
                 <span class="text-slate-600">→</span>
-                <span id="stepBadge2" class="px-2 py-1 bg-slate-800 text-slate-400 rounded">2. ULD SELECT</span>
-                <span class="text-slate-600">→</span>
-                <span id="stepBadge3" class="px-2 py-1 bg-slate-800 text-slate-400 rounded">3. 3D MAP</span>
+                <span id="stepBadge3" class="px-2.5 py-1 bg-slate-800 text-slate-400 rounded transition-all duration-300">3. 3D VISUAL MAP</span>
             </div>
         </div>
     </header>
@@ -29,31 +42,110 @@
     <main class="flex-1 max-w-6xl w-full mx-auto p-4 flex flex-col justify-center items-center">
         
         <div id="panelStage1" class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-6">
-            <div>
-                <h2 class="text-lg font-black text-amber-400 uppercase tracking-wider">📦 Step 1: Input Shipment Specifications</h2>
-                <p class="text-xs text-slate-400">Enter package quantities and exact physical dimensions (cm) below.</p>
+            <div class="border-l-4 border-[#ffaa00] pl-3">
+                <h2 class="text-lg font-black text-[#ffaa00] uppercase tracking-wider">📦 Step 1: Input Shipment Specifications</h2>
+                <p class="text-xs text-slate-400">Enter your core package physical dimensions matrix (cm) below.</p>
             </div>
 
             <div class="space-y-3">
-                <div class="grid grid-cols-12 gap-2 text-center text-[10px] font-bold text-slate-500 uppercase tracking-wider px-1">
+                <div class="grid grid-cols-12 gap-2 text-center text-[10px] font-black text-slate-400 uppercase tracking-wider px-1">
                     <div class="col-span-2">Qty (Pcs)</div>
                     <div class="col-span-3">Length (cm)</div>
                     <div class="col-span-3">Width (cm)</div>
                     <div class="col-span-3">Height (cm)</div>
                     <div class="col-span-1"></div>
                 </div>
-                <div id="cargoRowsContainer" class="space-y-2.5 max-h-64 overflow-y-auto pr-1"></div>
                 
-                <button onclick="addManualRow()" class="text-xs text-amber-400 font-bold bg-slate-950 border border-slate-800 hover:bg-slate-800 transition px-3 py-1.5 rounded shadow-sm">
+                <div id="cargoRowsContainer" class="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                    </div>
+                
+                <button onclick="addManualRow('', '', '', '')" class="text-xs text-[#ffaa00] font-black bg-slate-950 border border-slate-800 hover:bg-slate-800 hover:border-slate-700 transition px-4 py-2 rounded-lg shadow-sm">
                     + Add New Package Line
                 </button>
             </div>
 
             <div class="border-t border-slate-800 pt-4 flex justify-end">
-                <button onclick="goToStage2()" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black px-6 py-2.5 rounded-lg shadow-lg transition text-xs uppercase tracking-wider">
+                <button onclick="goToStage2()" class="bg-[#ffaa00] hover:bg-yellow-400 text-[#001b44] font-black px-6 py-2.5 rounded-lg shadow-lg transition text-xs uppercase tracking-wider transform active:scale-95">
                     Proceed to ULD Matching →
                 </button>
             </div>
         </div>
 
-        <div id="panelStage2" class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl
+        <div id="panelStage2" class="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-2xl space-y-6 hidden">
+            <div class="border-l-4 border-[#ffaa00] pl-3">
+                <h2 class="text-lg font-black text-[#ffaa00] uppercase tracking-wider">📋 Step 2: Select Independent Base &amp; Contour Matrix</h2>
+                <p class="text-xs text-slate-400">Pair your designated fleet platform size against the operational fuselage configuration envelope guidelines.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-2">
+                    <label class="block text-xs font-bold uppercase text-slate-400 tracking-wide">1. Base Pallet Footprint</label>
+                    <select id="basePalletSelect" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-[#ffaa00]">
+                        <option value="PMC">PMC / P6P Standard Pallet (318 x 244 cm / 125" x 96")</option>
+                        <option value="PZA">PZA Wide Maindeck Pallet (411 x 244 cm / 162" x 96" — Requires 2x J4 Tail-zone minimum)</option>
+                        <option value="PGE">PGE Maindeck Oversized Pallet (606 x 244 cm / 238.5" x 96" — Spans 2x J4 blocks minimum)</option>
+                        <option value="PAJ">PAJ / P1P Medium Pallet (318 x 224 cm / 125" x 88")</option>
+                        <option value="PLA">PLA Lower Deck Pallet (318 x 153 cm / 125" x 60.4")</option>
+                        <option value="PKC">PKC Narrow-Body Pallet (156 x 153 cm / 61.5" x 60.4")</option>
+                    </select>
+                </div>
+
+                <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 space-y-2">
+                    <label class="block text-xs font-bold uppercase text-slate-400 tracking-wide">2. Target Aircraft Hull Contour</label>
+                    <select id="contourSelect" class="w-full bg-slate-900 border border-slate-700 rounded-md p-2.5 text-white text-xs font-semibold focus:outline-none focus:border-[#ffaa00]">
+                        <optgroup label="Lower Deck Envelopes (Widebody Passenger/Freighter Route Profiles)">
+                            <option value="Contour_A">Contour A (Lower Deck AKE / AKH Box Profile — Max H: 163 cm)</option>
+                            <option value="Contour_F">Contour F (Lower Deck Pallet Contour — Max H: 163 cm / Outward Belly Curved Wings)</option>
+                            <option value="Contour_H_E">Contour H / E / N (Lower Deck Standard Slopes — Max H: 163 cm)</option>
+                        </optgroup>
+                        <optgroup label="B777F Maindeck Cargo Configurations">
+                            <option value="Contour_J3">Contour J3 (B777F Maindeck Position R — Max H: 300 cm / Left Asymmetric Side Taper)</option>
+                            <option value="Contour_J4">Contour J4 (B777F Maindeck Position R Rear — Max H: 300 cm / Extended Left Tail Taper)</option>
+                            <option value="Contour_J1">Contour J1 (B777F Maindeck Standard Cross-Section — Max H: 244 cm / Dual Slope)</option>
+                        </optgroup>
+                        <optgroup label="A321F Narrowbody Freighter Configurations">
+                            <option value="Contour_Y">Contour Y (A321F Maindeck Mainline Profile — Max H: 208 cm / Curved Arch)</option>
+                            <option value="Contour_W">Contour W (A321F Lower Deck Sliding Matrix — Max H: 114 cm)</option>
+                        </optgroup>
+                        <optgroup label="Unrestricted Linear Envelope Block Layout Shapes">
+                            <option value="No_Contour_96">Flat Box Envelope (Max H: 244 cm / 96" Linear Cube)</option>
+                            <option value="No_Contour_118">Flat Box Envelope (Max H: 300 cm / 118" Maindeck High-Cube)</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-4 flex justify-between items-center">
+                <button onclick="backToStage1()" class="text-xs font-bold text-slate-400 hover:text-slate-200 transition">
+                    ← Back to Dimensions
+                </button>
+                <button onclick="goToStage3()" class="bg-[#ffaa00] hover:bg-yellow-400 text-[#001b44] font-black px-6 py-2.5 rounded-lg shadow-lg transition text-xs uppercase tracking-wider">
+                    Generate Interactive 3D Map →
+                </button>
+            </div>
+        </div>
+
+        <div id="panelStage3" class="w-full flex flex-col lg:flex-row gap-4 h-[550px] hidden">
+            <div class="w-full lg:w-4/12 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between shadow-2xl">
+                <div class="space-y-4">
+                    <div class="border-l-4 border-[#ffaa00] pl-3">
+                        <h2 class="text-md font-black text-[#ffaa00] uppercase tracking-wider">🔍 Step 3: Fitment Visualizer Map</h2>
+                        <p class="text-[11px] text-slate-400">Review space calculations below. Shift components using manual control keys to map tight safety layouts.</p>
+                    </div>
+
+                    <div id="resultPanel" class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 shadow-inner">
+                        <h3 class="font-black text-xs uppercase mb-0.5 tracking-wider" id="statusTitle">Fit Analysis Pending</h3>
+                        <p class="text-xs text-slate-400 mb-2 font-mono" id="metricsText">Total Volume: -- cbm</p>
+                        <div id="warningLogs" class="text-xxs space-y-0.5 text-orange-400 font-mono max-h-32 overflow-y-auto border-t border-slate-900 pt-2"></div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 space-y-2">
+                    <span class="block text-[10px] font-black uppercase text-slate-500 tracking-wider text-center">🎯 Manual Alignment Controls</span>
+                    <div class="grid grid-cols-3 gap-1.5 max-w-[180px] mx-auto">
+                        <div></div>
+                        <button onclick="shiftCargo('Z-', 10)" class="bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs py-1 rounded border border-slate-700">▲ Z-</button>
+                        <div></div>
+                        <button onclick="shiftCargo('X-', 10)" class="bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs py-1 rounded border border-slate-700">◀ X-</button>
+                        <button onclick="resetPosition()" class="bg-slate-900 hover:bg-slate-800 text-[#ffaa00] text-[10px] font-bold uppercase py-1 rounded border border-slate-700">Center</button>
+                        <button onclick="shiftCargo('X+',
