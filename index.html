@@ -4,109 +4,152 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lufthansa Cargo Flight Load Planner</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        lh: { navy: '#001b44', yellow: '#ffaa00', gray: '#f3f4f6', border: '#e5e7eb' }
-                    }
-                }
-            }
-        }
-    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <style>
+        :root {
+            --lh-navy: #001b44;
+            --lh-yellow: #ffaa00;
+            --lh-yellow-hover: #e69900;
+            --lh-light: #f4f5f7;
+            --lh-border: #d1d5db;
+            --lh-text: #1f2937;
+        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { margin: 0; background-color: var(--lh-light); color: var(--lh-text); min-height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Header */
+        header { background-color: var(--lh-navy); border-bottom: 4px solid var(--lh-yellow); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: white; }
+        .logo-group { display: flex; align-items: center; gap: 15px; }
+        .lh-icon { background: var(--lh-yellow); color: var(--lh-navy); font-weight: 900; font-size: 20px; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .title h1 { margin: 0; font-size: 22px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; }
+        .title p { margin: 2px 0 0 0; color: var(--lh-yellow); font-size: 11px; font-family: monospace; letter-spacing: 2px; }
+        
+        /* Step Tracker */
+        .step-tracker { display: flex; gap: 10px; align-items: center; font-size: 12px; font-weight: bold; }
+        .step { padding: 6px 12px; border-radius: 4px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
+        .step.active { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 2px 8px rgba(255,170,0,0.4); }
+        
+        /* Main Layout */
+        main { flex: 1; max-w-width: 1200px; width: 100%; margin: 0 auto; padding: 30px; display: flex; justify-content: center; }
+        .panel { background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 30px; width: 100%; max-width: 1000px; display: none; border: 1px solid var(--lh-border); }
+        .panel.active { display: block; }
+        
+        /* Typography & Structure */
+        .section-title { font-size: 18px; color: var(--lh-navy); margin-top: 0; margin-bottom: 5px; text-transform: uppercase; border-left: 4px solid var(--lh-yellow); padding-left: 10px; font-weight: 900; }
+        .section-desc { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
+        .grid-half { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        /* Forms & Inputs */
+        label { font-weight: 800; font-size: 11px; text-transform: uppercase; color: var(--lh-navy); margin-bottom: 8px; display: block; }
+        textarea, select, input { width: 100%; padding: 12px; border: 1px solid var(--lh-border); border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; background: #f9fafb; }
+        textarea:focus, select:focus, input:focus { border-color: var(--lh-yellow); box-shadow: 0 0 0 3px rgba(255,170,0,0.15); background: white; }
+        
+        /* Buttons */
+        .btn { padding: 12px 24px; font-weight: 800; border-radius: 6px; cursor: pointer; transition: 0.2s; border: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; display: inline-flex; align-items: center; justify-content: center; }
+        .btn-primary { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 4px 10px rgba(255,170,0,0.3); }
+        .btn-primary:hover { background: var(--lh-yellow-hover); transform: translateY(-1px); }
+        .btn-secondary { background: var(--lh-navy); color: white; }
+        .btn-secondary:hover { background: #002b66; }
+        .btn-outline { background: white; border: 2px dashed var(--lh-border); color: var(--lh-navy); width: 100%; margin-top: 10px; }
+        .btn-outline:hover { border-color: var(--lh-yellow); background: #fffdf5; }
+        .btn-danger { background: #fee2e2; color: #dc2626; padding: 8px; margin-left: 5px; }
+        .btn-danger:hover { background: #fca5a5; }
+        
+        /* Cargo Row Grid */
+        .row-grid { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr 40px; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .row-header { font-size: 10px; font-weight: 900; color: #6b7280; text-transform: uppercase; text-align: center; }
+        #cargoRows { max-height: 250px; overflow-y: auto; padding-right: 5px; }
+        
+        /* Weight Readout Box */
+        .weight-box { background: var(--lh-navy); border-radius: 8px; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border: 1px solid #002b66; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        .status-badge { padding: 8px 16px; border-radius: 4px; font-weight: 900; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+        .badge-ok { background: #10b981; color: white; }
+        .badge-fail { background: #ef4444; color: white; animation: pulse 2s infinite; }
+        
+        /* 3D Map Area */
+        .map-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; height: 600px; }
+        .controls-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+        #canvasContainer { background: #020813; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--lh-border); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        
+        /* D-PAD */
+        .d-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; max-width: 150px; margin: 0 auto; }
+        .d-btn { background: var(--lh-navy); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .d-btn:hover { background: #002b66; }
+        .d-btn.center { background: white; color: var(--lh-navy); border: 1px solid var(--lh-border); font-size: 10px; }
+        
+        /* Footer Actions */
+        .actions { border-top: 1px solid var(--lh-border); padding-top: 20px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .text-link { background: none; border: none; color: #6b7280; font-weight: bold; cursor: pointer; padding: 0; font-size: 13px; }
+        .text-link:hover { color: var(--lh-navy); text-decoration: underline; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+    </style>
 </head>
-<body class="bg-lh-gray text-slate-800 min-h-screen flex flex-col font-sans antialiased selection:bg-lh-yellow selection:text-lh-navy">
+<body>
 
-    <header class="bg-lh-navy border-b-4 border-lh-yellow p-4 shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="flex items-center space-x-4">
-                <div class="w-12 h-12 bg-lh-yellow rounded-full flex items-center justify-center font-black text-lh-navy text-xl shadow-lg border-2 border-white/20">
-                    LH
-                </div>
-                <div>
-                    <h1 class="text-2xl font-black text-white tracking-wide uppercase">Lufthansa Cargo</h1>
-                    <p class="text-xs text-lh-yellow font-bold font-mono tracking-widest">FLIGHT LOAD OPTIMIZER & COMPLIANCE MATRIX</p>
-                </div>
+    <header>
+        <div class="logo-group">
+            <div class="lh-icon">LH</div>
+            <div class="title">
+                <h1>Lufthansa Cargo</h1>
+                <p>LOAD COMPLIANCE MATRIX</p>
             </div>
-            
-            <div class="flex items-center space-x-2 text-xs font-bold font-mono">
-                <span id="stepBadge1" class="px-3 py-1.5 bg-lh-yellow text-lh-navy rounded font-black shadow transition-all">1. MANIFEST</span>
-                <span class="text-slate-400">→</span>
-                <span id="stepBadge2" class="px-3 py-1.5 bg-white/10 text-white/50 rounded transition-all">2. ULD WEIGHTS</span>
-                <span class="text-slate-400">→</span>
-                <span id="stepBadge3" class="px-3 py-1.5 bg-white/10 text-white/50 rounded transition-all">3. 3D MAP</span>
-            </div>
+        </div>
+        <div class="step-tracker">
+            <div class="step active" id="badge1">1. MANIFEST & WEIGHTS</div>
+            <div class="step" id="badge2">2. ULD SELECTOR</div>
+            <div class="step" id="badge3">3. 3D MAP</div>
         </div>
     </header>
 
-    <main class="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col justify-center items-center my-6">
-        
-        <div id="panelStage1" class="w-full max-w-5xl bg-white border border-lh-border rounded-xl p-6 shadow-xl space-y-6">
-            <div class="border-l-4 border-lh-yellow pl-3">
-                <h2 class="text-xl font-black text-lh-navy uppercase tracking-wider">📦 Step 1: Shipment Manifest & Weights</h2>
-                <p class="text-sm text-slate-500 font-medium">Extract physical dimensions (cm) and weights (kg) from client emails, or enter them manually.</p>
-            </div>
-
-            <div class="flex flex-col md:flex-row gap-6">
-                <div class="w-full md:w-5/12 bg-slate-50 p-4 rounded-xl border border-lh-border flex flex-col">
-                    <label class="block text-xs font-black uppercase tracking-wider text-lh-navy mb-2">💡 Auto-Extract from Text</label>
-                    <textarea id="emailInput" rows="7" class="w-full bg-white border border-lh-border rounded-lg p-3 text-sm text-slate-700 focus:ring-2 focus:ring-lh-yellow focus:border-lh-yellow font-mono shadow-sm" placeholder="Paste client email here...&#13;e.g. 4 pallets of 120x80x150cm weighing 450kg each."></textarea>
-                    <button onclick="parseEmailText()" class="w-full mt-4 bg-lh-navy hover:bg-blue-900 text-white font-bold text-xs py-3 px-4 rounded-lg transition shadow uppercase tracking-wider">
-                        ⚡ Extract Dimensions & Weights
-                    </button>
+    <main>
+        <div class="panel active" id="stage1">
+            <h2 class="section-title">📦 Step 1: Shipment Manifest & Weights</h2>
+            <p class="section-desc">Extract physical dimensions (cm) and weights (kg) from client emails, or enter them manually.</p>
+            
+            <div class="grid-2">
+                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
+                    <label>💡 Auto-Extract Parser</label>
+                    <textarea id="emailInput" rows="7" placeholder="Paste client email here...&#13;e.g. 4 pcs 120x80x150cm weighing 450kg each."></textarea>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 15px;" onclick="parseEmail()">⚡ Parse Email Text</button>
                 </div>
-
-                <div class="w-full md:w-7/12 flex flex-col">
-                    <div class="grid grid-cols-12 gap-2 text-center text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 pr-2">
-                        <div class="col-span-2">Qty</div>
-                        <div class="col-span-2">L (cm)</div>
-                        <div class="col-span-2">W (cm)</div>
-                        <div class="col-span-2">H (cm)</div>
-                        <div class="col-span-3">Weight (kg/ea)</div>
-                        <div class="col-span-1"></div>
+                
+                <div>
+                    <div class="row-grid row-header">
+                        <div>Qty</div><div>L (cm)</div><div>W (cm)</div><div>H (cm)</div><div>Wgt (kg/ea)</div><div></div>
                     </div>
-                    
-                    <div id="cargoRowsContainer" class="space-y-2 max-h-[220px] overflow-y-auto pr-2 pb-2"></div>
-                    
-                    <button onclick="addManualRow('', '', '', '', '')" class="mt-3 text-xs text-lh-navy font-bold bg-slate-50 border-2 border-dashed border-slate-300 hover:border-lh-yellow hover:bg-yellow-50 transition py-2 rounded-lg w-full">
-                        + Add Manual Package Line
-                    </button>
+                    <div id="cargoRows"></div>
+                    <button class="btn btn-outline" onclick="addRow('', '', '', '', '')">+ Add Manual Row</button>
                 </div>
             </div>
-
-            <div class="border-t border-lh-border pt-5 flex justify-end">
-                <button onclick="goToStage2()" class="bg-lh-yellow hover:bg-yellow-400 text-lh-navy font-black px-8 py-3 rounded-lg shadow-md transition text-sm uppercase tracking-wider active:scale-95">
-                    Proceed to ULD Selection →
-                </button>
+            
+            <div class="actions" style="justify-content: flex-end;">
+                <button class="btn btn-primary" onclick="goToStage(2)">Proceed to ULD Selection →</button>
             </div>
         </div>
 
-        <div id="panelStage2" class="w-full max-w-4xl bg-white border border-lh-border rounded-xl p-6 shadow-xl space-y-6 hidden">
-            <div class="border-l-4 border-lh-yellow pl-3">
-                <h2 class="text-xl font-black text-lh-navy uppercase tracking-wider">⚖️ Step 2: ULD & Structural Weight Audit</h2>
-                <p class="text-sm text-slate-500 font-medium">Verify payload limits and select fuselage envelopes.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div class="bg-slate-50 p-5 rounded-xl border border-lh-border">
-                    <label class="block text-xs font-black uppercase text-lh-navy tracking-wide mb-2">1. Base Pallet Footprint</label>
-                    <select id="basePalletSelect" class="w-full bg-white border border-lh-border rounded-lg p-3 text-slate-800 text-sm font-semibold focus:ring-2 focus:ring-lh-yellow shadow-sm">
-                        <option value="PMC">PMC/P6P (318 x 244 cm / Max: 5100 kg)</option>
-                        <option value="PZA">PZA Wide (411 x 244 cm / Max: 6800 kg)</option>
-                        <option value="PGE">PGE Oversize (606 x 244 cm / Max: 11300 kg)</option>
-                        <option value="PAJ">PAJ/P1P (318 x 224 cm / Max: 4626 kg)</option>
-                        <option value="PLA">PLA Lower (318 x 153 cm / Max: 3175 kg)</option>
-                        <option value="PKC">PKC Narrow (156 x 153 cm / Max: 1587 kg)</option>
+        <div class="panel" id="stage2">
+            <h2 class="section-title">⚖️ Step 2: ULD & Structural Weight Audit</h2>
+            <p class="section-desc">Verify payload capacities and select the target aircraft fuselage envelope.</p>
+            
+            <div class="grid-half">
+                <div>
+                    <label>1. Base Pallet Target Footprint</label>
+                    <select id="baseSelect" onchange="runWeightAudit()">
+                        <option value="PMC">PMC / P6P (318 x 244 cm / Max: 5100 kg)</option>
+                        <option value="PZA">PZA Wide Maindeck (411 x 244 cm / Max: 6800 kg)</option>
+                        <option value="PGE">PGE Oversize Maindeck (606 x 244 cm / Max: 11300 kg)</option>
+                        <option value="PAJ">PAJ / P1P (318 x 224 cm / Max: 4626 kg)</option>
+                        <option value="PLA">PLA Lower Deck (318 x 153 cm / Max: 3175 kg)</option>
+                        <option value="PKC">PKC Narrow-Body (156 x 153 cm / Max: 1587 kg)</option>
                     </select>
                 </div>
-
-                <div class="bg-slate-50 p-5 rounded-xl border border-lh-border">
-                    <label class="block text-xs font-black uppercase text-lh-navy tracking-wide mb-2">2. Target Hull Contour</label>
-                    <select id="contourSelect" class="w-full bg-white border border-lh-border rounded-lg p-3 text-slate-800 text-sm font-semibold focus:ring-2 focus:ring-lh-yellow shadow-sm">
+                <div>
+                    <label>2. Target Hull Contour / Safety Envelope</label>
+                    <select id="contourSelect">
                         <optgroup label="Maindeck B777F">
                             <option value="Contour_J3">Contour J3 (B777F Fwd/Mid — Left Taper)</option>
                             <option value="Contour_J4">Contour J4 (B777F Aft Tail — Heavy Taper)</option>
@@ -116,30 +159,333 @@
                             <option value="Contour_F">Contour F (Pallet Base — Outward Belly)</option>
                             <option value="Contour_A">Contour A (AKE/AKH Container Matrix)</option>
                         </optgroup>
-                        <optgroup label="A321F / Unrestricted">
+                        <optgroup label="A321F / Flat">
                             <option value="Contour_Y">Contour Y (A321F Maindeck Arch)</option>
                             <option value="No_Contour_118">No Contour (300cm Flat Box Envelope)</option>
                         </optgroup>
                     </select>
                 </div>
             </div>
-
-            <div id="weightComplianceBox" class="bg-lh-navy p-5 rounded-xl flex flex-col md:flex-row justify-between items-center shadow-inner border border-blue-900">
-                <div class="text-white mb-3 md:mb-0">
-                    <h4 class="text-xs font-bold text-lh-yellow uppercase tracking-wide">Payload Compliance Monitoring</h4>
-                    <p id="weightComparisonText" class="text-lg font-black mt-1 tracking-wide">Total: -- kg / Max: -- kg</p>
+            
+            <div class="weight-box">
+                <div>
+                    <div style="color: var(--lh-yellow); font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;">Payload Compliance Monitor</div>
+                    <div id="weightText" style="font-size: 22px; font-weight: 900;">Total: -- kg / Max: -- kg</div>
                 </div>
-                <span id="weightStatusBadge" class="px-4 py-2 rounded-lg font-black text-sm uppercase tracking-wider shadow">Pending</span>
+                <div id="weightBadge" class="status-badge badge-ok">CALCULATING</div>
             </div>
-
-            <div class="border-t border-lh-border pt-5 flex justify-between items-center">
-                <button onclick="backToStage1()" class="text-sm font-bold text-slate-500 hover:text-lh-navy transition">
-                    ← Back to Manifest
-                </button>
-                <button id="btnGoToStage3" onclick="goToStage3()" class="bg-lh-yellow hover:bg-yellow-400 text-lh-navy font-black px-8 py-3 rounded-lg shadow-md transition text-sm uppercase tracking-wider active:scale-95">
-                    Generate 3D Fitment Map →
-                </button>
+            
+            <div class="actions">
+                <button class="text-link" onclick="goToStage(1)">← Back to Manifest</button>
+                <button class="btn btn-primary" id="btnNext3" onclick="goToStage(3)">Generate 3D Map →</button>
             </div>
         </div>
 
-        <div id="panelStage3" class="w-full flex flex-col lg:flex-row gap-5 h-[600px] hidden">
+        <div class="panel" id="stage3">
+            <h2 class="section-title">🔍 Step 3: Interactive Fitment Map</h2>
+            
+            <div class="map-layout">
+                <div class="controls-panel">
+                    <div>
+                        <div style="background: white; border: 1px solid var(--lh-border); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                            <h3 id="statusTitle" style="margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; font-weight: 900;">Analysis Pending</h3>
+                            <div style="font-size: 12px; font-weight: bold; color: #4b5563; margin-bottom: 5px;" id="metricsVol">Volume: -- cbm</div>
+                            <div style="font-size: 12px; font-weight: bold; color: #4b5563;" id="metricsWgt">Payload: -- kg</div>
+                            <div id="warningLogs" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--lh-border); font-size: 11px; color: #dc2626; font-weight: bold; line-height: 1.4;"></div>
+                        </div>
+                        
+                        <label style="text-align: center;">🎯 Manual Offset Alignment</label>
+                        <div class="d-pad">
+                            <div></div><button class="d-btn" onclick="shiftCargo('Z-', 10)">▲</button><div></div>
+                            <button class="d-btn" onclick="shiftCargo('X-', 10)">◀</button><button class="d-btn center" onclick="resetPos()">CTR</button><button class="d-btn" onclick="shiftCargo('X+', 10)">▶</button>
+                            <div></div><button class="d-btn" onclick="shiftCargo('Z+', 10)">▼</button><div></div>
+                        </div>
+                    </div>
+                    
+                    <button class="text-link" style="text-align: left;" onclick="goToStage(2)">← Re-Configure ULD</button>
+                </div>
+                
+                <div id="canvasContainer"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- 1. DATA STRUCTURES ---
+        const BASES = {
+            PMC: { length: 318, width: 244, maxWeight: 5100 },
+            PZA: { length: 411, width: 244, maxWeight: 6800 },
+            PGE: { length: 606, width: 244, maxWeight: 11300 },
+            PAJ: { length: 318, width: 224, maxWeight: 4626 },
+            PLA: { length: 318, width: 153, maxWeight: 3175 },
+            PKC: { length: 156, width: 153, maxWeight: 1587 }
+        };
+
+        const CONTOURS = {
+            Contour_F: { maxHeight: 163, type: "lower-deck-slope", slopeStartH: 50, narrowWidth: 200 },
+            Contour_A: { maxHeight: 163, type: "lower-deck-container-ake", slopeStartH: 0, narrowWidth: 156 },
+            Contour_J3: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 195, topWidth: 162 },
+            Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 160, topWidth: 120 },
+            Contour_J1: { maxHeight: 244, type: "main-deck-symmetric-taper", slopeStartH: 180, topWidth: 180 },
+            Contour_Y: { maxHeight: 208, type: "main-deck-symmetric-arch", slopeStartH: 140, topWidth: 140 },
+            No_Contour_118: { maxHeight: 300, type: "flat" }
+        };
+
+        let scene, camera, renderer, controls;
+        let cargoGroup = new THREE.Group();
+        let contourWireframe = null;
+        let globalOffset = { x: 0, z: 0 };
+        let is3DReady = false;
+
+        // --- 2. INITIALIZATION ---
+        window.onload = function() {
+            addRow(4, 120, 80, 100, 250);
+            addRow(1, 200, 100, 150, 800);
+        };
+
+        // --- 3. UI LOGIC (STAGE 1) ---
+        function addRow(qty, l, w, h, wgt) {
+            const container = document.getElementById('cargoRows');
+            const id = 'row_' + Date.now() + Math.floor(Math.random() * 1000);
+            const html = `
+                <div class="row-grid" id="${id}">
+                    <input type="number" min="1" placeholder="Qty" value="${qty}" class="qty" style="text-align:center; font-weight:bold;">
+                    <input type="number" min="1" placeholder="L" value="${l}" class="length" style="text-align:center; font-weight:bold;">
+                    <input type="number" min="1" placeholder="W" value="${w}" class="width" style="text-align:center; font-weight:bold;">
+                    <input type="number" min="1" placeholder="H" value="${h}" class="height" style="text-align:center; font-weight:bold;">
+                    <input type="number" min="0" placeholder="Kg" value="${wgt}" class="weight" style="text-align:center; font-weight:bold; background:#e0f2fe;">
+                    <button class="btn btn-danger" onclick="document.getElementById('${id}').remove()">×</button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+        }
+
+        // Robust Line-by-Line Email Parser
+        function parseEmail() {
+            const text = document.getElementById('emailInput').value;
+            if(!text.trim()) return alert("Please paste email text into the box.");
+            document.getElementById('cargoRows').innerHTML = '';
+            
+            let found = 0;
+            const lines = text.split('\n');
+            
+            lines.forEach(line => {
+                // Hunt for dimensions (e.g. 120x80x100)
+                const dimMatch = line.match(/(\d+(?:\.\d+)?)\s*[xX*×]\s*(\d+(?:\.\d+)?)\s*[xX*×]\s*(\d+(?:\.\d+)?)/);
+                if(dimMatch) {
+                    let l = dimMatch[1], w = dimMatch[2], h = dimMatch[3];
+                    
+                    // Hunt for Qty
+                    let qtyMatch = line.match(/(\d+)\s*(?:pcs|pieces|pallets|pkgs|x|units)/i) || line.match(/^(\d+)\s/);
+                    let qty = qtyMatch ? qtyMatch[1] : 1;
+                    
+                    // Hunt for Weight (kg, kgs, kilos)
+                    let wgtMatch = line.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo)/i);
+                    let wgt = wgtMatch ? wgtMatch[1] : 0;
+                    
+                    addRow(qty, l, w, h, wgt);
+                    found++;
+                }
+            });
+            
+            if(found === 0) {
+                alert("Could not detect LxWxH format in text. Please add lines manually.");
+                addRow('', '', '', '', '');
+            }
+        }
+
+        // --- 4. WIZARD NAVIGATION & WEIGHT AUDIT (STAGE 2) ---
+        function getTotalWeight() {
+            let sum = 0;
+            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
+                const q = parseInt(r.querySelector('.qty').value) || 0;
+                const w = parseFloat(r.querySelector('.weight').value) || 0;
+                sum += (q * w);
+            });
+            return sum;
+        }
+
+        function runWeightAudit() {
+            const baseKey = document.getElementById('baseSelect').value;
+            const maxWgt = BASES[baseKey].maxWeight;
+            const actualWgt = getTotalWeight();
+
+            document.getElementById('weightText').innerText = `Total: ${actualWgt} kg / Max: ${maxWgt} kg`;
+            const badge = document.getElementById('weightBadge');
+            const btn = document.getElementById('btnNext3');
+
+            if(actualWgt > maxWgt) {
+                badge.className = "status-badge badge-fail";
+                badge.innerText = "OVERWEIGHT RESTRICTION";
+                btn.disabled = true;
+                btn.style.opacity = "0.5";
+                btn.style.cursor = "not-allowed";
+            } else {
+                badge.className = "status-badge badge-ok";
+                badge.innerText = "CAPACITY OK";
+                btn.disabled = false;
+                btn.style.opacity = "1";
+                btn.style.cursor = "pointer";
+            }
+        }
+
+        function goToStage(num) {
+            // Validation moving from Stage 1 to 2
+            if(num === 2) {
+                const rows = document.querySelectorAll('#cargoRows .row-grid');
+                if(rows.length === 0) return alert("Please add at least one cargo row.");
+                runWeightAudit();
+            }
+            
+            // UI Toggle
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('stage' + num).classList.add('active');
+            
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('badge' + num).classList.add('active');
+
+            // 3D Init moving to Stage 3
+            if(num === 3) {
+                if(!is3DReady) { setTimeout(init3D, 50); }
+                else { resetPos(); }
+            }
+        }
+
+        // --- 5. 3D VISUALIZATION ENGINE (STAGE 3) ---
+        function shiftCargo(dir, val) {
+            if(dir === 'X-') globalOffset.x -= val;
+            if(dir === 'X+') globalOffset.x += val;
+            if(dir === 'Z-') globalOffset.z -= val;
+            if(dir === 'Z+') globalOffset.z += val;
+            buildScene();
+        }
+        function resetPos() { globalOffset = {x:0, z:0}; buildScene(); }
+
+        function buildScene() {
+            if(!scene) return;
+            while(cargoGroup.children.length > 0){ cargoGroup.remove(cargoGroup.children[0]); }
+            if(contourWireframe) scene.remove(contourWireframe);
+
+            const base = BASES[document.getElementById('baseSelect').value];
+            const contour = CONTOURS[document.getElementById('contourSelect').value];
+
+            drawEnvelope(base, contour);
+
+            let vol = 0, count = 0, critical = false, warns = [];
+            let items = [];
+
+            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
+                const q = parseInt(r.querySelector('.qty').value) || 0;
+                const l = parseFloat(r.querySelector('.length').value) || 0;
+                const w = parseFloat(r.querySelector('.width').value) || 0;
+                const h = parseFloat(r.querySelector('.height').value) || 0;
+
+                if(q > 0 && l > 0 && w > 0 && h > 0) {
+                    vol += ((l*w*h)/1000000)*q;
+                    count += q;
+                    if(h > contour.maxHeight) { warns.push(`❌ Height breach: ${h}cm > ${contour.maxHeight}cm limit.`); critical = true; }
+                    for(let i=0; i<q; i++) items.push({l,w,h});
+                }
+            });
+
+            let cx = (-base.length/2) + globalOffset.x;
+            let cz = (-base.width/2) + globalOffset.z;
+            let mz = 0;
+
+            items.forEach((it, i) => {
+                if(cx + it.l > (base.length/2) + globalOffset.x) { cx = (-base.length/2) + globalOffset.x; cz += mz; mz = 0; }
+                
+                // Math checks for slopes
+                if(contour.type === "main-deck-asymmetric-left" && it.h > contour.slopeStartH) {
+                    const ratio = (base.width - contour.topWidth) / (contour.maxHeight - contour.slopeStartH);
+                    const allow = base.width - ((it.h - contour.slopeStartH) * ratio);
+                    if((cz + it.w) > (-base.width/2 + allow)) { warns.push(`⚠️ Item #${i+1} hits upper left fuselage taper.`); }
+                }
+
+                if(cz + it.w > base.width/2 || cz < -base.width/2 || cx + it.l > base.length/2 || cx < -base.length/2) {
+                    if(!critical) warns.push(`⚠️ Item #${i+1} overflows pallet bounds.`);
+                }
+                if(it.w > mz) mz = it.w;
+
+                const geo = new THREE.BoxGeometry(it.l, it.h, it.w);
+                const mat = new THREE.MeshPhongMaterial({ color: i%2===0 ? 0xffaa00 : 0x001b44, opacity: 0.9, transparent: true });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(cx + (it.l/2), it.h/2, cz + (it.w/2));
+                mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.4 })));
+                cargoGroup.add(mesh);
+                cx += it.l;
+            });
+
+            document.getElementById('metricsVol').innerText = `Volume: ${vol.toFixed(2)} CBM | Pcs: ${count}`;
+            document.getElementById('metricsWgt').innerText = `Payload: ${getTotalWeight()} kg`;
+            
+            const logs = document.getElementById('warningLogs');
+            const title = document.getElementById('statusTitle');
+            
+            if(critical) { title.innerText = "❌ BOUNDS VIOLATED"; title.style.color = "#dc2626"; }
+            else if(warns.length > 0) { title.innerText = "⚠️ REPACK REQUIRED"; title.style.color = "#ea580c"; }
+            else { title.innerText = "✅ SAFE FITMENT"; title.style.color = "#16a34a"; }
+
+            logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All limits respected. Clear to load.</span>" : warns.join('<br>');
+        }
+
+        function drawEnvelope(b, c) {
+            const material = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 2 });
+            const geometry = new THREE.BufferGeometry();
+            const v = [];
+            const hL = b.length/2, hW = b.width/2;
+
+            if(c.type === "flat") {
+                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW);
+                v.push(-hL,0,-hW,-hL,c.maxHeight,-hW, hL,0,-hW,hL,c.maxHeight,-hW, hL,0,hW,hL,c.maxHeight,hW, -hL,0,hW,-hL,c.maxHeight,hW);
+                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
+                v.push(-hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,-hW);
+            } else if(c.type === "main-deck-asymmetric-left") {
+                const lTZ = -hW + c.topWidth;
+                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
+                v.push(-hL,c.slopeStartH,-hW, hL,c.slopeStartH,-hW, hL,c.slopeStartH,hW, -hL,c.slopeStartH,hW, -hL,c.slopeStartH,-hW);
+                v.push(-hL,c.maxHeight,lTZ, hL,c.maxHeight,lTZ, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,lTZ);
+                v.push(-hL,0,-hW,-hL,c.slopeStartH,-hW, hL,0,-hW,hL,c.slopeStartH,-hW, -hL,c.slopeStartH,-hW,-hL,c.maxHeight,lTZ, hL,c.slopeStartH,-hW,hL,c.maxHeight,lTZ);
+                v.push(-hL,0,hW,-hL,c.maxHeight,hW, hL,0,hW,hL,c.maxHeight,hW);
+            } else {
+                // Generic simple box fallback for space
+                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
+                v.push(-hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,-hW);
+                v.push(-hL,0,-hW,-hL,c.maxHeight,-hW, hL,0,-hW,hL,c.maxHeight,-hW, hL,0,hW,hL,c.maxHeight,hW, -hL,0,hW,-hL,c.maxHeight,hW);
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+            contourWireframe = new THREE.LineSegments(geometry, material);
+            scene.add(contourWireframe);
+            controls.target.set(0, c.maxHeight/3, 0);
+        }
+
+        function init3D() {
+            const cnt = document.getElementById('canvasContainer');
+            scene = new THREE.Scene(); 
+            camera = new THREE.PerspectiveCamera(45, cnt.clientWidth/cnt.clientHeight, 1, 2000);
+            camera.position.set(450, 380, 520);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(cnt.clientWidth, cnt.clientHeight);
+            cnt.appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.maxPolarAngle = Math.PI / 2 - 0.05;
+            controls.enableDamping = true;
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            let d = new THREE.DirectionalLight(0xffffff, 0.6); d.position.set(200, 600, 300); scene.add(d);
+            let grid = new THREE.GridHelper(1200, 40, 0x1e293b, 0x0f172a); grid.position.y = -0.5; scene.add(grid);
+            scene.add(cargoGroup);
+            animate();
+            is3DReady = true;
+            window.addEventListener('resize', () => {
+                camera.aspect = cnt.clientWidth/cnt.clientHeight; 
+                camera.updateProjectionMatrix(); 
+                renderer.setSize(cnt.clientWidth, cnt.clientHeight);
+            });
+            buildScene();
+        }
+
+        function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+    </script>
+</body>
+</html>
