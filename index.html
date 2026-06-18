@@ -3,512 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Flight Load Planner</title>
+    <title>Lufthansa Cargo Flight Planner</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    
     <style>
-        :root {
-            --lh-navy: #001b44;
-            --lh-yellow: #ffaa00;
-            --lh-yellow-hover: #e69900;
-            --lh-light: #f4f5f7;
-            --lh-border: #d1d5db;
-            --lh-text: #1f2937;
-        }
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { margin: 0; background-color: var(--lh-light); color: var(--lh-text); min-height: 100vh; display: flex; flex-direction: column; }
-        
-        header { background-color: var(--lh-navy); border-bottom: 4px solid var(--lh-yellow); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.15); color: white; }
-        .logo-group { display: flex; align-items: center; gap: 15px; }
-        .lh-icon { background: var(--lh-yellow); color: var(--lh-navy); font-weight: 900; font-size: 20px; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
-        .title h1 { margin: 0; font-size: 22px; text-transform: uppercase; font-weight: 900; letter-spacing: 1px; }
-        .title p { margin: 2px 0 0 0; color: var(--lh-yellow); font-size: 11px; font-family: monospace; letter-spacing: 2px; }
-        
-        .step-tracker { display: flex; gap: 10px; align-items: center; font-size: 12px; font-weight: bold; }
-        .step { padding: 6px 12px; border-radius: 4px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
-        .step.active { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 2px 8px rgba(255,170,0,0.4); }
-        
-        main { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 30px; display: flex; justify-content: center; }
-        .panel { background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 30px; width: 100%; max-width: 1000px; display: none; border: 1px solid var(--lh-border); }
+        :root { --lh-navy: #001b44; --lh-yellow: #ffaa00; --lh-light: #f4f5f7; }
+        body { margin: 0; background-color: var(--lh-light); font-family: sans-serif; display: flex; flex-direction: column; min-height: 100vh; }
+        header { background: var(--lh-navy); border-bottom: 4px solid var(--lh-yellow); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; color: white; }
+        .panel { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 1000px; margin: 20px auto; display: none; }
         .panel.active { display: block; }
-        
-        .section-title { font-size: 18px; color: var(--lh-navy); margin-top: 0; margin-bottom: 5px; text-transform: uppercase; border-left: 4px solid var(--lh-yellow); padding-left: 10px; font-weight: 900; }
-        .section-desc { color: #6b7280; font-size: 13px; margin-bottom: 20px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-        
-        label { font-weight: 800; font-size: 11px; text-transform: uppercase; color: var(--lh-navy); margin-bottom: 8px; display: block; }
-        textarea, select, input { width: 100%; padding: 12px; border: 1px solid var(--lh-border); border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; background: #f9fafb; }
-        textarea:focus, select:focus, input:focus { border-color: var(--lh-yellow); box-shadow: 0 0 0 3px rgba(255,170,0,0.15); background: white; }
-        
-        .btn { padding: 12px 24px; font-weight: 800; border-radius: 6px; cursor: pointer; transition: 0.2s; border: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; display: inline-flex; align-items: center; justify-content: center; }
-        .btn-primary { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 4px 10px rgba(255,170,0,0.3); }
-        .btn-primary:hover { background: var(--lh-yellow-hover); transform: translateY(-1px); }
-        .btn-secondary { background: var(--lh-navy); color: white; }
-        .btn-secondary:hover { background: #002b66; }
-        .btn-outline { background: white; border: 2px dashed var(--lh-border); color: var(--lh-navy); width: 100%; margin-top: 10px; }
-        .btn-outline:hover { border-color: var(--lh-yellow); background: #fffdf5; }
-        .btn-danger { background: #fee2e2; color: #dc2626; padding: 8px; margin-left: 5px; }
-        .btn-danger:hover { background: #fca5a5; }
-        
-        .row-grid { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr 40px; gap: 8px; margin-bottom: 8px; align-items: center; }
-        .row-header { font-size: 10px; font-weight: 900; color: #6b7280; text-transform: uppercase; text-align: center; }
-        #cargoRows { max-height: 220px; overflow-y: auto; padding-right: 5px; }
-        
-        .summary-box { background: var(--lh-navy); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #002b66; box-shadow: inset 0 2px 10px rgba(0,0,0,0.3); }
-        .weight-box { background: var(--lh-navy); border-radius: 8px; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border: 1px solid #002b66; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
-        .status-badge { padding: 8px 16px; border-radius: 4px; font-weight: 900; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
-        .badge-ok { background: #10b981; color: white; }
-        .badge-fail { background: #ef4444; color: white; animation: pulse 2s infinite; }
-        
-        .map-layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; height: 600px; }
-        .controls-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
-        #canvasContainer { background: #020813; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--lh-border); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
-        
-        .d-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; max-width: 150px; margin: 0 auto; }
-        .d-btn { background: var(--lh-navy); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        .d-btn:hover { background: #002b66; }
-        .d-btn.center { background: white; color: var(--lh-navy); border: 1px solid var(--lh-border); font-size: 10px; }
-        
-        .actions { border-top: 1px solid var(--lh-border); padding-top: 20px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .text-link { background: none; border: none; color: #6b7280; font-weight: bold; cursor: pointer; padding: 0; font-size: 13px; }
-        .text-link:hover { color: var(--lh-navy); text-decoration: underline; }
-        
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        .row-grid { display: grid; grid-template-columns: 80px 100px 100px 100px 120px 50px; gap: 10px; margin-bottom: 10px; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { cursor: pointer; padding: 10px; background: var(--lh-navy); color: white; border: none; border-radius: 4px; font-weight: bold; }
+        .btn-add { background: var(--lh-yellow); color: var(--lh-navy); margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <header>
-        <div class="logo-group">
-            <div class="lh-icon">LH</div>
-            <div class="title">
-                <h1>Lufthansa Cargo</h1>
-                <p>FLEET LOAD COMPLIANCE MATRIX</p>
-            </div>
-        </div>
-        <div class="step-tracker">
-            <div class="step active" id="badge1">1. MANIFEST & WEIGHTS</div>
-            <div class="step" id="badge2">2. ULD MULTI-SELECTOR</div>
-            <div class="step" id="badge3">3. MULTI-PALLET 3D MAP</div>
-        </div>
-    </header>
+<header>
+    <div style="font-weight:900; font-size:20px;">Lufthansa Cargo | Flight Planner</div>
+    <div id="stepInfo">Step 1: Manifest</div>
+</header>
 
-    <main>
-        <div class="panel active" id="stage1">
-            <h2 class="section-title">📦 Step 1: Shipment Manifest & Weights</h2>
-            <p class="section-desc">Extract dimensions and individual piece weights from client emails, or enter them manually.</p>
-            
-            <div class="grid-2">
-                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
-                    <label>💡 Auto-Extract Parser</label>
-                    <textarea id="emailInput" rows="9" placeholder="Paste client email here...&#13;e.g. We have 4 boxes 120x80x150cm weighing 450kg each."></textarea>
-                    <button class="btn btn-secondary" style="width: 100%; margin-top: 15px;" onclick="parseEmail()">⚡ Extract Dimensions & Weights</button>
-                </div>
-                
-                <div>
-                    <div class="row-grid row-header">
-                        <div>Qty</div><div>L (cm)</div><div>W (cm)</div><div>H (cm)</div><div>Wgt (kg/ea)</div><div></div>
-                    </div>
-                    <div id="cargoRows"></div>
-                    <button class="btn btn-outline" onclick="addRow('', '', '', '', '')">+ Add Manual Row</button>
-                    
-                    <div class="summary-box">
-                        <span style="font-size: 11px; font-weight: 900; color: var(--lh-yellow); text-transform: uppercase;">Manifest Totals</span>
-                        <span id="manifestSummary" style="font-size: 18px; font-weight: 900;">0 Pcs | 0.00 kg</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="actions" style="justify-content: flex-end;">
-                <button class="btn btn-primary" onclick="goToStage(2)">Proceed to ULD Selection →</button>
-            </div>
-        </div>
+<main>
+    <div class="panel active" id="stage1">
+        <h3>Step 1: Manifest & Weights</h3>
+        <textarea id="emailInput" rows="6" style="width:100%;" placeholder="Paste email here: '20 plts 6400kg 27.21cbm. Size 120*80*142cm/20'"></textarea>
+        <button onclick="parseEmail()" style="margin-top:10px;">⚡ Parse Shipment Text</button>
+        
+        <div id="cargoRows" style="margin-top:20px;"></div>
+        <button class="btn-add" onclick="addRow(1, '', '', '', '')">+ Add Manual Row</button>
+        
+        <div style="margin-top:20px; font-weight:bold;" id="manifestSummary">Total: 0 Pcs | 0 kg</div>
+        <button onclick="goToStage(2)" style="float:right;">Next: ULD Config →</button>
+    </div>
 
-        <div class="panel" id="stage2">
-            <h2 class="section-title">⚖️ Step 2: Fleet Scaler & Structural Weight Audit</h2>
-            <p class="section-desc">Select your target fuselage contour and scale the amount of ULDs needed to support the payload.</p>
-            
-            <div class="grid-3">
-                <div>
-                    <label>1. Base Pallet Footprint</label>
-                    <select id="baseSelect" onchange="runWeightAudit()">
-                        <option value="PMC">PMC / P6P (318 x 244 cm / Max: 5100 kg)</option>
-                        <option value="PZA">PZA Wide Maindeck (411 x 244 cm / Max: 6800 kg)</option>
-                        <option value="PGE">PGE Oversize Maindeck (606 x 244 cm / Max: 11300 kg)</option>
-                        <option value="PAJ">PAJ / P1P (318 x 224 cm / Max: 4626 kg)</option>
-                        <option value="PLA">PLA Lower Deck (318 x 153 cm / Max: 3175 kg)</option>
-                        <option value="PKC">PKC Narrow-Body (156 x 153 cm / Max: 1587 kg)</option>
-                    </select>
-                </div>
-                <div>
-                    <label>2. Target Safety Envelope</label>
-                    <select id="contourSelect">
-                        <optgroup label="Maindeck B777F">
-                            <option value="Contour_J3">Contour J3 (B777F Fwd/Mid — Left Taper)</option>
-                            <option value="Contour_J4">Contour J4 (B777F Aft Tail — Heavy Taper)</option>
-                            <option value="Contour_J1">Contour J1 (B777F Center — Max 244cm)</option>
-                        </optgroup>
-                        <optgroup label="Lower Deck">
-                            <option value="Contour_F">Contour F (Pallet Base — Outward Belly)</option>
-                            <option value="Contour_A">Contour A (AKE/AKH Container Matrix)</option>
-                        </optgroup>
-                        <optgroup label="A321F / Flat">
-                            <option value="Contour_Y">Contour Y (A321F Maindeck Arch)</option>
-                            <option value="No_Contour_118">No Contour (300cm Flat Envelope)</option>
-                        </optgroup>
-                    </select>
-                </div>
-                
-                <div style="background: #eff6ff; padding: 15px; border-radius: 6px; border: 1px solid #bfdbfe;">
-                    <label style="color: #1e3a8a;">3. Quantity of ULDs</label>
-                    <input type="number" id="uldQtyInput" value="1" min="1" max="15" oninput="runWeightAudit()" style="font-weight: 900; font-size: 16px; border-color: #93c5fd;">
-                    <p style="font-size: 10px; color: #3b82f6; margin-top: 5px; font-weight: bold;">Increase ULDs to raise max weight allowance.</p>
-                </div>
-            </div>
-            
-            <div class="weight-box">
-                <div>
-                    <div style="color: var(--lh-yellow); font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;">Multi-ULD Payload Monitor</div>
-                    <div id="weightText" style="font-size: 22px; font-weight: 900;">Total: -- kg / Max: -- kg</div>
-                </div>
-                <div id="weightBadge" class="status-badge badge-ok">CALCULATING</div>
-            </div>
-            
-            <div class="actions">
-                <button class="text-link" onclick="goToStage(1)">← Back to Manifest</button>
-                <button class="btn btn-primary" id="btnNext3" onclick="goToStage(3)">Generate 3D Fleet Map →</button>
-            </div>
-        </div>
+    <div class="panel" id="stage2">
+        <h3>Step 2: Fleet & Contour</h3>
+        <select id="baseSelect"><option value="PMC">PMC Pallet</option><option value="PZA">PZA Pallet</option></select>
+        <button onclick="goToStage(1)">← Back</button>
+        <button onclick="goToStage(3)">Next: 3D Map →</button>
+    </div>
 
-        <div class="panel" id="stage3">
-            <h2 class="section-title">🔍 Step 3: Multi-Pallet Interactive Map</h2>
-            
-            <div class="map-layout">
-                <div class="controls-panel">
-                    <div>
-                        <div style="background: white; border: 1px solid var(--lh-border); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                            <h3 id="statusTitle" style="margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; font-weight: 900;">Analysis Pending</h3>
-                            <div style="font-size: 12px; font-weight: bold; color: #4b5563; margin-bottom: 5px;" id="metricsVol">Volume: -- cbm</div>
-                            <div style="font-size: 12px; font-weight: bold; color: #4b5563;" id="metricsWgt">Payload: -- kg</div>
-                            <div id="warningLogs" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--lh-border); font-size: 11px; color: #dc2626; font-weight: bold; line-height: 1.4; max-height: 150px; overflow-y: auto;"></div>
-                        </div>
-                        
-                        <label style="text-align: center;">🎯 Master Cargo Shift</label>
-                        <div class="d-pad">
-                            <div></div><button class="d-btn" onclick="shiftCargo('Z-', 10)">▲</button><div></div>
-                            <button class="d-btn" onclick="shiftCargo('X-', 10)">◀</button><button class="d-btn center" onclick="resetPos()">CTR</button><button class="d-btn" onclick="shiftCargo('X+', 10)">▶</button>
-                            <div></div><button class="d-btn" onclick="shiftCargo('Z+', 10)">▼</button><div></div>
-                        </div>
-                    </div>
-                    
-                    <button class="text-link" style="text-align: left;" onclick="goToStage(2)">← Re-Configure Fleet</button>
-                </div>
-                
-                <div id="canvasContainer"></div>
-            </div>
-        </div>
-    </main>
+    <div class="panel" id="stage3">
+        <h3>Step 3: 3D Map</h3>
+        <div id="canvasContainer" style="height:400px; background:#000;"></div>
+        <button onclick="goToStage(2)">← Back</button>
+    </div>
+</main>
 
-    <script>
-        // --- DATA STRUCTURES ---
-        const BASES = {
-            PMC: { length: 318, width: 244, maxWeight: 5100 },
-            PZA: { length: 411, width: 244, maxWeight: 6800 },
-            PGE: { length: 606, width: 244, maxWeight: 11300 },
-            PAJ: { length: 318, width: 224, maxWeight: 4626 },
-            PLA: { length: 318, width: 153, maxWeight: 3175 },
-            PKC: { length: 156, width: 153, maxWeight: 1587 }
-        };
+<script>
+    function addRow(q, l, w, h, wgt) {
+        const container = document.getElementById('cargoRows');
+        const id = 'row_' + Date.now();
+        const html = `<div class="row-grid" id="${id}">
+            <input type="number" class="qty" value="${q}">
+            <input type="number" class="length" value="${l}">
+            <input type="number" class="width" value="${w}">
+            <input type="number" class="height" value="${h}">
+            <input type="number" class="weight" value="${wgt}">
+            <button onclick="document.getElementById('${id}').remove(); updateSummary();">X</button>
+        </div>`;
+        container.insertAdjacentHTML('beforeend', html);
+        updateSummary();
+    }
 
-        const CONTOURS = {
-            Contour_F: { maxHeight: 163, type: "lower-deck-slope", slopeStartH: 50, narrowWidth: 200 },
-            Contour_A: { maxHeight: 163, type: "lower-deck-container-ake", slopeStartH: 0, narrowWidth: 156 },
-            Contour_J3: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 195, topWidth: 162 },
-            Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 160, topWidth: 120 },
-            Contour_J1: { maxHeight: 244, type: "main-deck-symmetric-taper", slopeStartH: 180, topWidth: 180 },
-            Contour_Y: { maxHeight: 208, type: "main-deck-symmetric-arch", slopeStartH: 140, topWidth: 140 },
-            No_Contour_118: { maxHeight: 300, type: "flat" }
-        };
+    function updateSummary() {
+        let pcs = 0, wgt = 0;
+        document.querySelectorAll('.row-grid').forEach(r => {
+            pcs += parseInt(r.querySelector('.qty').value) || 0;
+            wgt += (parseInt(r.querySelector('.qty').value) || 0) * (parseFloat(r.querySelector('.weight').value) || 0);
+        });
+        document.getElementById('manifestSummary').innerText = `Total: ${pcs} Pcs | ${wgt.toFixed(1)} kg`;
+    }
 
-        let scene, camera, renderer, controls;
-        let cargoGroup = new THREE.Group();
-        let contourWireframes = []; // Array to hold multiple ULD frames
-        let globalOffset = { x: 0, z: 0 };
-        let is3DReady = false;
+    function parseEmail() {
+        const text = document.getElementById('emailInput').value;
+        document.getElementById('cargoRows').innerHTML = '';
+        
+        // Advanced Parser:
+        // 1. Matches qty (e.g., "20 plts")
+        // 2. Matches dimensions (e.g., "120*80*142cm")
+        // 3. Matches weight (e.g., "6400kg")
+        const regex = /(\d+)\s*(?:plts|pallets|ctns|cartons|pcs|units)/gi;
+        const dimRegex = /(\d+(?:\.\d+)?)\s*[xX*×]\s*(\d+(?:\.\d+)?)\s*[xX*×]\s*(\d+(?:\.\d+)?)/;
+        const wgtRegex = /(\d+)\s*(?:kg|kgs)/i;
 
-        // --- INITIALIZATION ---
-        window.onload = function() {
-            addRow(1, 236, 140, 150, 4800); // Intentionally heavy item to trigger scale need
-            addRow(6, 100, 80, 120, 150);
-            document.getElementById('cargoRows').addEventListener('input', updateManifestSummary);
-            updateManifestSummary();
-        };
+        const lines = text.split(/[.\n]/);
+        lines.forEach(line => {
+            let qM = line.match(regex);
+            let dM = line.match(dimRegex);
+            let wM = line.match(wgtRegex);
 
-        // --- STAGE 1: UI & PARSER ---
-        function addRow(qty, l, w, h, wgt) {
-            const container = document.getElementById('cargoRows');
-            const id = 'row_' + Date.now() + Math.floor(Math.random() * 1000);
-            const html = `
-                <div class="row-grid" id="${id}">
-                    <input type="number" min="1" placeholder="Qty" value="${qty}" class="qty" style="text-align:center; font-weight:bold;">
-                    <input type="number" min="1" placeholder="L" value="${l}" class="length" style="text-align:center; font-weight:bold;">
-                    <input type="number" min="1" placeholder="W" value="${w}" class="width" style="text-align:center; font-weight:bold;">
-                    <input type="number" min="1" placeholder="H" value="${h}" class="height" style="text-align:center; font-weight:bold;">
-                    <input type="number" min="0" placeholder="Kg" value="${wgt}" class="weight" style="text-align:center; font-weight:bold; background:#e0f2fe; color:#0369a1;">
-                    <button class="btn btn-danger" onclick="document.getElementById('${id}').remove(); updateManifestSummary();">×</button>
-                </div>
-            `;
-            container.insertAdjacentHTML('beforeend', html);
-            updateManifestSummary();
-        }
-
-        function updateManifestSummary() {
-            let pcs = 0;
-            let weight = 0;
-            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
-                const q = parseInt(r.querySelector('.qty').value) || 0;
-                const w = parseFloat(r.querySelector('.weight').value) || 0;
-                pcs += q;
-                weight += (q * w);
-            });
-            document.getElementById('manifestSummary').innerText = `${pcs} Pcs | ${weight.toFixed(1)} kg`;
-        }
-
-        function parseEmail() {
-            const text = document.getElementById('emailInput').value;
-            if(!text.trim()) return alert("Please paste email text into the box.");
-            document.getElementById('cargoRows').innerHTML = '';
-            
-            let found = 0;
-            const lines = text.split('\n');
-            
-            lines.forEach(line => {
-                const dimMatch = line.match(/(\d+(?:\.\d+)?)\s*[xX*×]\s*(\d+(?:\.\d+)?)\s*[xX*×]\s*(\d+(?:\.\d+)?)/);
-                if(dimMatch) {
-                    let l = dimMatch[1], w = dimMatch[2], h = dimMatch[3];
-                    let qtyMatch = line.match(/(\d+)\s*(?:pcs|pieces|pallets|pkgs|x|units)/i) || line.match(/^(\d+)\s/);
-                    let qty = qtyMatch ? qtyMatch[1] : 1;
-                    let wgtMatch = line.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo)/i);
-                    let wgt = wgtMatch ? wgtMatch[1] : 0;
-                    
-                    addRow(qty, l, w, h, wgt);
-                    found++;
-                }
-            });
-            
-            if(found === 0) {
-                alert("Could not detect LxWxH format in text. Please add lines manually.");
-                addRow('', '', '', '', '');
+            if(dM) {
+                let qty = qM ? parseInt(qM[0]) : 1;
+                let l=dM[1], w=dM[2], h=dM[3];
+                let wgt = wM ? parseInt(wM[1]) / qty : 0; // Avg weight
+                addRow(qty, l, w, h, wgt);
             }
-            updateManifestSummary();
-        }
+        });
+        updateSummary();
+    }
 
-        // --- STAGE 2: WIZARD & DYNAMIC FLEET AUDIT ---
-        function getTotalWeight() {
-            let sum = 0;
-            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
-                const q = parseInt(r.querySelector('.qty').value) || 0;
-                const w = parseFloat(r.querySelector('.weight').value) || 0;
-                sum += (q * w);
-            });
-            return sum;
-        }
-
-        function runWeightAudit() {
-            const baseKey = document.getElementById('baseSelect').value;
-            const uldQty = parseInt(document.getElementById('uldQtyInput').value) || 1;
-            
-            const singleMaxWgt = BASES[baseKey].maxWeight;
-            const totalFleetWgt = singleMaxWgt * uldQty; // MULTIPLY CAPACITY BY QUANTITY
-            const actualWgt = getTotalWeight();
-
-            document.getElementById('weightText').innerText = `Total: ${actualWgt} kg / Limit: ${totalFleetWgt} kg`;
-            const badge = document.getElementById('weightBadge');
-            const btn = document.getElementById('btnNext3');
-
-            if(actualWgt > totalFleetWgt) {
-                badge.className = "status-badge badge-fail";
-                badge.innerText = "OVERWEIGHT RESTRICTION";
-                btn.disabled = true;
-                btn.style.opacity = "0.5";
-                btn.style.cursor = "not-allowed";
-            } else {
-                badge.className = "status-badge badge-ok";
-                badge.innerText = "FLEET CAPACITY OK";
-                btn.disabled = false;
-                btn.style.opacity = "1";
-                btn.style.cursor = "pointer";
-            }
-        }
-
-        function goToStage(num) {
-            if(num === 2) {
-                const rows = document.querySelectorAll('#cargoRows .row-grid');
-                if(rows.length === 0) return alert("Please add at least one cargo row.");
-                runWeightAudit();
-            }
-            
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('stage' + num).classList.add('active');
-            
-            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-            document.getElementById('badge' + num).classList.add('active');
-
-            if(num === 3) {
-                if(!is3DReady) { setTimeout(init3D, 50); }
-                else { resetPos(); }
-            }
-        }
-
-        // --- STAGE 3: MULTI-ULD 3D MAP ---
-        function shiftCargo(dir, val) {
-            if(dir === 'X-') globalOffset.x -= val;
-            if(dir === 'X+') globalOffset.x += val;
-            if(dir === 'Z-') globalOffset.z -= val;
-            if(dir === 'Z+') globalOffset.z += val;
-            buildScene();
-        }
-        function resetPos() { globalOffset = {x:0, z:0}; buildScene(); }
-
-        function buildScene() {
-            if(!scene) return;
-            while(cargoGroup.children.length > 0){ cargoGroup.remove(cargoGroup.children[0]); }
-            if(contourWireframes.length > 0){ contourWireframes.forEach(w => scene.remove(w)); contourWireframes = []; }
-
-            const baseKey = document.getElementById('baseSelect').value;
-            const base = BASES[baseKey];
-            const contour = CONTOURS[document.getElementById('contourSelect').value];
-            const uldQty = parseInt(document.getElementById('uldQtyInput').value) || 1;
-            const gap = 50; // Visual gap between pallets
-
-            // Generate the fleet of ULD wireframes
-            for(let u=0; u<uldQty; u++) {
-                drawEnvelope(base, contour, u * (base.length + gap));
-            }
-            // Center Camera on the fleet
-            controls.target.set( ((uldQty-1) * (base.length + gap))/2, contour.maxHeight/3, 0 );
-
-            let vol = 0, count = 0, critical = false, warns = [];
-            let items = [];
-
-            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
-                const q = parseInt(r.querySelector('.qty').value) || 0;
-                const l = parseFloat(r.querySelector('.length').value) || 0;
-                const w = parseFloat(r.querySelector('.width').value) || 0;
-                const h = parseFloat(r.querySelector('.height').value) || 0;
-
-                if(q > 0 && l > 0 && w > 0 && h > 0) {
-                    vol += ((l*w*h)/1000000)*q;
-                    count += q;
-                    if(h > contour.maxHeight) { warns.push(`❌ Height breach: ${h}cm > ${contour.maxHeight}cm limit.`); critical = true; }
-                    for(let i=0; i<q; i++) items.push({l,w,h});
-                }
-            });
-
-            // Packing engine distributed across multiple ULDs
-            let currentUld = 0;
-            let cx = -base.length/2;
-            let cz = -base.width/2;
-            let rowMaxZ = 0;
-
-            items.forEach((it, i) => {
-                if (cx + it.l > base.length/2) { cx = -base.length/2; cz += rowMaxZ; rowMaxZ = 0; }
-                if (cz + it.w > base.width/2)  { currentUld++; cx = -base.length/2; cz = -base.width/2; rowMaxZ = 0; }
-
-                if (it.l > base.length || it.w > base.width) {
-                    warns.push(`⚠️ Item #${i+1} physically exceeds a single ${baseKey} base. Use specialized tie-down.`);
-                }
-
-                if (contour.type === "main-deck-asymmetric-left" && it.h > contour.slopeStartH) {
-                    const ratio = (base.width - contour.topWidth) / (contour.maxHeight - contour.slopeStartH);
-                    const allow = base.width - ((it.h - contour.slopeStartH) * ratio);
-                    if((cz + it.w) > (-base.width/2 + allow)) { warns.push(`⚠️ Item #${i+1} hits upper left fuselage taper.`); }
-                }
-
-                if(it.w > rowMaxZ) rowMaxZ = it.w;
-
-                // Calculate global position accounting for which ULD the box is on
-                let globalX = cx + (it.l/2) + (currentUld * (base.length + gap)) + globalOffset.x;
-                let globalZ = cz + (it.w/2) + globalOffset.z;
-
-                const geo = new THREE.BoxGeometry(it.l, it.h, it.w);
-                const mat = new THREE.MeshPhongMaterial({ color: i%2===0 ? 0xffaa00 : 0x001b44, opacity: 0.9, transparent: true });
-                const mesh = new THREE.Mesh(geo, mat);
-                mesh.position.set(globalX, it.h/2, globalZ);
-                mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.4 })));
-                cargoGroup.add(mesh);
-                
-                cx += it.l;
-            });
-
-            if (currentUld >= uldQty && !critical) {
-                warns.push(`⚠️ Not enough physical floor space. You have ${uldQty} ULD(s), but cargo spilled over.`);
-            }
-
-            document.getElementById('metricsVol').innerText = `Volume: ${vol.toFixed(2)} CBM | Pcs: ${count}`;
-            document.getElementById('metricsWgt').innerText = `Total Payload: ${getTotalWeight()} kg`;
-            
-            const logs = document.getElementById('warningLogs');
-            const title = document.getElementById('statusTitle');
-            
-            if(critical) { title.innerText = "❌ BOUNDS VIOLATED"; title.style.color = "#dc2626"; }
-            else if(warns.length > 0) { title.innerText = "⚠️ REPACK REQUIRED"; title.style.color = "#ea580c"; }
-            else { title.innerText = "✅ SAFE FITMENT"; title.style.color = "#16a34a"; }
-
-            logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All limits respected. Clear to load.</span>" : warns.join('<br>');
-        }
-
-        function drawEnvelope(b, c, offsetX) {
-            const material = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 2 });
-            const geometry = new THREE.BufferGeometry();
-            const v = [];
-            const hL = b.length/2, hW = b.width/2;
-
-            if(c.type === "flat") {
-                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW);
-                v.push(-hL,0,-hW,-hL,c.maxHeight,-hW, hL,0,-hW,hL,c.maxHeight,-hW, hL,0,hW,hL,c.maxHeight,hW, -hL,0,hW,-hL,c.maxHeight,hW);
-                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
-                v.push(-hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,-hW);
-            } else if(c.type === "main-deck-asymmetric-left") {
-                const lTZ = -hW + c.topWidth;
-                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
-                v.push(-hL,c.slopeStartH,-hW, hL,c.slopeStartH,-hW, hL,c.slopeStartH,hW, -hL,c.slopeStartH,hW, -hL,c.slopeStartH,-hW);
-                v.push(-hL,c.maxHeight,lTZ, hL,c.maxHeight,lTZ, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,lTZ);
-                v.push(-hL,0,-hW,-hL,c.slopeStartH,-hW, hL,0,-hW,hL,c.slopeStartH,-hW, -hL,c.slopeStartH,-hW,-hL,c.maxHeight,lTZ, hL,c.slopeStartH,-hW,hL,c.maxHeight,lTZ);
-                v.push(-hL,0,hW,-hL,c.maxHeight,hW, hL,0,hW,hL,c.maxHeight,hW);
-            } else {
-                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
-                v.push(-hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,-hW);
-                v.push(-hL,0,-hW,-hL,c.maxHeight,-hW, hL,0,-hW,hL,c.maxHeight,-hW, hL,0,hW,hL,c.maxHeight,hW, -hL,0,hW,-hL,c.maxHeight,hW);
-            }
-
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
-            let mesh = new THREE.LineSegments(geometry, material);
-            mesh.position.set(offsetX, c.maxHeight/2, 0);
-            scene.add(mesh);
-            contourWireframes.push(mesh); // Keep track to delete properly
-        }
-
-        function init3D() {
-            const cnt = document.getElementById('canvasContainer');
-            scene = new THREE.Scene(); 
-            camera = new THREE.PerspectiveCamera(45, cnt.clientWidth/cnt.clientHeight, 1, 3000);
-            camera.position.set(550, 450, 650);
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(cnt.clientWidth, cnt.clientHeight);
-            cnt.appendChild(renderer.domElement);
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.maxPolarAngle = Math.PI / 2 - 0.05;
-            controls.enableDamping = true;
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            let d = new THREE.DirectionalLight(0xffffff, 0.6); d.position.set(200, 600, 300); scene.add(d);
-            let grid = new THREE.GridHelper(2000, 60, 0x1e293b, 0x0f172a); grid.position.y = -0.5; scene.add(grid);
-            scene.add(cargoGroup);
-            animate();
-            is3DReady = true;
-            window.addEventListener('resize', () => {
-                camera.aspect = cnt.clientWidth/cnt.clientHeight; 
-                camera.updateProjectionMatrix(); 
-                renderer.setSize(cnt.clientWidth, cnt
+    function goToStage(num) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('stage' + num).classList.add('active');
+    }
+</script>
+</body>
+</html>
