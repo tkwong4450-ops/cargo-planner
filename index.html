@@ -31,7 +31,7 @@
         .step { padding: 6px 12px; border-radius: 4px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); }
         .step.active { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 2px 8px rgba(255,170,0,0.4); }
         
-        /* Main Layout */
+        /* Main Layout Frame Fix */
         main { flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 30px; display: flex; justify-content: center; }
         .panel { background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 30px; width: 100%; max-width: 1000px; display: none; border: 1px solid var(--lh-border); }
         .panel.active { display: block; }
@@ -59,4 +59,486 @@
         .btn-danger:hover { background: #fca5a5; }
         
         /* Cargo Row Grid */
-        .row-grid { display: grid
+        .row-grid { display: grid; grid-template-columns: 1fr 1.5fr 1.5fr 1.5fr 1.5fr 40px; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .row-header { font-size: 10px; font-weight: 900; color: #6b7280; text-transform: uppercase; text-align: center; }
+        #cargoRows { max-height: 200px; overflow-y: auto; padding-right: 5px; }
+        
+        /* Dashboards */
+        .summary-box { background: var(--lh-navy); color: white; padding: 15px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #002b66; box-shadow: inset 0 2px 10px rgba(0,0,0,0.3); }
+        .weight-box { background: var(--lh-navy); border-radius: 8px; padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border: 1px solid #002b66; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
+        .status-badge { padding: 8px 16px; border-radius: 4px; font-weight: 900; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; }
+        .badge-ok { background: #10b981; color: white; }
+        .badge-fail { background: #ef4444; color: white; animation: pulse 2s infinite; }
+        .badge-warn { background: #f59e0b; color: white; }
+        
+        /* 3D Visualizer Viewport */
+        .map-layout { display: grid; grid-template-columns: 300px 1fr; gap: 20px; height: 600px; }
+        .controls-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+        #canvasContainer { background: #020813; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--lh-border); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); width: 100%; height: 100%; }
+        
+        /* D-PAD Controls */
+        .d-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; max-width: 150px; margin: 0 auto; }
+        .d-btn { background: var(--lh-navy); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .d-btn:hover { background: #002b66; }
+        .d-btn.center { background: white; color: var(--lh-navy); border: 1px solid var(--lh-border); font-size: 10px; }
+        
+        .actions { border-top: 1px solid var(--lh-border); padding-top: 20px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .text-link { background: none; border: none; color: #6b7280; font-weight: bold; cursor: pointer; padding: 0; font-size: 13px; }
+        .text-link:hover { color: var(--lh-navy); text-decoration: underline; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-group">
+            <div class="lh-icon">LH</div>
+            <div class="title">
+                <h1>Lufthansa Cargo</h1>
+                <p>FLEET OPTIMIZATION ENGINE</p>
+            </div>
+        </div>
+        <div class="step-tracker">
+            <div class="step active" id="badge1">1. MANIFEST & WEIGHTS</div>
+            <div class="step" id="badge2">2. ULD MULTI-SELECTOR</div>
+            <div class="step" id="badge3">3. MULTI-PALLET MAP</div>
+        </div>
+    </header>
+
+    <main>
+        <!-- STAGE 1 PANEL -->
+        <div class="panel active" id="stage1">
+            <h2 class="section-title">📦 Step 1: Shipment Manifest</h2>
+            <p class="section-desc">Extract dimensions and weights via Semantic Parsing, or enter them manually.</p>
+            
+            <div style="background: #eef2ff; padding: 15px; border-radius: 8px; border: 1px solid #c7d2fe; margin-bottom: 20px;">
+                <label style="color: #3730a3;">Total Shipment Weight Override (Optional)</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="totalShipmentWeight" placeholder="e.g., 6400" oninput="updateManifestSummary()" style="max-width: 250px; border-color: #a5b4fc;">
+                    <span style="font-size: 12px; color: #4f46e5; font-weight: bold;">kg (Overrides individual totals for capacity audits)</span>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
+                    <label>💡 Semantic Extract Parser</label>
+                    <textarea id="emailInput" rows="7" placeholder="Paste quote text here...&#13;e.g. Total 20 plts 6400.kg 27.21 cbm. Size 120*80*142cm"></textarea>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 15px;" onclick="parseEmail()">⚡ Semantic Parse</button>
+                </div>
+                
+                <div>
+                    <div class="row-grid row-header">
+                        <div>Qty</div><div>L (cm)</div><div>W (cm)</div><div>H (cm)</div><div>Wgt (kg/ea)</div><div></div>
+                    </div>
+                    <div id="cargoRows"></div>
+                    <button class="btn btn-outline" onclick="addRow('', '', '', '', '')">+ Add Manual Row</button>
+                    
+                    <div class="summary-box">
+                        <span style="font-size: 11px; font-weight: 900; color: var(--lh-yellow); text-transform: uppercase;" id="manifestSummaryLabel">Manifest Totals</span>
+                        <span id="manifestSummary" style="font-size: 18px; font-weight: 900;">0 Pcs | 0.0 kg</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="actions" style="justify-content: flex-end;">
+                <button class="btn btn-primary" onclick="goToStage(2)">Optimize Fleet Configuration →</button>
+            </div>
+        </div>
+
+        <!-- STAGE 2 PANEL -->
+        <div class="panel" id="stage2">
+            <h2 class="section-title">⚖️ Step 2: Fleet Optimization Engine</h2>
+            <p class="section-desc">Select fuselage contour and scale the number of ULDs to support the total shipment weight.</p>
+            
+            <div class="grid-3">
+                <div>
+                    <label>1. Base Pallet Target Footprint</label>
+                    <select id="baseSelect" onchange="runWeightAudit()">
+                        <option value="PMC">PMC / P6P (318 x 244 cm / Max: 5100 kg)</option>
+                        <option value="PZA">PZA Wide Maindeck (411 x 244 cm / Max: 6800 kg)</option>
+                        <option value="PGE">PGE Oversize Maindeck (606 x 244 cm / Max: 11300 kg)</option>
+                        <option value="PAJ">PAJ / P1P (318 x 224 cm / Max: 4626 kg)</option>
+                        <option value="PLA">PLA Lower Deck (318 x 153 cm / Max: 3175 kg)</option>
+                        <option value="PKC">PKC Narrow-Body (156 x 153 cm / Max: 1587 kg)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>2. Target Safety Envelope</label>
+                    <select id="contourSelect">
+                        <optgroup label="Maindeck B777F">
+                            <option value="Contour_J3">Contour J3 (B777F Fwd/Mid — Left Taper)</option>
+                            <option value="Contour_J4">Contour J4 (B777F Aft Tail — Heavy Taper)</option>
+                            <option value="Contour_J1">Contour J1 (B777F Center — Max 244cm)</option>
+                        </optgroup>
+                        <optgroup label="Lower Deck">
+                            <option value="Contour_F">Contour F (Pallet Base — Outward Belly)</option>
+                            <option value="Contour_A">Contour A (AKE/AKH Container Matrix)</option>
+                        </optgroup>
+                        <optgroup label="A321F / Flat">
+                            <option value="Contour_Y">Contour Y (A321F Maindeck Arch)</option>
+                            <option value="No_Contour_118">No Contour (300cm Flat Envelope)</option>
+                        </optgroup>
+                    </select>
+                </div>
+                
+                <div style="background: #eff6ff; padding: 15px; border-radius: 6px; border: 1px solid #bfdbfe;">
+                    <label style="color: #1e3a8a;">3. Quantity of ULDs (Fleet Size)</label>
+                    <input type="number" id="uldQtyInput" value="1" min="1" max="30" oninput="runWeightAudit()" style="font-weight: 900; font-size: 16px; border-color: #93c5fd;">
+                    <div id="recommendationText" style="margin-top: 10px; font-size: 11px; color: #1d4ed8; font-weight: bold;"></div>
+                </div>
+            </div>
+            
+            <div class="weight-box">
+                <div>
+                    <div style="color: var(--lh-yellow); font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;">Multi-ULD Payload Monitor</div>
+                    <div id="weightText" style="font-size: 22px; font-weight: 900;">Total: -- kg / Fleet Max: -- kg</div>
+                </div>
+                <div id="weightBadge" class="status-badge badge-ok">CALCULATING</div>
+            </div>
+            
+            <div class="actions">
+                <button class="text-link" onclick="goToStage(1)">← Back to Manifest</button>
+                <button class="btn btn-primary" id="btnNext3" onclick="goToStage(3)">Generate 3D Fleet Map →</button>
+            </div>
+        </div>
+
+        <!-- STAGE 3 PANEL -->
+        <div class="panel" id="stage3">
+            <h2 class="section-title">🔍 Step 3: Multi-ULD Fitment Map</h2>
+            
+            <div class="map-layout">
+                <div class="controls-panel">
+                    <div>
+                        <div style="background: white; border: 1px solid var(--lh-border); padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                            <h3 id="statusTitle" style="margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; font-weight: 900;">Analysis Pending</h3>
+                            <div style="font-size: 12px; font-weight: bold; color: #4b5563; margin-bottom: 5px;" id="metricsVol">Volume: -- cbm</div>
+                            <div style="font-size: 12px; font-weight: bold; color: #4b5563;" id="metricsWgt">Payload: -- kg</div>
+                            <div id="warningLogs" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--lh-border); font-size: 11px; color: #dc2626; font-weight: bold; line-height: 1.4; max-height: 150px; overflow-y: auto;"></div>
+                        </div>
+                        
+                        <label style="text-align: center;">🎯 Master Cargo Shift</label>
+                        <div class="d-pad">
+                            <div></div><button class="d-btn" onclick="shiftCargo('Z-', 10)">▲</button><div></div>
+                            <button class="d-btn" onclick="shiftCargo('X-', 10)">◀</button><button class="d-btn center" onclick="resetPos()">CTR</button><button class="d-btn" onclick="shiftCargo('X+', 10)">▶</button>
+                            <div></div><button class="d-btn" onclick="shiftCargo('Z+', 10)">▼</button><div></div>
+                        </div>
+                    </div>
+                    
+                    <button class="text-link" style="text-align: left;" onclick="goToStage(2)">← Re-Configure Fleet</button>
+                </div>
+                
+                <div id="canvasContainer"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- DATA STRUCTURES ---
+        const BASES = {
+            PMC: { length: 318, width: 244, maxWeight: 5100 },
+            PZA: { length: 411, width: 244, maxWeight: 6800 },
+            PGE: { length: 606, width: 244, maxWeight: 11300 },
+            PAJ: { length: 318, width: 224, maxWeight: 4626 },
+            PLA: { length: 318, width: 153, maxWeight: 3175 },
+            PKC: { length: 156, width: 153, maxWeight: 1587 }
+        };
+
+        const CONTOURS = {
+            Contour_F: { maxHeight: 163, type: "lower-deck-slope", slopeStartH: 50, narrowWidth: 200 },
+            Contour_A: { maxHeight: 163, type: "lower-deck-container-ake", slopeStartH: 0, narrowWidth: 156 },
+            Contour_J3: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 195, topWidth: 162 },
+            Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 160, topWidth: 120 },
+            Contour_J1: { maxHeight: 244, type: "main-deck-symmetric-taper", slopeStartH: 180, topWidth: 180 },
+            Contour_Y: { maxHeight: 208, type: "main-deck-symmetric-arch", slopeStartH: 140, topWidth: 140 },
+            No_Contour_118: { maxHeight: 300, type: "flat" }
+        };
+
+        let scene, camera, renderer, controls;
+        let cargoGroup = new THREE.Group();
+        let contourWireframes = [];
+        let globalOffset = { x: 0, z: 0 };
+        let is3DReady = false;
+
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            addRow(20, 120, 80, 142, '');
+            updateManifestSummary();
+        };
+
+        // --- STAGE 1: LOGIC & SAFETY FALLBACKS ---
+        function addRow(qty, l, w, h, wgt) {
+            const container = document.getElementById('cargoRows');
+            const id = 'row_' + Date.now() + Math.floor(Math.random() * 1000);
+            const html = `
+                <div class="row-grid" id="${id}">
+                    <input type="number" min="1" placeholder="Qty" value="${qty}" class="qty" oninput="updateManifestSummary()" style="text-align:center; font-weight:bold;">
+                    <input type="number" min="1" placeholder="L" value="${l}" class="length" style="text-align:center; font-weight:bold;">
+                    <input type="number" min="1" placeholder="W" value="${w}" class="width" style="text-align:center; font-weight:bold;">
+                    <input type="number" min="1" placeholder="H" value="${h}" class="height" style="text-align:center; font-weight:bold;">
+                    <input type="number" min="0" placeholder="Kg" value="${wgt}" class="weight" oninput="updateManifestSummary()" style="text-align:center; font-weight:bold; background:#e0f2fe; color:#0369a1;">
+                    <button class="btn btn-danger" onclick="document.getElementById('${id}').remove(); updateManifestSummary();">×</button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            updateManifestSummary();
+        }
+
+        function updateManifestSummary() {
+            let pcs = 0, calcWeight = 0;
+            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
+                const q = parseInt(r.querySelector('.qty').value) || 0;
+                const w = parseFloat(r.querySelector('.weight').value) || 0; // Safeguarded to 0 if blank string
+                pcs += q;
+                calcWeight += (q * w);
+            });
+            
+            const overrideInput = parseFloat(document.getElementById('totalShipmentWeight').value);
+            const isOverride = !isNaN(overrideInput) && overrideInput > 0;
+            const finalWeight = isOverride ? overrideInput : calcWeight;
+            
+            const label = document.getElementById('manifestSummaryLabel');
+            label.innerText = isOverride ? "Manifest Totals (WEIGHT OVERRIDDEN)" : "Manifest Totals";
+            label.style.color = isOverride ? "#ef4444" : "var(--lh-yellow)";
+
+            document.getElementById('manifestSummary').innerText = `${pcs} Pcs | ${finalWeight.toFixed(1)} kg`;
+        }
+
+        function parseEmail() {
+            const text = document.getElementById('emailInput').value;
+            if(!text.trim()) return alert("Please paste email text into the box.");
+            document.getElementById('cargoRows').innerHTML = '';
+            
+            let found = 0;
+            const lines = text.split(/[.\n]/);
+            
+            lines.forEach(line => {
+                const dimMatch = line.match(/(\d+(?:\.\d+)?)\s*[*xX×]\s*(\d+(?:\.\d+)?)\s*[*xX×]\s*(\d+(?:\.\d+)?)/);
+                if(dimMatch) {
+                    let l = dimMatch[1], w = dimMatch[2], h = dimMatch[3];
+                    let qtyMatch = line.match(/(\d+)\s*(?:plts|pallets|ctns|cartons|pcs|pieces|pkgs|packages|units)/i) || line.match(/^(\d+)\s/);
+                    let qty = qtyMatch ? qtyMatch[1] : 1;
+                    let wgtMatch = line.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|kilo)/i);
+                    let wgt = wgtMatch ? wgtMatch[1] : '';
+                    
+                    addRow(qty, l, w, h, wgt);
+                    found++;
+                }
+            });
+            
+            if(found === 0) {
+                alert("Could not detect standard dimensions (LxWxH) in the text. Please add manually.");
+                addRow('', '', '', '', '');
+            }
+            updateManifestSummary();
+        }
+
+        // --- STAGE 2: SOFT ALERTS & OPTIMIZER SUGGESTIONS ---
+        function getTotalWeight() {
+            const overrideInput = parseFloat(document.getElementById('totalShipmentWeight').value);
+            if (!isNaN(overrideInput) && overrideInput > 0) return overrideInput;
+            
+            let sum = 0;
+            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
+                const q = parseInt(r.querySelector('.qty').value) || 0;
+                const w = parseFloat(r.querySelector('.weight').value) || 0;
+                sum += (q * w);
+            });
+            return sum;
+        }
+
+        function runWeightAudit() {
+            const baseKey = document.getElementById('baseSelect').value;
+            const maxWgt = BASES[baseKey].maxWeight;
+            const actualWgt = getTotalWeight();
+
+            const recommendedUlds = Math.ceil(actualWgt / maxWgt);
+            const recText = document.getElementById('recommendationText');
+            if (actualWgt > 0) {
+                recText.innerText = `💡 Best Fit Algorithm: ${Math.max(1, recommendedUlds)}x ${baseKey} required to support payload safely.`;
+            }
+
+            const uldQty = parseInt(document.getElementById('uldQtyInput').value) || 1;
+            const totalFleetCapacity = maxWgt * uldQty;
+
+            document.getElementById('weightText').innerText = `Total: ${actualWgt.toFixed(1)} kg / Fleet Max: ${totalFleetCapacity} kg`;
+            const badge = document.getElementById('weightBadge');
+
+            if(actualWgt > totalFleetCapacity) {
+                badge.className = "status-badge badge-warn";
+                badge.innerText = "OVERWEIGHT - ADD ULDs";
+            } else {
+                badge.className = "status-badge badge-ok";
+                badge.innerText = "FLEET CAPACITY OK";
+            }
+        }
+
+        function goToStage(num) {
+            if(num === 2) {
+                const rows = document.querySelectorAll('#cargoRows .row-grid');
+                if(rows.length === 0) return alert("Please add at least one cargo row.");
+                runWeightAudit();
+            }
+            
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('stage' + num).classList.add('active');
+            
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('badge' + num).classList.add('active');
+
+            if(num === 3) {
+                if(!is3DReady) { setTimeout(init3D, 50); }
+                else { resetPos(); }
+            }
+        }
+
+        // --- STAGE 3: MULTI-ULD VISUALIZER ---
+        function shiftCargo(dir, val) {
+            if(dir === 'X-') globalOffset.x -= val;
+            if(dir === 'X+') globalOffset.x += val;
+            if(dir === 'Z-') globalOffset.z -= val;
+            if(dir === 'Z+') globalOffset.z += val;
+            buildScene();
+        }
+        function resetPos() { globalOffset = {x:0, z:0}; buildScene(); }
+
+        function buildScene() {
+            if(!scene) return;
+            while(cargoGroup.children.length > 0){ cargoGroup.remove(cargoGroup.children[0]); }
+            if(contourWireframes.length > 0){ contourWireframes.forEach(w => scene.remove(w)); contourWireframes = []; }
+
+            const baseKey = document.getElementById('baseSelect').value;
+            const base = BASES[baseKey];
+            const contour = CONTOURS[document.getElementById('contourSelect').value];
+            const uldQty = parseInt(document.getElementById('uldQtyInput').value) || 1;
+            const gap = 50; 
+
+            for(let u=0; u<uldQty; u++) {
+                drawEnvelope(base, contour, u * (base.length + gap));
+            }
+            controls.target.set( ((uldQty-1) * (base.length + gap))/2, contour.maxHeight/3, 0 );
+
+            let vol = 0, count = 0, critical = false, warns = [];
+            let items = [];
+
+            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
+                const q = parseInt(r.querySelector('.qty').value) || 0;
+                const l = parseFloat(r.querySelector('.length').value) || 0;
+                const w = parseFloat(r.querySelector('.width').value) || 0;
+                const h = parseFloat(r.querySelector('.height').value) || 0;
+
+                if(q > 0 && l > 0 && w > 0 && h > 0) {
+                    vol += ((l*w*h)/1000000)*q;
+                    count += q;
+                    if(h > contour.maxHeight) { warns.push(`❌ Height breach: ${h}cm > ${contour.maxHeight}cm limit.`); critical = true; }
+                    for(let i=0; i<q; i++) items.push({l,w,h});
+                }
+            });
+
+            let currentUld = 0;
+            let cx = -base.length/2;
+            let cz = -base.width/2;
+            let rowMaxZ = 0;
+
+            items.forEach((it, i) => {
+                if (cx + it.l > base.length/2) { cx = -base.length/2; cz += rowMaxZ; rowMaxZ = 0; }
+                if (cz + it.w > base.width/2)  { currentUld++; cx = -base.length/2; cz = -base.width/2; rowMaxZ = 0; }
+
+                if (contour.type === "main-deck-asymmetric-left" && it.h > contour.slopeStartH) {
+                    const ratio = (base.width - contour.topWidth) / (contour.maxHeight - contour.slopeStartH);
+                    const allow = base.width - ((it.h - contour.slopeStartH) * ratio);
+                    if((cz + it.w) > (-base.width/2 + allow)) { warns.push(`⚠️ Item #${i+1} hits upper left fuselage taper.`); }
+                }
+
+                if(it.w > rowMaxZ) rowMaxZ = it.w;
+
+                let globalX = cx + (it.l/2) + (currentUld * (base.length + gap)) + globalOffset.x;
+                let globalZ = cz + (it.w/2) + globalOffset.z;
+
+                const geo = new THREE.BoxGeometry(it.l, it.h, it.w);
+                const mat = new THREE.MeshPhongMaterial({ color: i%2===0 ? 0xffaa00 : 0x001b44, opacity: 0.9, transparent: true });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.set(globalX, it.h/2, globalZ);
+                mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.4 })));
+                cargoGroup.add(mesh);
+                
+                cx += it.l;
+            });
+
+            if (currentUld >= uldQty && !critical) {
+                warns.push(`⚠️ Volumetric Spillage: Generated ${uldQty} ULD(s), but cargo spilled over onto floor positions.`);
+            }
+
+            document.getElementById('metricsVol').innerText = `Volume: ${vol.toFixed(2)} CBM | Pcs: ${count}`;
+            document.getElementById('metricsWgt').innerText = `Total Payload: ${getTotalWeight().toFixed(1)} kg`;
+            
+            const logs = document.getElementById('warningLogs');
+            const title = document.getElementById('statusTitle');
+            
+            if(critical) { title.innerText = "❌ BOUNDS VIOLATED"; title.style.color = "#dc2626"; }
+            else if(warns.length > 0) { title.innerText = "⚠️ REPACK REQUIRED"; title.style.color = "#ea580c"; }
+            else { title.innerText = "✅ SAFE FLEET FITMENT"; title.style.color = "#16a34a"; }
+
+            logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All limits respected. Clear to load.</span>" : warns.join('<br>');
+        }
+
+        function drawEnvelope(b, c, offsetX) {
+            const material = new THREE.LineBasicMaterial({ color: 0x00ff88, linewidth: 2 });
+            const geometry = new THREE.BufferGeometry();
+            const v = [];
+            const hL = b.length/2, hW = b.width/2;
+
+            if(c.type === "flat") {
+                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW);
+                v.push(-hL,0,-hW,-hL,c.maxHeight,-hW, hL,0,-hW,hL,c.maxHeight,-hW, hL,0,hW,hL,c.maxHeight,hW, -hL,0,hW,-hL,c.maxHeight,hW);
+                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
+                v.push(-hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,-hW);
+            } else if(c.type === "main-deck-asymmetric-left") {
+                const lTZ = -hW + c.topWidth;
+                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
+                v.push(-hL,c.slopeStartH,-hW, hL,c.slopeStartH,-hW, hL,c.slopeStartH,hW, -hL,c.slopeStartH,hW, -hL,c.slopeStartH,-hW);
+                v.push(-hL,c.maxHeight,lTZ, hL,c.maxHeight,lTZ, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,lTZ);
+                v.push(-hL,0,-hW,-hL,c.slopeStartH,-hW, hL,0,-hW,hL,c.slopeStartH,-hW, -hL,c.slopeStartH,-hW,-hL,c.maxHeight,lTZ, hL,c.slopeStartH,-hW,hL,c.maxHeight,lTZ);
+                v.push(-hL,0,hW,-hL,c.maxHeight,hW, hL,0,hW,hL,c.maxHeight,hW);
+            } else {
+                v.push(-hL,0,-hW, hL,0,-hW, hL,0,hW, -hL,0,hW, -hL,0,-hW);
+                v.push(-hL,c.maxHeight,-hW, hL,c.maxHeight,-hW, hL,c.maxHeight,hW, -hL,c.maxHeight,hW, -hL,c.maxHeight,-hW);
+                v.push(-hL,0,-hW,-hL,c.maxHeight,-hW, hL,0,-hW,hL,c.maxHeight,-hW, hL,0,hW,hL,c.maxHeight,hW, -hL,0,hW,-hL,c.maxHeight,hW);
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
+            let mesh = new THREE.LineSegments(geometry, material);
+            mesh.position.set(offsetX, c.maxHeight/2, 0);
+            scene.add(mesh);
+            contourWireframes.push(mesh);
+        }
+
+        function init3D() {
+            const cnt = document.getElementById('canvasContainer');
+            scene = new THREE.Scene(); 
+            camera = new THREE.PerspectiveCamera(45, cnt.clientWidth/cnt.clientHeight, 1, 3000);
+            camera.position.set(550, 450, 650);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(cnt.clientWidth, cnt.clientHeight);
+            cnt.appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.maxPolarAngle = Math.PI / 2 - 0.05;
+            controls.enableDamping = true;
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            let d = new THREE.DirectionalLight(0xffffff, 0.6); d.position.set(200, 600, 300); scene.add(d);
+            let grid = new THREE.GridHelper(2000, 60, 0x1e293b, 0x0f172a); grid.position.y = -0.5; scene.add(grid);
+            scene.add(cargoGroup);
+            animate();
+            is3DReady = true;
+            window.addEventListener('resize', () => {
+                camera.aspect = cnt.clientWidth/cnt.clientHeight; 
+                camera.updateProjectionMatrix(); 
+                renderer.setSize(cnt.clientWidth, cnt.clientHeight);
+            });
+            buildScene();
+        }
+
+        function animate() { requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+    </script>
+</body>
+</html>
