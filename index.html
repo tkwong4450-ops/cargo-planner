@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V1.5</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V1.6</title>
     
     <style>
         :root {
@@ -99,7 +99,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.5</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.6</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -180,7 +180,7 @@
                     <label>2. Target Safety Envelope</label>
                     <select id="contourSelect" onchange="runWeightAudit()">
                         <optgroup label="Maindeck">
-                            <option value="Contour_J1">Contour J1 (Main Deck Taper)</option>
+                            <option value="Contour_J1">Contour J1 (Main Deck Asymmetric Taper)</option>
                             <option value="Contour_J3">Contour J3 (B777F Rectangular - Fwd/Mid)</option>
                             <option value="Contour_J4">Contour J4 (B777F Aft Tail — Heavy Taper)</option>
                         </optgroup>
@@ -188,6 +188,7 @@
                             <option value="Contour_LowerRect">Contour P/Lower Rect (Full Width Box)</option>
                             <option value="Contour_AKE">Contour AKE/RKN (Half-Belly Taper)</option>
                             <option value="Contour_F">Contour F (Full Belly Inward)</option>
+                            <option value="Contour_H">Contour H (AKH Belly Taper)</option>
                         </optgroup>
                     </select>
                 </div>
@@ -265,7 +266,8 @@
             PAJ: { length: 318, width: 224, maxWeight: 4626 },
             PLA: { length: 318, width: 153, maxWeight: 3175 },
             PKC: { length: 156, width: 153, maxWeight: 1587 },
-            // Containers with locked logic
+            
+            // Containers with locked logic (Strict footprints)
             AKE: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE" },
             AMP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect" },
             AMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_LowerRect" },
@@ -277,11 +279,12 @@
 
         const CONTOURS = {
             Contour_J3: { maxHeight: 300, type: "flat" }, 
-            Contour_J4: { maxHeight: 300, type: "flat" }, // Placeholder for advanced tail mapping
-            Contour_J1: { maxHeight: 244, type: "main-deck-taper", slopeStartH: 180, topWidth: 160 },
+            Contour_J4: { maxHeight: 300, type: "flat" }, 
+            Contour_J1: { maxHeight: 244, type: "main-deck-asymmetric", slopeStartH: 150, taperOffset: 60 }, // Fixed Asymmetry
             Contour_LowerRect: { maxHeight: 163, type: "flat" }, 
             Contour_AKE: { maxHeight: 163, type: "half-belly", overhang: 45, bellyHeight: 60 },
-            Contour_F: { maxHeight: 163, type: "inward-belly", taperOffset: 40 }
+            Contour_F: { maxHeight: 163, type: "inward-belly", taperOffset: 40 },
+            Contour_H: { maxHeight: 114, type: "half-belly", overhang: 30, bellyHeight: 50 } // Restored H Contour
         };
 
         let scene, camera, renderer, controls, dragControls, raycaster;
@@ -650,13 +653,13 @@
             });
         }
 
-        // --- VERSION 1.5: PRECISION MATH ENGINE ---
+        // --- VERSION 1.6: ASYMMETRIC MATH ENGINE ---
         function drawSharpEnvelope(b, c, offsetX) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
             
             if (c.type === "half-belly") {
-                // AKE/RKN: Straight vertical inboard wall, correctly angled outboard belly overhang
+                // AKE/RKN & Contour H: Straight vertical inboard wall, angled outboard belly
                 let overhang = c.overhang || 45; 
                 let bellyH = c.bellyHeight || 60; 
                 
@@ -667,18 +670,18 @@
                 shape.lineTo(hW, 0); 
                 shape.lineTo(-hW, 0); 
 
-            } else if (c.type === "main-deck-taper") {
-                // J1 Contour: Straight walls from base, then inward symmetric taper clipping top corners
-                let startH = c.slopeStartH || 180;
-                let topHW = (c.topWidth || 160) / 2;
-                if (topHW > hW) topHW = hW; // Safety bound
+            } else if (c.type === "main-deck-asymmetric") {
+                // J1 Contour FIXED: Straight wall on the INBOARD side, taper on the OUTBOARD side.
+                // Simulating the left side of the aircraft: straight on right (inboard), taper on left (outboard).
+                let startH = c.slopeStartH || 150;
+                let offset = c.taperOffset || 60;
 
                 shape.moveTo(-hW, 0); 
                 shape.lineTo(-hW, startH); 
-                shape.lineTo(-topHW, c.maxHeight); 
-                shape.lineTo(topHW, c.maxHeight); 
-                shape.lineTo(hW, startH); 
-                shape.lineTo(hW, 0); 
+                shape.lineTo(-hW + offset, c.maxHeight); // Outboard Taper
+                shape.lineTo(hW, c.maxHeight);           // Inboard straight wall top
+                shape.lineTo(hW, 0);                     // Inboard straight wall down
+                shape.lineTo(-hW, 0);
 
             } else if (c.type === "inward-belly") {
                 // Contour F: Full Belly
