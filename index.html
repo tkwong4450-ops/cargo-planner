@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V1.1</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V1.2</title>
     
     <style>
         :root {
@@ -83,10 +83,11 @@
 
         /* Floating 3D Labels */
         .cargo-label { position: absolute; color: white; background: rgba(0,27,68,0.85); border: 1px solid var(--lh-yellow); padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; pointer-events: none; transform: translate(-50%, -50%); display: none; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-        
         #collisionWarning { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #dc2626; color: white; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 100; display: none; pointer-events: none; }
-
         .actions-bar { border-top: 1px solid var(--lh-border); padding-top: 20px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+
+        .cam-btn { font-size: 10px; padding: 6px 10px; background: #374151; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .cam-btn:hover { background: var(--lh-yellow); color: var(--lh-navy); font-weight: bold; }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
@@ -98,7 +99,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.1</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.2</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -150,32 +151,43 @@
 
         <div class="panel" id="stage2">
             <h2 class="section-title">⚖️ Step 2: Volumetric Efficiency Optimizer</h2>
-            <p class="section-desc">The engine calculates required capacity based on highest limit (Weight vs. Volume) ignoring deck bias.</p>
+            <p class="section-desc">Select your target ULD equipment and safety envelope.</p>
             
             <div class="grid-3">
                 <div>
-                    <label>1. Base Pallet Target Footprint</label>
-                    <select id="baseSelect" onchange="runWeightAudit()">
-                        <option value="PMC">PMC / P6P (318 x 244 cm / Max: 5100 kg)</option>
-                        <option value="PZA">PZA Wide Maindeck (411 x 244 cm / Max: 6800 kg)</option>
-                        <option value="PGE">PGE Oversize Maindeck (606 x 244 cm / Max: 11300 kg)</option>
-                        <option value="PAJ">PAJ / P1P (318 x 224 cm / Max: 4626 kg)</option>
-                        <option value="PLA">PLA Lower Deck (318 x 153 cm / Max: 3175 kg)</option>
-                        <option value="PKC">PKC Narrow-Body (156 x 153 cm / Max: 1587 kg)</option>
+                    <label>1. Target Equipment (ULD)</label>
+                    <select id="baseSelect" onchange="autoSelectContour(); runWeightAudit();">
+                        <optgroup label="Standard Pallets">
+                            <option value="PMC">PMC / P6P (318 x 244 cm / Max: 5100 kg)</option>
+                            <option value="PZA">PZA (Req 2 MD Pos - 411 x 244 cm / Max: 6800 kg)</option>
+                            <option value="PGE">PGE (Req 2 MD Pos - 606 x 244 cm / Max: 11300 kg)</option>
+                            <option value="PAJ">PAJ / P1P (318 x 224 cm / Max: 4626 kg)</option>
+                            <option value="PLA">PLA (2x LD3 Footprint - 318 x 153 cm)</option>
+                            <option value="PKC">PKC Narrow-Body (156 x 153 cm)</option>
+                        </optgroup>
+                        <optgroup label="Certified Containers (Locked Contours)">
+                            <option value="AKE">AKE / LD3 Container (156 x 153 cm)</option>
+                            <option value="AMP">AMP Container (PMC Base / Lower Deck)</option>
+                            <option value="AMJ">AMJ Container (PAJ Base / Lower Deck)</option>
+                            <option value="AMX">AMX Container (Netting Door / Lower Deck)</option>
+                            <option value="HMJ">HMJ Horse Stall (PAJ Base / Main Deck)</option>
+                            <option value="RKN">RKN Cool Container (LD3 Base)</option>
+                            <option value="RAP">RAP Cool Container (AMP Base)</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div>
                     <label>2. Target Safety Envelope</label>
                     <select id="contourSelect" onchange="runWeightAudit()">
                         <optgroup label="Maindeck">
-                            <option value="Contour_Q">Contour Q (Maindeck Rectangular)</option>
                             <option value="Contour_J3">Contour J3 (B777F Rectangular - Fwd/Mid)</option>
                             <option value="Contour_J4">Contour J4 (B777F Aft Tail — Heavy Taper)</option>
+                            <option value="Contour_J1">Contour J1 (MD Taper / PAJ Base)</option>
                         </optgroup>
                         <optgroup label="Lower Deck (Belly Tapers)">
-                            <option value="Contour_P">Contour P (Lower Deck Rectangular)</option>
-                            <option value="Contour_F">Contour F (LD3/AKE Full Belly)</option>
-                            <option value="Contour_E">Contour E (Half-Width AKE)</option>
+                            <option value="Contour_LowerRect">Contour P/Lower Rect (Full Width Box)</option>
+                            <option value="Contour_AKE">Contour AKE/RKN (Half-Belly Taper)</option>
+                            <option value="Contour_F">Contour F (Full Belly Inward)</option>
                             <option value="Contour_H">Contour H (AKH Belly Taper)</option>
                         </optgroup>
                     </select>
@@ -216,10 +228,13 @@
                         </div>
                         
                         <div style="background: #eff6ff; padding: 15px; border-radius: 6px; border: 1px solid #bfdbfe; font-size: 11px; line-height: 1.5; color: #1e3a8a;">
-                            <strong style="display:block; margin-bottom: 5px; font-size: 12px; text-align: center;">⚡ PHYSICS ENGINE ACTIVE</strong>
-                            • Drag boxes to reposition.<br>
-                            • <b>High-Ceiling Snap:</b> Boxes dropped perfectly align to surfaces below.<br>
-                            • <b>AABB Collision Rejection:</b> If a box overlaps/clips into another, it will teleport back.
+                            <strong style="display:block; margin-bottom: 5px; font-size: 12px; text-align: center;">⚡ PRECISION DRAG CONTROLS</strong>
+                            Use the viewport buttons below to flatten the camera. Dragging from Top-View makes it incredibly easy to position cargo exactly where you want it.
+                            <div style="display: flex; gap: 5px; margin-top: 10px;">
+                                <button class="cam-btn" onclick="setCamera('top')">TOP VIEW</button>
+                                <button class="cam-btn" onclick="setCamera('front')">FRONT VIEW</button>
+                                <button class="cam-btn" onclick="setCamera('side')">SIDE VIEW</button>
+                            </div>
                         </div>
                     </div>
                     <button class="btn btn-secondary" style="width: 100%; margin-top: 15px;" onclick="goToStage(2)">← Re-Configure Fleet</button>
@@ -231,7 +246,7 @@
 
                 <div class="inventory-panel">
                     <h3 style="margin: 0 0 15px 0; font-size: 13px; text-transform: uppercase; font-weight: 900; color: var(--lh-navy); text-align: center; border-bottom: 2px solid var(--lh-yellow); padding-bottom: 5px;">Master Inventory</h3>
-                    <div style="font-size: 10px; text-align: center; color: #6b7280; margin-bottom: 10px;">Hover over any item to illuminate it in 3D</div>
+                    <div style="font-size: 10px; text-align: center; color: #6b7280; margin-bottom: 10px;">Hover over an item to engage Searchlight</div>
                     <div id="inventoryList"></div>
                 </div>
             </div>
@@ -243,23 +258,31 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // --- DATA STRUCTURES ---
-        const BASES = {
+        // --- IATA STANDARDS ENGINE ---
+        const ULDS = {
             PMC: { length: 318, width: 244, maxWeight: 5100 },
             PZA: { length: 411, width: 244, maxWeight: 6800 },
             PGE: { length: 606, width: 244, maxWeight: 11300 },
             PAJ: { length: 318, width: 224, maxWeight: 4626 },
             PLA: { length: 318, width: 153, maxWeight: 3175 },
-            PKC: { length: 156, width: 153, maxWeight: 1587 }
+            PKC: { length: 156, width: 153, maxWeight: 1587 },
+            // Containers with locked logic
+            AKE: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE" },
+            AMP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect" },
+            AMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_LowerRect" },
+            AMX: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect" },
+            HMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_J1" }, // Horse stall MD
+            RKN: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE" },
+            RAP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect" }
         };
 
         const CONTOURS = {
-            Contour_Q: { maxHeight: 300, type: "flat" }, 
             Contour_J3: { maxHeight: 300, type: "flat" }, 
             Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 160, topWidth: 120 },
-            Contour_P: { maxHeight: 163, type: "flat" }, 
-            Contour_F: { maxHeight: 163, type: "inward-belly", slopeStartH: 80, baseWidth: 156 },
-            Contour_E: { maxHeight: 163, type: "inward-belly", slopeStartH: 80, baseWidth: 78 },  
+            Contour_J1: { maxHeight: 244, type: "main-deck-symmetric-taper", slopeStartH: 180, topWidth: 180 },
+            Contour_LowerRect: { maxHeight: 163, type: "flat" }, 
+            Contour_AKE: { maxHeight: 163, type: "half-belly", slopeStartH: 114, baseWidth: 153, topWidth: 200 },
+            Contour_F: { maxHeight: 163, type: "inward-belly", slopeStartH: 80, baseWidth: 244 },
             Contour_H: { maxHeight: 114, type: "inward-belly", slopeStartH: 50, baseWidth: 156 }  
         };
 
@@ -270,14 +293,8 @@
         let is3DReady = false;
         let dragStartPos = new THREE.Vector3();
 
-        // Safety Wrapper for Initialization
         document.addEventListener('DOMContentLoaded', () => {
-            try {
-                addRow(21, 120, 100, 106, '', true); 
-                updateManifestSummary();
-            } catch(e) {
-                console.error("V1.1 Init Error:", e);
-            }
+            try { addRow(21, 120, 100, 106, '', true); updateManifestSummary(); } catch(e) {}
         });
 
         // --- STAGE 1: PARSER ---
@@ -355,15 +372,24 @@
                 let lRaw = dimMatch[1], lUnit = dimMatch[2], wRaw = dimMatch[3], wUnit = dimMatch[4], hRaw = dimMatch[5], hUnit = dimMatch[6];
                 if(!lUnit || !wUnit || !hUnit) document.getElementById('parseWarnings').innerText = "⚠️ Warning: Dimensions lacked units. Defaulted to cm.";
                 addRow(qty, convertToCM(lRaw, lUnit).toFixed(1), convertToCM(wRaw, wUnit).toFixed(1), convertToCM(hRaw, hUnit).toFixed(1), '', !isNonStackable);
-            } else {
-                addRow('', '', '', '', '', true);
-            }
+            } else { addRow('', '', '', '', '', true); }
             updateManifestSummary();
+        }
+
+        // --- STAGE 2: OPTIMIZER ---
+        function autoSelectContour() {
+            const baseKey = document.getElementById('baseSelect').value;
+            const base = ULDS[baseKey];
+            if(base.lock) {
+                document.getElementById('contourSelect').value = base.lock;
+                document.getElementById('contourSelect').style.backgroundColor = '#fef08a'; // highlight auto-change
+                setTimeout(() => document.getElementById('contourSelect').style.backgroundColor = '#f9fafb', 1000);
+            }
         }
 
         function runWeightAudit() {
             const baseKey = document.getElementById('baseSelect').value;
-            const base = BASES[baseKey];
+            const base = ULDS[baseKey];
             const contour = CONTOURS[document.getElementById('contourSelect').value];
             const manifest = updateManifestSummary();
 
@@ -400,7 +426,16 @@
             if(num === 3) { if(!is3DReady) { setTimeout(init3D, 50); } else { buildScene(); } }
         }
 
-        // --- STAGE 3: UI INVENTORY SYNC ---
+        // --- STAGE 3: 3D ENGINE & INVENTORY ---
+        function setCamera(view) {
+            if(!camera || !controls) return;
+            if(view === 'top') { camera.position.set(0, 900, 0); controls.target.set(0,0,0); }
+            if(view === 'side') { camera.position.set(0, 100, 900); controls.target.set(0,0,0); }
+            if(view === 'front') { camera.position.set(900, 100, 0); controls.target.set(0,0,0); }
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
         function clearLabels() { labels.forEach(l => l.element.remove()); labels = []; }
         function createLabel(text, position) {
             const div = document.createElement('div'); div.className = 'cargo-label'; div.innerText = text; div.style.display = 'block';
@@ -418,21 +453,24 @@
             });
         }
 
-        // --- NEW: Box Illumination Engine ---
+        // THE SEARCHLIGHT ENGINE
         function highlightBox(boxId, isHighlight) {
             let mesh = cargoGroup.children.find(m => m.userData.id === boxId);
             if(!mesh) return;
             if(isHighlight) {
-                mesh.material.emissive.setHex(0x555555);
-                mesh.children[0].material.color.setHex(0xffaa00); // Yellow glowing edges
+                mesh.material.emissive.setHex(0x994400); // Strong Orange Glow
+                mesh.material.opacity = 1;
+                mesh.children[0].material.color.setHex(0xff0000); // Neon Red Wireframe
+                mesh.scale.set(1.05, 1.05, 1.05); // Expand slightly
             } else {
                 mesh.material.emissive.setHex(0x000000);
+                mesh.material.opacity = 0.95;
                 mesh.children[0].material.color.setHex(0xffffff); // Revert to white
+                mesh.scale.set(1, 1, 1);
             }
             if(renderer) renderer.render(scene, camera);
         }
 
-        // Triggered via Inventory Sidebar
         function updateBoxFromSidebar(boxId) {
             let mesh = cargoGroup.children.find(m => m.userData.id === boxId);
             if(!mesh) return;
@@ -447,7 +485,6 @@
             mesh.children[0].geometry.dispose();
             mesh.children[0].geometry = new THREE.EdgesGeometry(mesh.geometry);
             
-            // Adjust Y to prevent sinking into floor
             if(mesh.position.y < h/2) mesh.position.y = h/2;
             mesh.userData.h = h;
             renderer.render(scene, camera);
@@ -471,7 +508,6 @@
             const container = document.getElementById('inventoryList');
             container.innerHTML = '';
             items.forEach(it => {
-                // Add onmouseenter and onmouseleave to trigger highlighting
                 const html = `
                     <div class="inv-item" id="card_${it.id}" onmouseenter="highlightBox('${it.id}', true)" onmouseleave="highlightBox('${it.id}', false)">
                         <div class="inv-item-header"><span>${it.id}</span> <span>${it.stackable ? '🟩 Stack' : '🟥 No Stack'}</span></div>
@@ -490,7 +526,6 @@
             });
         }
 
-        // --- STAGE 3: 3D GENERATION & COLLISION ENGINE ---
         function buildScene() {
             if(!scene) return;
             while(cargoGroup.children.length > 0){ cargoGroup.remove(cargoGroup.children[0]); }
@@ -498,7 +533,7 @@
             clearLabels();
 
             const baseKey = document.getElementById('baseSelect').value;
-            const base = BASES[baseKey];
+            const base = ULDS[baseKey];
             const contour = CONTOURS[document.getElementById('contourSelect').value];
             const uldQty = parseInt(document.getElementById('uldQtyInput').value) || 1;
             const gap = 50; 
@@ -564,24 +599,16 @@
             else { title.innerText = "✅ SAFE FLEET FITMENT"; title.style.color = "#16a34a"; }
             logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
 
-            // PHYSICS & COLLISION
+            // PHYSICS
             if(dragControls) dragControls.dispose();
             dragControls = new THREE.DragControls(cargoGroup.children, camera, renderer.domElement);
             
             dragControls.addEventListener('dragstart', function (event) {
                 controls.enabled = false;
-                event.object.material.emissive.setHex(0x444444);
-                dragStartPos.copy(event.object.position); // Save origin point for rejection
-                
-                // Highlight corresponding inventory card
-                document.querySelectorAll('.inv-item').forEach(el => {
-                    el.classList.remove('selected');
-                });
+                dragStartPos.copy(event.object.position); 
+                document.querySelectorAll('.inv-item').forEach(el => el.classList.remove('selected'));
                 const card = document.getElementById(`card_${event.object.userData.id}`);
-                if(card) { 
-                    card.classList.add('selected');
-                    card.scrollIntoView({behavior: "smooth", block: "center"}); 
-                }
+                if(card) { card.classList.add('selected'); card.scrollIntoView({behavior: "smooth", block: "center"}); }
             });
             
             dragControls.addEventListener('drag', function (event) {
@@ -591,11 +618,9 @@
 
             dragControls.addEventListener('dragend', function (event) {
                 controls.enabled = true;
-                event.object.material.emissive.setHex(0x000000);
                 
-                // 1. Raycast Gravity Snap (Fired from a high ceiling downward)
                 let origin = event.object.position.clone();
-                origin.y = 1000; // Ceiling origin ensures we never start the ray inside another box
+                origin.y = 1000; 
                 raycaster.set(origin, new THREE.Vector3(0, -1, 0));
                 
                 let others = cargoGroup.children.filter(c => c !== event.object);
@@ -606,25 +631,20 @@
                     let topY = hitBox.position.y + (hitBox.userData.h / 2);
                     event.object.position.y = topY + (event.object.userData.h / 2);
                 } else {
-                    event.object.position.y = event.object.userData.h / 2; // Snap to Floor
+                    event.object.position.y = event.object.userData.h / 2; 
                 }
 
-                // 2. AABB Collision Rejection Engine
                 event.object.updateMatrixWorld();
                 let myBox = new THREE.Box3().setFromObject(event.object);
-                myBox.expandByScalar(-1.5); // Increase tolerance so tightly packed boxes don't falsely trigger rejection
+                myBox.expandByScalar(-1.5); 
 
                 let collisionDetected = false;
                 for(let i=0; i<others.length; i++) {
                     let otherBox3 = new THREE.Box3().setFromObject(others[i]);
                     otherBox3.expandByScalar(-1.5);
-                    if(myBox.intersectsBox(otherBox3)) {
-                        collisionDetected = true;
-                        break;
-                    }
+                    if(myBox.intersectsBox(otherBox3)) { collisionDetected = true; break; }
                 }
 
-                // Reject Move if ghosting
                 if(collisionDetected) {
                     event.object.position.copy(dragStartPos);
                     let labelObj = labels.find(l => l.element.innerText === event.object.userData.id);
@@ -637,14 +657,26 @@
             });
         }
 
+        // HALF BELLY MATH ENGINE
         function drawSharpEnvelope(b, c, offsetX) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
             
-            if (c.type === "inward-belly") {
+            if (c.type === "half-belly") {
+                let leftX = -c.baseWidth/2;
+                let rightXBase = c.baseWidth/2;
+                let rightXTop = leftX + c.topWidth; 
+                shape.moveTo(leftX, 0); 
+                shape.lineTo(leftX, c.maxHeight); 
+                shape.lineTo(rightXTop, c.maxHeight); 
+                shape.lineTo(rightXBase, c.slopeStartH); 
+                shape.lineTo(rightXBase, 0); 
+                shape.lineTo(leftX, 0); 
+            } else if (c.type === "inward-belly") {
                 const narrowHW = c.baseWidth / 2;
+                const topHW = b.width / 2;
                 shape.moveTo(-narrowHW, 0); shape.lineTo(-narrowHW, c.slopeStartH); 
-                shape.lineTo(-hW, c.maxHeight); shape.lineTo(hW, c.maxHeight); 
+                shape.lineTo(-topHW, c.maxHeight); shape.lineTo(topHW, c.maxHeight); 
                 shape.lineTo(narrowHW, c.slopeStartH); shape.lineTo(narrowHW, 0); 
                 shape.lineTo(-narrowHW, 0); 
             } else if (c.type === 'main-deck-asymmetric-left') {
