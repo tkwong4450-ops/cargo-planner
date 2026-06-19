@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V1.2</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V1.5</title>
     
     <style>
         :root {
@@ -99,7 +99,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.2</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.5</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -158,10 +158,10 @@
                     <label>1. Target Equipment (ULD)</label>
                     <select id="baseSelect" onchange="autoSelectContour(); runWeightAudit();">
                         <optgroup label="Standard Pallets">
-                            <option value="PMC">PMC / P6P (318 x 244 cm / Max: 5100 kg)</option>
-                            <option value="PZA">PZA (Req 2 MD Pos - 411 x 244 cm / Max: 6800 kg)</option>
-                            <option value="PGE">PGE (Req 2 MD Pos - 606 x 244 cm / Max: 11300 kg)</option>
-                            <option value="PAJ">PAJ / P1P (318 x 224 cm / Max: 4626 kg)</option>
+                            <option value="PMC">PMC / P6P (318 x 244 cm)</option>
+                            <option value="PAJ">PAJ / P1P (318 x 224 cm)</option>
+                            <option value="PZA">PZA (Req 2 MD Pos - 411 x 244 cm)</option>
+                            <option value="PGE">PGE (Req 2 MD Pos - 606 x 244 cm)</option>
                             <option value="PLA">PLA (2x LD3 Footprint - 318 x 153 cm)</option>
                             <option value="PKC">PKC Narrow-Body (156 x 153 cm)</option>
                         </optgroup>
@@ -170,7 +170,7 @@
                             <option value="AMP">AMP Container (PMC Base / Lower Deck)</option>
                             <option value="AMJ">AMJ Container (PAJ Base / Lower Deck)</option>
                             <option value="AMX">AMX Container (Netting Door / Lower Deck)</option>
-                            <option value="HMJ">HMJ Horse Stall (PAJ Base / Main Deck)</option>
+                            <option value="HMJ">HMJ Horse Stall (PAJ/PMC Base / Main Deck)</option>
                             <option value="RKN">RKN Cool Container (LD3 Base)</option>
                             <option value="RAP">RAP Cool Container (AMP Base)</option>
                         </optgroup>
@@ -180,15 +180,14 @@
                     <label>2. Target Safety Envelope</label>
                     <select id="contourSelect" onchange="runWeightAudit()">
                         <optgroup label="Maindeck">
+                            <option value="Contour_J1">Contour J1 (Main Deck Taper)</option>
                             <option value="Contour_J3">Contour J3 (B777F Rectangular - Fwd/Mid)</option>
                             <option value="Contour_J4">Contour J4 (B777F Aft Tail — Heavy Taper)</option>
-                            <option value="Contour_J1">Contour J1 (MD Taper / PAJ Base)</option>
                         </optgroup>
                         <optgroup label="Lower Deck (Belly Tapers)">
                             <option value="Contour_LowerRect">Contour P/Lower Rect (Full Width Box)</option>
                             <option value="Contour_AKE">Contour AKE/RKN (Half-Belly Taper)</option>
                             <option value="Contour_F">Contour F (Full Belly Inward)</option>
-                            <option value="Contour_H">Contour H (AKH Belly Taper)</option>
                         </optgroup>
                     </select>
                 </div>
@@ -271,19 +270,18 @@
             AMP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect" },
             AMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_LowerRect" },
             AMX: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect" },
-            HMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_J1" }, // Horse stall MD
+            HMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_J1" }, // Horse stall MD inherits J1 Taper
             RKN: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE" },
             RAP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect" }
         };
 
         const CONTOURS = {
             Contour_J3: { maxHeight: 300, type: "flat" }, 
-            Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric-left", slopeStartH: 160, topWidth: 120 },
-            Contour_J1: { maxHeight: 244, type: "main-deck-symmetric-taper", slopeStartH: 180, topWidth: 180 },
+            Contour_J4: { maxHeight: 300, type: "flat" }, // Placeholder for advanced tail mapping
+            Contour_J1: { maxHeight: 244, type: "main-deck-taper", slopeStartH: 180, topWidth: 160 },
             Contour_LowerRect: { maxHeight: 163, type: "flat" }, 
-            Contour_AKE: { maxHeight: 163, type: "half-belly", slopeStartH: 114, baseWidth: 153, topWidth: 200 },
-            Contour_F: { maxHeight: 163, type: "inward-belly", slopeStartH: 80, baseWidth: 244 },
-            Contour_H: { maxHeight: 114, type: "inward-belly", slopeStartH: 50, baseWidth: 156 }  
+            Contour_AKE: { maxHeight: 163, type: "half-belly", overhang: 45, bellyHeight: 60 },
+            Contour_F: { maxHeight: 163, type: "inward-belly", taperOffset: 40 }
         };
 
         let scene, camera, renderer, controls, dragControls, raycaster;
@@ -297,7 +295,6 @@
             try { addRow(21, 120, 100, 106, '', true); updateManifestSummary(); } catch(e) {}
         });
 
-        // --- STAGE 1: PARSER ---
         function convertToCM(value, unit) {
             let val = parseFloat(value);
             if(isNaN(val)) return 0;
@@ -376,13 +373,12 @@
             updateManifestSummary();
         }
 
-        // --- STAGE 2: OPTIMIZER ---
         function autoSelectContour() {
             const baseKey = document.getElementById('baseSelect').value;
             const base = ULDS[baseKey];
             if(base.lock) {
                 document.getElementById('contourSelect').value = base.lock;
-                document.getElementById('contourSelect').style.backgroundColor = '#fef08a'; // highlight auto-change
+                document.getElementById('contourSelect').style.backgroundColor = '#fef08a';
                 setTimeout(() => document.getElementById('contourSelect').style.backgroundColor = '#f9fafb', 1000);
             }
         }
@@ -426,7 +422,6 @@
             if(num === 3) { if(!is3DReady) { setTimeout(init3D, 50); } else { buildScene(); } }
         }
 
-        // --- STAGE 3: 3D ENGINE & INVENTORY ---
         function setCamera(view) {
             if(!camera || !controls) return;
             if(view === 'top') { camera.position.set(0, 900, 0); controls.target.set(0,0,0); }
@@ -453,19 +448,18 @@
             });
         }
 
-        // THE SEARCHLIGHT ENGINE
         function highlightBox(boxId, isHighlight) {
             let mesh = cargoGroup.children.find(m => m.userData.id === boxId);
             if(!mesh) return;
             if(isHighlight) {
-                mesh.material.emissive.setHex(0x994400); // Strong Orange Glow
+                mesh.material.emissive.setHex(0x994400);
                 mesh.material.opacity = 1;
-                mesh.children[0].material.color.setHex(0xff0000); // Neon Red Wireframe
-                mesh.scale.set(1.05, 1.05, 1.05); // Expand slightly
+                mesh.children[0].material.color.setHex(0xff0000); 
+                mesh.scale.set(1.05, 1.05, 1.05); 
             } else {
                 mesh.material.emissive.setHex(0x000000);
                 mesh.material.opacity = 0.95;
-                mesh.children[0].material.color.setHex(0xffffff); // Revert to white
+                mesh.children[0].material.color.setHex(0xffffff); 
                 mesh.scale.set(1, 1, 1);
             }
             if(renderer) renderer.render(scene, camera);
@@ -599,7 +593,6 @@
             else { title.innerText = "✅ SAFE FLEET FITMENT"; title.style.color = "#16a34a"; }
             logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
 
-            // PHYSICS
             if(dragControls) dragControls.dispose();
             dragControls = new THREE.DragControls(cargoGroup.children, camera, renderer.domElement);
             
@@ -657,36 +650,52 @@
             });
         }
 
-        // HALF BELLY MATH ENGINE
+        // --- VERSION 1.5: PRECISION MATH ENGINE ---
         function drawSharpEnvelope(b, c, offsetX) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
             
             if (c.type === "half-belly") {
-                let leftX = -c.baseWidth/2;
-                let rightXBase = c.baseWidth/2;
-                let rightXTop = leftX + c.topWidth; 
-                shape.moveTo(leftX, 0); 
-                shape.lineTo(leftX, c.maxHeight); 
-                shape.lineTo(rightXTop, c.maxHeight); 
-                shape.lineTo(rightXBase, c.slopeStartH); 
-                shape.lineTo(rightXBase, 0); 
-                shape.lineTo(leftX, 0); 
+                // AKE/RKN: Straight vertical inboard wall, correctly angled outboard belly overhang
+                let overhang = c.overhang || 45; 
+                let bellyH = c.bellyHeight || 60; 
+                
+                shape.moveTo(-hW, 0); 
+                shape.lineTo(-hW, c.maxHeight); 
+                shape.lineTo(hW + overhang, c.maxHeight); 
+                shape.lineTo(hW + overhang, bellyH); 
+                shape.lineTo(hW, 0); 
+                shape.lineTo(-hW, 0); 
+
+            } else if (c.type === "main-deck-taper") {
+                // J1 Contour: Straight walls from base, then inward symmetric taper clipping top corners
+                let startH = c.slopeStartH || 180;
+                let topHW = (c.topWidth || 160) / 2;
+                if (topHW > hW) topHW = hW; // Safety bound
+
+                shape.moveTo(-hW, 0); 
+                shape.lineTo(-hW, startH); 
+                shape.lineTo(-topHW, c.maxHeight); 
+                shape.lineTo(topHW, c.maxHeight); 
+                shape.lineTo(hW, startH); 
+                shape.lineTo(hW, 0); 
+
             } else if (c.type === "inward-belly") {
-                const narrowHW = c.baseWidth / 2;
-                const topHW = b.width / 2;
-                shape.moveTo(-narrowHW, 0); shape.lineTo(-narrowHW, c.slopeStartH); 
-                shape.lineTo(-topHW, c.maxHeight); shape.lineTo(topHW, c.maxHeight); 
-                shape.lineTo(narrowHW, c.slopeStartH); shape.lineTo(narrowHW, 0); 
-                shape.lineTo(-narrowHW, 0); 
-            } else if (c.type === 'main-deck-asymmetric-left') {
-                let tL = -hW + c.topWidth; 
-                shape.moveTo(-hW, 0); shape.lineTo(-hW, c.slopeStartH);
-                shape.lineTo(tL, c.maxHeight); shape.lineTo(hW, c.maxHeight);
-                shape.lineTo(hW, 0); shape.lineTo(-hW, 0);
+                // Contour F: Full Belly
+                let offset = c.taperOffset || 40;
+                shape.moveTo(-hW + offset, 0); 
+                shape.lineTo(-hW + offset, 60); 
+                shape.lineTo(-hW, c.maxHeight); 
+                shape.lineTo(hW, c.maxHeight); 
+                shape.lineTo(hW - offset, 60); 
+                shape.lineTo(hW - offset, 0); 
+
             } else {
-                shape.moveTo(-hW, 0); shape.lineTo(-hW, c.maxHeight);
-                shape.lineTo(hW, c.maxHeight); shape.lineTo(hW, 0); shape.lineTo(-hW, 0);
+                // Flat / Rectangular Boxes
+                shape.moveTo(-hW, 0); 
+                shape.lineTo(-hW, c.maxHeight);
+                shape.lineTo(hW, c.maxHeight); 
+                shape.lineTo(hW, 0); 
             }
 
             const extrudeSettings = { depth: b.length, bevelEnabled: false };
