@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V1.0</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V1.1</title>
     
     <style>
         :root {
@@ -41,7 +41,7 @@
         textarea, select, input[type="number"], input[type="text"] { width: 100%; padding: 12px; border: 1px solid var(--lh-border); border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; background: #f9fafb; }
         textarea:focus, select:focus, input:focus { border-color: var(--lh-yellow); box-shadow: 0 0 0 3px rgba(255,170,0,0.15); background: white; }
         
-        .btn { padding: 12px 24px; font-weight: 800; border-radius: 6px; cursor: pointer; transition: 0.2s; border: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; display: inline-flex; align-items: center; justify-content: center; }
+        .btn { padding: 12px 24px; font-weight: 800; border-radius: 6px; cursor: pointer; transition: 0.2s; border: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-primary { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 4px 10px rgba(255,170,0,0.3); }
         .btn-primary:hover { background: var(--lh-yellow-hover); transform: translateY(-1px); }
         .btn-secondary { background: var(--lh-navy); color: white; }
@@ -71,19 +71,22 @@
         /* SIDEBAR INVENTORY LIST */
         .inventory-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; }
         .inv-item { background: white; border: 1px solid var(--lh-border); padding: 12px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
+        .inv-item:hover { border-color: var(--lh-yellow); box-shadow: 0 4px 12px rgba(255,170,0,0.2); }
         .inv-item.selected { border-color: var(--lh-yellow); box-shadow: 0 0 0 2px rgba(255,170,0,0.3); }
         .inv-item-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; color: var(--lh-navy); margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--lh-border); }
         .inv-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
         .inv-grid input { padding: 6px; font-size: 11px; font-weight: bold; text-align: center; }
         .inv-grid label { font-size: 9px; margin-bottom: 2px; text-align: center; }
         .inv-actions { display: flex; gap: 5px; margin-top: 8px; }
-        .inv-actions button { flex: 1; padding: 6px; font-size: 9px; background: #e5e7eb; color: var(--lh-navy); font-weight: bold; border: none; border-radius: 4px; cursor: pointer; }
-        .inv-actions button:hover { background: #d1d5db; }
+        .inv-actions button { flex: 1; padding: 6px; font-size: 9px; background: #e5e7eb; color: var(--lh-navy); font-weight: bold; border: none; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .inv-actions button:hover { background: var(--lh-navy); color: white; }
 
         /* Floating 3D Labels */
         .cargo-label { position: absolute; color: white; background: rgba(0,27,68,0.85); border: 1px solid var(--lh-yellow); padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; pointer-events: none; transform: translate(-50%, -50%); display: none; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
         
         #collisionWarning { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #dc2626; color: white; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 100; display: none; pointer-events: none; }
+
+        .actions-bar { border-top: 1px solid var(--lh-border); padding-top: 20px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
@@ -95,12 +98,12 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.0</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.1</span></p>
             </div>
         </div>
         <div class="step-tracker">
-            <div class="step active" id="badge1">1. MANIFEST & WEIGHTS</div>
-            <div class="step" id="badge2">2. ULD MULTI-SELECTOR</div>
+            <div class="step active" id="badge1">1. MANIFEST</div>
+            <div class="step" id="badge2">2. CONFIGURATION</div>
             <div class="step" id="badge3">3. 3D PHYSICS MAP</div>
         </div>
     </header>
@@ -140,7 +143,7 @@
                 </div>
             </div>
             
-            <div class="actions" style="justify-content: flex-end;">
+            <div class="actions-bar" style="justify-content: flex-end;">
                 <button class="btn btn-primary" onclick="goToStage(2)">Optimize Fleet Configuration →</button>
             </div>
         </div>
@@ -193,8 +196,8 @@
                 <div id="weightBadge" class="status-badge badge-ok">CALCULATING</div>
             </div>
             
-            <div class="actions">
-                <button class="text-link" onclick="goToStage(1)">← Back to Manifest</button>
+            <div class="actions-bar">
+                <button class="btn btn-secondary" onclick="goToStage(1)">← Back to Manifest</button>
                 <button class="btn btn-primary" id="btnNext3" onclick="goToStage(3)">Generate 3D Physics Map →</button>
             </div>
         </div>
@@ -215,11 +218,11 @@
                         <div style="background: #eff6ff; padding: 15px; border-radius: 6px; border: 1px solid #bfdbfe; font-size: 11px; line-height: 1.5; color: #1e3a8a;">
                             <strong style="display:block; margin-bottom: 5px; font-size: 12px; text-align: center;">⚡ PHYSICS ENGINE ACTIVE</strong>
                             • Drag boxes to reposition.<br>
-                            • <b>Raycast Snap:</b> Boxes drop and snap to the surface below.<br>
-                            • <b>AABB Collision Rejection:</b> If a box overlaps/clips into another, the engine will reject the move and teleport it back.
+                            • <b>High-Ceiling Snap:</b> Boxes dropped perfectly align to surfaces below.<br>
+                            • <b>AABB Collision Rejection:</b> If a box overlaps/clips into another, it will teleport back.
                         </div>
                     </div>
-                    <button class="text-link" style="text-align: left;" onclick="goToStage(2)">← Re-Configure Fleet</button>
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 15px;" onclick="goToStage(2)">← Re-Configure Fleet</button>
                 </div>
                 
                 <div id="canvasContainer">
@@ -228,6 +231,7 @@
 
                 <div class="inventory-panel">
                     <h3 style="margin: 0 0 15px 0; font-size: 13px; text-transform: uppercase; font-weight: 900; color: var(--lh-navy); text-align: center; border-bottom: 2px solid var(--lh-yellow); padding-bottom: 5px;">Master Inventory</h3>
+                    <div style="font-size: 10px; text-align: center; color: #6b7280; margin-bottom: 10px;">Hover over any item to illuminate it in 3D</div>
                     <div id="inventoryList"></div>
                 </div>
             </div>
@@ -272,7 +276,7 @@
                 addRow(21, 120, 100, 106, '', true); 
                 updateManifestSummary();
             } catch(e) {
-                console.error("V1.0 Init Error:", e);
+                console.error("V1.1 Init Error:", e);
             }
         });
 
@@ -414,6 +418,20 @@
             });
         }
 
+        // --- NEW: Box Illumination Engine ---
+        function highlightBox(boxId, isHighlight) {
+            let mesh = cargoGroup.children.find(m => m.userData.id === boxId);
+            if(!mesh) return;
+            if(isHighlight) {
+                mesh.material.emissive.setHex(0x555555);
+                mesh.children[0].material.color.setHex(0xffaa00); // Yellow glowing edges
+            } else {
+                mesh.material.emissive.setHex(0x000000);
+                mesh.children[0].material.color.setHex(0xffffff); // Revert to white
+            }
+            if(renderer) renderer.render(scene, camera);
+        }
+
         // Triggered via Inventory Sidebar
         function updateBoxFromSidebar(boxId) {
             let mesh = cargoGroup.children.find(m => m.userData.id === boxId);
@@ -453,8 +471,9 @@
             const container = document.getElementById('inventoryList');
             container.innerHTML = '';
             items.forEach(it => {
+                // Add onmouseenter and onmouseleave to trigger highlighting
                 const html = `
-                    <div class="inv-item" id="card_${it.id}">
+                    <div class="inv-item" id="card_${it.id}" onmouseenter="highlightBox('${it.id}', true)" onmouseleave="highlightBox('${it.id}', false)">
                         <div class="inv-item-header"><span>${it.id}</span> <span>${it.stackable ? '🟩 Stack' : '🟥 No Stack'}</span></div>
                         <div class="inv-grid">
                             <div><label>L (cm)</label><input type="number" id="inv_${it.id}_l" value="${it.l}" onchange="updateBoxFromSidebar('${it.id}')"></div>
@@ -551,7 +570,7 @@
             
             dragControls.addEventListener('dragstart', function (event) {
                 controls.enabled = false;
-                event.object.material.emissive.set(0x444444);
+                event.object.material.emissive.setHex(0x444444);
                 dragStartPos.copy(event.object.position); // Save origin point for rejection
                 
                 // Highlight corresponding inventory card
@@ -572,12 +591,13 @@
 
             dragControls.addEventListener('dragend', function (event) {
                 controls.enabled = true;
-                event.object.material.emissive.set(0x000000);
+                event.object.material.emissive.setHex(0x000000);
                 
-                // 1. Raycast Gravity Snap
+                // 1. Raycast Gravity Snap (Fired from a high ceiling downward)
                 let origin = event.object.position.clone();
-                origin.y += 10; 
+                origin.y = 1000; // Ceiling origin ensures we never start the ray inside another box
                 raycaster.set(origin, new THREE.Vector3(0, -1, 0));
+                
                 let others = cargoGroup.children.filter(c => c !== event.object);
                 let hits = raycaster.intersectObjects(others);
                 
@@ -586,25 +606,25 @@
                     let topY = hitBox.position.y + (hitBox.userData.h / 2);
                     event.object.position.y = topY + (event.object.userData.h / 2);
                 } else {
-                    event.object.position.y = event.object.userData.h / 2; // Floor
+                    event.object.position.y = event.object.userData.h / 2; // Snap to Floor
                 }
 
-                // 2. AABB Collision Rejection Engine (No Overlaps)
+                // 2. AABB Collision Rejection Engine
                 event.object.updateMatrixWorld();
                 let myBox = new THREE.Box3().setFromObject(event.object);
-                myBox.expandByScalar(-0.5); // Shrink slightly to allow perfect side-by-side touching
+                myBox.expandByScalar(-1.5); // Increase tolerance so tightly packed boxes don't falsely trigger rejection
 
                 let collisionDetected = false;
                 for(let i=0; i<others.length; i++) {
                     let otherBox3 = new THREE.Box3().setFromObject(others[i]);
-                    otherBox3.expandByScalar(-0.5);
+                    otherBox3.expandByScalar(-1.5);
                     if(myBox.intersectsBox(otherBox3)) {
                         collisionDetected = true;
                         break;
                     }
                 }
 
-                // If ghosting inside another box, reject and teleport back
+                // Reject Move if ghosting
                 if(collisionDetected) {
                     event.object.position.copy(dragStartPos);
                     let labelObj = labels.find(l => l.element.innerText === event.object.userData.id);
