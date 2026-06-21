@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V1.9.2</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V1.9.3</title>
     
     <style>
         :root {
@@ -94,7 +94,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.9.2</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.9.3</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -268,7 +268,8 @@
 
         const CONTOURS = {
             Contour_J3: { maxHeight: 300, type: "flat" }, 
-            Contour_J4: { maxHeight: 300, type: "symmetric-taper", slopeStartH: 150, taperOffset: 60 }, 
+            // FIXED J4 CONTOUR: Asymmetric, taper starts at 225cm, inset by 127cm for a 117cm roof on PMC
+            Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 225, taperOffset: 127 }, 
             Contour_J1: { maxHeight: 244, type: "main-deck-asymmetric", slopeStartH: 150, taperOffset: 60 },
             Contour_LowerRect: { maxHeight: 163, type: "flat" }, 
             Contour_AKE: { maxHeight: 163, type: "half-belly", overhang: 45, bellyHeight: 60 },
@@ -457,6 +458,7 @@
                 let offset = contour.taperOffset || 60;
                 let startH = contour.slopeStartH || 150;
                 if (yMax > startH) {
+                    // Physics Math to detect if the top-left edge of the box intersects the plane
                     let ratio = (yMax - startH) / (contour.maxHeight - startH);
                     let allowedMinZ = -hW + (ratio * offset);
                     if (zMin < allowedMinZ) return true; 
