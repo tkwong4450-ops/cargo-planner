@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V1.8</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V1.9</title>
     
     <style>
         :root {
@@ -94,7 +94,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.8</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.9</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -259,12 +259,12 @@
 
         const CONTOURS = {
             Contour_J3: { maxHeight: 300, type: "flat" }, 
-            Contour_J4: { maxHeight: 300, type: "flat" }, 
+            Contour_J4: { maxHeight: 300, type: "symmetric-taper", taperOffset: 120 }, 
             Contour_J1: { maxHeight: 244, type: "main-deck-asymmetric", slopeStartH: 150, taperOffset: 60 },
             Contour_LowerRect: { maxHeight: 163, type: "flat" }, 
             Contour_AKE: { maxHeight: 163, type: "half-belly", overhang: 45, bellyHeight: 60 },
             Contour_F: { maxHeight: 163, type: "inward-belly", taperOffset: 40 },
-            Contour_H: { maxHeight: 114, type: "half-belly", overhang: 30, bellyHeight: 50 }
+            Contour_H: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50 }
         };
 
         let scene, camera, renderer, controls, dragControls, raycaster;
@@ -358,29 +358,21 @@
                 let rowsAdded = false;
 
                 lines.forEach(line => {
-                    // Remove all spaces for clean reading
                     let clean = line.replace(/\s+/g, '').toLowerCase();
-                    
-                    // Match pattern: 3 numbers separated by * or x
                     const dimMatch = clean.match(/(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:\*|x|×)(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:\*|x|×)(\d+(?:\.\d+)?)(cm|mm|m|in)?/);
                     
                     if (dimMatch) {
                         let lRaw = dimMatch[1], lUnit = dimMatch[2] || globalUnit;
                         let wRaw = dimMatch[3], wUnit = dimMatch[4] || globalUnit;
                         let hRaw = dimMatch[5], hUnit = dimMatch[6] || globalUnit;
-                        
                         let qty = 1;
                         
-                        // Check for suffix qty (e.g., /5 or @5)
                         const suffixMatch = clean.match(/(?:\/|\\|@)(\d+)$/);
                         if (suffixMatch) {
                             qty = parseInt(suffixMatch[1]);
                         } else {
-                            // Check for prefix qty (e.g., 5x or 5*)
                             const prefixMatch = clean.match(/^(\d+)(?:x|\*|pcs|@)/);
-                            if (prefixMatch) {
-                                qty = parseInt(prefixMatch[1]);
-                            }
+                            if (prefixMatch) { qty = parseInt(prefixMatch[1]); }
                         }
 
                         addRow(
@@ -395,9 +387,7 @@
                     }
                 });
                 
-                // Fallback if completely empty
                 if (!rowsAdded) { addRow('', '', '', '', '', true); }
-                
                 updateManifestSummary();
 
             } catch (error) {
@@ -407,7 +397,95 @@
             }
         }
 
-        // --- REMAINDER OF APPLICATION ---
+        // --- ENVELOPE COLLISION PHYSICS ENGINE ---
+        function checkEnvelopeIntersection(mesh, contour, baseWidth, baseLength) {
+            let box = new THREE.Box3().setFromObject(mesh);
+            
+            // 1. Z-Axis Boundaries (Width and Taper Slope limits)
+            let zMax = box.max.z;
+            let zMin = box.min.z;
+            let yMax = box.max.y;
+            let yMin = box.min.y;
+            let hW = baseWidth / 2;
+            let hL = baseLength / 2;
+
+            // 2. X-Axis Boundary (Length limit: Overhang on front/back)
+            // ULDs are spaced by 50 units
+            let uldIndex = Math.max(0, Math.round(mesh.position.x / (baseLength + 50)));
+            let uldCenterX = uldIndex * (baseLength + 50);
+            let localXMax = box.max.x - uldCenterX;
+            let localXMin = box.min.x - uldCenterX;
+            
+            if (localXMax > hL || localXMin < -hL) return true; // Cargo length overhangs the pallet edge!
+
+            // 3. Slope Intersections based on Contour Type
+            if (contour.type === "symmetric-taper") {
+                let offset = contour.taperOffset || 120;
+                let startH = contour.slopeStartH || 0;
+                if (yMax > startH) {
+                    let ratio = (yMax - startH) / (contour.maxHeight - startH);
+                    let allowedZ = hW - (ratio * offset);
+                    if (zMax > allowedZ || zMin < -allowedZ) return true;
+                }
+                if (zMax > hW || zMin < -hW) return true; // Base width limit
+            
+            } else if (contour.type === "symmetric-belly") {
+                let offset = contour.taperOffset || 30; // Acts as overhang
+                let bellyH = contour.bellyHeight || 50;
+                if (yMin < bellyH) {
+                    let ratio = yMin / bellyH;
+                    let allowedZ = hW + (ratio * offset);
+                    if (zMax > allowedZ || zMin < -allowedZ) return true;
+                } else {
+                    let allowedZ = hW + offset;
+                    if (zMax > allowedZ || zMin < -allowedZ) return true;
+                }
+            
+            } else if (contour.type === "main-deck-asymmetric") {
+                let offset = contour.taperOffset || 60;
+                let startH = contour.slopeStartH || 150;
+                if (yMax > startH) {
+                    let ratio = (yMax - startH) / (contour.maxHeight - startH);
+                    let allowedMinZ = -hW + (ratio * offset);
+                    if (zMin < allowedMinZ) return true; // Outboard breach
+                } else {
+                    if (zMin < -hW) return true;
+                }
+                if (zMax > hW) return true; // Inboard straight wall breach
+            
+            } else if (contour.type === "half-belly") {
+                let overhang = contour.overhang || 45;
+                let bellyH = contour.bellyHeight || 60;
+                if (yMin < bellyH) {
+                    let ratio = yMin / bellyH;
+                    let allowedZ = hW + (ratio * overhang);
+                    if (zMax > allowedZ) return true;
+                } else {
+                    if (zMax > hW + overhang) return true;
+                }
+                if (zMin < -hW) return true;
+            
+            } else if (contour.type === "inward-belly") {
+                let offset = contour.taperOffset || 40;
+                let bellyH = 60;
+                if (yMin < bellyH) {
+                    let allowedMaxZ = hW - offset;
+                    let allowedMinZ = -hW + offset;
+                    if (zMax > allowedMaxZ || zMin < allowedMinZ) return true;
+                } else {
+                    if (zMax > hW || zMin < -hW) return true;
+                }
+            
+            } else { // Flat / Standard
+                if (zMax > hW || zMin < -hW) return true;
+            }
+
+            // Global height limit
+            if (yMax > contour.maxHeight) return true;
+
+            return false;
+        }
+
         function autoSelectContour() {
             const baseKey = document.getElementById('baseSelect').value;
             const base = ULDS[baseKey];
@@ -419,9 +497,13 @@
         }
 
         function runWeightAudit() {
-            const baseKey = document.getElementById('baseSelect').value;
+            const baseSelect = document.getElementById('baseSelect');
+            const contourSelect = document.getElementById('contourSelect');
+            if (!baseSelect || !contourSelect) return;
+
+            const baseKey = baseSelect.value;
             const base = ULDS[baseKey];
-            const contour = CONTOURS[document.getElementById('contourSelect').value];
+            const contour = CONTOURS[contourSelect.value];
             const manifest = updateManifestSummary();
 
             let uldVolumeCBM = (base.length * base.width * contour.maxHeight) / 1000000;
@@ -439,9 +521,29 @@
             document.getElementById('weightText').innerText = `Total: ${manifest.weight.toFixed(1)} kg / Fleet Max: ${totalFleetCapacity} kg`;
             const badge = document.getElementById('weightBadge');
 
-            if (manifest.weight > totalFleetCapacity) { badge.className = "status-badge badge-warn"; badge.innerText = "OVERWEIGHT"; } 
-            else if (manifest.cbm > (uldVolumeCBM * uldQty)) { badge.className = "status-badge badge-warn"; badge.innerText = "OVER VOLUME"; } 
-            else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; }
+            let breach = false;
+            // Iterate over every mesh block and check against physics boundaries
+            if (cargoGroup && cargoGroup.children.length > 0) {
+                cargoGroup.children.forEach(m => {
+                    if (checkEnvelopeIntersection(m, contour, base.width, base.length)) {
+                        breach = true;
+                    }
+                });
+            }
+
+            if (breach) { 
+                badge.className = "status-badge badge-fail"; 
+                badge.innerText = "ENVELOPE BREACH"; 
+            } else if (manifest.weight > totalFleetCapacity) { 
+                badge.className = "status-badge badge-warn"; 
+                badge.innerText = "OVERWEIGHT"; 
+            } else if (manifest.cbm > (uldVolumeCBM * uldQty)) { 
+                badge.className = "status-badge badge-warn"; 
+                badge.innerText = "OVER VOLUME"; 
+            } else { 
+                badge.className = "status-badge badge-ok"; 
+                badge.innerText = "CAPACITY OK"; 
+            }
         }
 
         function goToStage(num) {
@@ -519,6 +621,7 @@
             if (mesh.position.y < h/2) mesh.position.y = h/2;
             mesh.userData.h = h;
             renderer.render(scene, camera);
+            runWeightAudit(); // Trigger breach check on size change
         }
 
         function rotateBoxSidebar(boxId, axis) {
@@ -633,7 +736,6 @@
             else { title.innerText = "✅ SAFE FLEET FITMENT"; title.style.color = "#16a34a"; }
             logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
 
-            // Configure Physics Engine
             if (dragControls) dragControls.dispose();
             dragControls = new THREE.DragControls(cargoGroup.children, camera, renderer.domElement);
             
@@ -688,7 +790,13 @@
                     warning.style.display = 'block';
                     setTimeout(() => { warning.style.display = 'none'; }, 2500);
                 }
+
+                // Check for envelope breaches after manually dragging
+                runWeightAudit();
             });
+
+            // Initial breach check upon generation
+            runWeightAudit();
         }
 
         // --- MATH GEOMETRY ENGINE ---
@@ -696,11 +804,31 @@
             const hW = b.width/2; 
             const shape = new THREE.Shape();
             
-            if (c.type === "half-belly") {
-                // AKE/RKN & Contour H
+            if (c.type === "symmetric-taper") {
+                // J4 Contour (B777F Aft)
+                let offset = c.taperOffset || 120;
+                shape.moveTo(-hW, 0); 
+                shape.lineTo(-hW + offset, c.maxHeight); 
+                shape.lineTo(hW - offset, c.maxHeight); 
+                shape.lineTo(hW, 0); 
+                shape.lineTo(-hW, 0);
+
+            } else if (c.type === "symmetric-belly") {
+                // Contour H (AKH Lower Deck)
+                let offset = c.taperOffset || 30; // Overhang on both sides
+                let bellyH = c.bellyHeight || 50;
+                shape.moveTo(-hW, 0);
+                shape.lineTo(-hW - offset, bellyH);
+                shape.lineTo(-hW - offset, c.maxHeight);
+                shape.lineTo(hW + offset, c.maxHeight);
+                shape.lineTo(hW + offset, bellyH);
+                shape.lineTo(hW, 0);
+                shape.lineTo(-hW, 0);
+
+            } else if (c.type === "half-belly") {
+                // AKE/RKN Contour
                 let overhang = c.overhang || 45; 
                 let bellyH = c.bellyHeight || 60; 
-                
                 shape.moveTo(-hW, 0); 
                 shape.lineTo(-hW, c.maxHeight); 
                 shape.lineTo(hW + overhang, c.maxHeight); 
@@ -712,7 +840,6 @@
                 // J1 Contour Asymmetric
                 let startH = c.slopeStartH || 150;
                 let offset = c.taperOffset || 60;
-
                 shape.moveTo(-hW, 0); 
                 shape.lineTo(-hW, startH); 
                 shape.lineTo(-hW + offset, c.maxHeight); 
