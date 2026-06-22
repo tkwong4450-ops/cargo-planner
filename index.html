@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V1.9.6</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V1.9.7</title>
     
     <style>
         :root {
@@ -39,7 +39,7 @@
         label { font-weight: 800; font-size: 11px; text-transform: uppercase; color: var(--lh-navy); margin-bottom: 8px; display: block; }
         textarea, select, input[type="number"], input[type="text"] { width: 100%; padding: 12px; border: 1px solid var(--lh-border); border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; background: #f9fafb; margin-bottom: 15px;}
         textarea:focus, select:focus, input:focus { border-color: var(--lh-yellow); box-shadow: 0 0 0 3px rgba(255,170,0,0.15); background: white; }
-        select:disabled { background: #e5e7eb; cursor: not-allowed; color: #6b7280; }
+        select:disabled { background: #e5e7eb !important; cursor: not-allowed; color: #6b7280; opacity: 0.8; }
         
         .btn { padding: 12px 24px; font-weight: 800; border-radius: 6px; cursor: pointer; transition: 0.2s; border: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-primary { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 4px 10px rgba(255,170,0,0.3); }
@@ -101,7 +101,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.9.6</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.9.7</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -279,7 +279,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // --- V1.9.6: DATA ENGINE ---
+        // --- V1.9.7: DATA ENGINE ---
         const ULDS = {
             PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1 },
             PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1 },
@@ -317,6 +317,7 @@
         let drawnUlds = [];
 
         window.onload = () => {
+            autoSelectContour(); // Set initial UI lock state
             fleetConfig.push({ id: Date.now(), baseKey: 'PMC', contourKey: 'Contour_J4', qty: 1, orientation: 'longitudinal' });
             renderFleetList();
         }
@@ -409,28 +410,33 @@
             } catch (error) { alert("The parser encountered an unusual text format. We have added a blank row instead."); addRow('', '', '', '', '', true); }
         }
 
-        // --- FLEET MANAGEMENT ---
+        // --- NEW V1.9.7: DYNAMIC ORIENTATION LOCK ---
         function autoSelectContour() {
             const baseKey = document.getElementById('baseSelect').value;
             const contourSelect = document.getElementById('contourSelect');
             const orientationSelect = document.getElementById('orientationSelect');
             
-            // Auto-lock for 20ft Pallets
             if (baseKey === 'PZA' || baseKey === 'PGE') {
+                // 20ft rules: Lock Contour to J4, Unlock Orientation
                 contourSelect.value = 'Contour_J4';
                 contourSelect.style.backgroundColor = '#fca5a5';
                 contourSelect.disabled = true;
                 
+                orientationSelect.disabled = false;
+                orientationSelect.style.backgroundColor = '#f9fafb';
+            } else {
+                // 10ft rules: Unlock Contour (mostly), Lock Orientation to Longitudinal
+                contourSelect.disabled = false;
+                
                 orientationSelect.value = 'longitudinal';
                 orientationSelect.disabled = true;
-            } else {
-                contourSelect.style.backgroundColor = '#f9fafb';
-                contourSelect.disabled = false;
-                orientationSelect.disabled = false;
+                orientationSelect.style.backgroundColor = '#e5e7eb';
                 
                 if (ULDS[baseKey] && ULDS[baseKey].lock) {
                     contourSelect.value = ULDS[baseKey].lock;
                     contourSelect.style.backgroundColor = '#fef08a';
+                } else {
+                    contourSelect.style.backgroundColor = '#f9fafb';
                 }
             }
             setTimeout(() => { if (!contourSelect.disabled) contourSelect.style.backgroundColor = '#f9fafb'; }, 1000);
@@ -583,7 +589,6 @@
                 const c = CONTOURS[f.contourKey];
                 
                 for (let i = 0; i < f.qty; i++) {
-                    // Adapt Base Dimensions for Lateral Loading
                     let renderBase = { ...originalBase };
                     if (f.orientation === 'lateral') {
                         renderBase.length = originalBase.width;
@@ -667,13 +672,12 @@
                     labels.push(createLabel(it.id, mesh.position));
                 });
 
-                // --- NEW V1.9.6: INTERSECTION SCANNER (HIDING BUG FIX) ---
                 let overlapsFound = 0;
                 for (let i = 0; i < cargoGroup.children.length; i++) {
-                    if (cargoGroup.children[i].userData.isOverflowing) continue; // Skip tarmac boxes
+                    if (cargoGroup.children[i].userData.isOverflowing) continue; 
                     
                     let boxA = new THREE.Box3().setFromObject(cargoGroup.children[i]);
-                    boxA.expandByScalar(-2.0); // Slight buffer to allow touching
+                    boxA.expandByScalar(-2.0); 
                     
                     for (let j = i + 1; j < cargoGroup.children.length; j++) {
                         if (cargoGroup.children[j].userData.isOverflowing) continue;
@@ -682,7 +686,6 @@
                         boxB.expandByScalar(-2.0);
                         
                         if (boxA.intersectsBox(boxB)) {
-                            // Turn both intersecting boxes Bright Magenta
                             cargoGroup.children[i].material.color.setHex(0xd946ef); 
                             cargoGroup.children[j].material.color.setHex(0xd946ef);
                             items[cargoGroup.children[i].userData.indexRef].isOverlapping = true;
@@ -792,7 +795,6 @@
                     warning.style.display = 'block';
                     setTimeout(() => { warning.style.display = 'none'; }, 2500);
                 } else {
-                    // Reset color from magenta if successfully moved out of overlap
                     let itData = cargoGroup.children.find(m => m === event.object);
                     if(itData) {
                         const originalColor = itData.userData.isOverflowing ? 0xff0000 : (itData.material.color.getHex() === 0xffaa00 ? 0xffaa00 : 0xdc2626);
