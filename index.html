@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V1.9.7</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V1.9.8</title>
     
     <style>
         :root {
@@ -62,7 +62,7 @@
         .badge-fail { background: #ef4444; color: white; animation: pulse 2s infinite; }
         .badge-warn { background: #f59e0b; color: white; }
 
-        .fleet-list-container { background: white; border: 1px solid var(--lh-border); border-radius: 8px; padding: 15px; min-height: 250px; }
+        .fleet-list-container { background: white; border: 1px solid var(--lh-border); border-radius: 8px; padding: 15px; min-height: 250px; display: flex; flex-direction: column; }
         .fleet-item { display: grid; grid-template-columns: 50px 1fr 1.5fr 40px; gap: 10px; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; font-size: 13px; font-weight: bold; }
         
         .map-layout { display: grid; grid-template-columns: 280px 1fr 320px; gap: 20px; height: 650px; }
@@ -101,7 +101,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.9.7</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.9.8</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -224,8 +224,11 @@
                 </div>
                 
                 <div class="fleet-list-container">
-                    <h3 style="margin-top:0; font-size:14px; color:var(--lh-navy); text-transform:uppercase;">📋 Current Fleet Configuration</h3>
-                    <div id="fleetList">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid var(--lh-border);">
+                        <h3 style="margin:0; font-size:14px; color:var(--lh-navy); text-transform:uppercase;">📋 Current Fleet</h3>
+                        <button onclick="clearFleet()" style="background: none; border: none; color: #dc2626; font-size: 11px; font-weight: 900; cursor: pointer; text-decoration: underline;">🗑️ CLEAR ALL</button>
+                    </div>
+                    <div id="fleetList" style="flex: 1; overflow-y: auto;">
                         <div style="text-align:center; padding: 30px; color:#9ca3af; font-size: 12px; font-weight:bold;">No ULDs added yet.</div>
                     </div>
                 </div>
@@ -279,12 +282,12 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // --- V1.9.7: DATA ENGINE ---
+        // --- V1.9.8: DATA ENGINE ---
         const ULDS = {
             PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1 },
             PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1 },
-            PZA: { length: 411, width: 244, maxWeight: 6800, positions: 2 }, // 20ft rules
-            PGE: { length: 606, width: 244, maxWeight: 11300, positions: 2 }, // 20ft rules
+            PZA: { length: 411, width: 244, maxWeight: 6800, positions: 2 }, 
+            PGE: { length: 606, width: 244, maxWeight: 11300, positions: 2 }, 
             PLA: { length: 318, width: 153, maxWeight: 3175, positions: 1 },
             PKC: { length: 156, width: 153, maxWeight: 1587, positions: 1 },
             AKE: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE", positions: 1 },
@@ -317,7 +320,7 @@
         let drawnUlds = [];
 
         window.onload = () => {
-            autoSelectContour(); // Set initial UI lock state
+            autoSelectContour(); 
             fleetConfig.push({ id: Date.now(), baseKey: 'PMC', contourKey: 'Contour_J4', qty: 1, orientation: 'longitudinal' });
             renderFleetList();
         }
@@ -410,14 +413,13 @@
             } catch (error) { alert("The parser encountered an unusual text format. We have added a blank row instead."); addRow('', '', '', '', '', true); }
         }
 
-        // --- NEW V1.9.7: DYNAMIC ORIENTATION LOCK ---
+        // --- FLEET MANAGEMENT ---
         function autoSelectContour() {
             const baseKey = document.getElementById('baseSelect').value;
             const contourSelect = document.getElementById('contourSelect');
             const orientationSelect = document.getElementById('orientationSelect');
             
             if (baseKey === 'PZA' || baseKey === 'PGE') {
-                // 20ft rules: Lock Contour to J4, Unlock Orientation
                 contourSelect.value = 'Contour_J4';
                 contourSelect.style.backgroundColor = '#fca5a5';
                 contourSelect.disabled = true;
@@ -425,7 +427,6 @@
                 orientationSelect.disabled = false;
                 orientationSelect.style.backgroundColor = '#f9fafb';
             } else {
-                // 10ft rules: Unlock Contour (mostly), Lock Orientation to Longitudinal
                 contourSelect.disabled = false;
                 
                 orientationSelect.value = 'longitudinal';
@@ -453,6 +454,8 @@
         }
 
         function removeFromFleet(id) { fleetConfig = fleetConfig.filter(f => f.id !== id); renderFleetList(); }
+        
+        function clearFleet() { fleetConfig = []; renderFleetList(); }
 
         function renderFleetList() {
             const container = document.getElementById('fleetList');
@@ -510,6 +513,7 @@
             } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; }
         }
 
+        // --- V1.9.8 PHYSICS: SYMMETRICAL TAPER FOR LATERAL ASYMMETRIC CONTOURS ---
         function checkEnvelopeIntersection(mesh) {
             let box = new THREE.Box3().setFromObject(mesh);
             let centerVec = new THREE.Vector3(); box.getCenter(centerVec);
@@ -529,12 +533,27 @@
 
             if (c.type === "main-deck-asymmetric") {
                 let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60;
-                if (yMax > startH) {
-                    let ratio = (yMax - startH) / (c.maxHeight - startH);
-                    let allowedMinZ = -hW + (ratio * offset);
-                    if (zMin < allowedMinZ) return true; 
-                } else { if (zMin < -hW) return true; }
-                if (zMax > hW) return true; 
+                
+                if (activeUld.isLateral) {
+                    // Double taper check
+                    if (yMax > startH) {
+                        let ratio = (yMax - startH) / (c.maxHeight - startH);
+                        let allowedMinZ = -hW + (ratio * offset);
+                        let allowedMaxZ = hW - (ratio * offset);
+                        if (zMin < allowedMinZ || zMax > allowedMaxZ) return true;
+                    } else {
+                        if (zMin < -hW || zMax > hW) return true;
+                    }
+                } else {
+                    // Single taper check
+                    if (yMax > startH) {
+                        let ratio = (yMax - startH) / (c.maxHeight - startH);
+                        let allowedMinZ = -hW + (ratio * offset);
+                        if (zMin < allowedMinZ) return true; 
+                    } else { if (zMin < -hW) return true; }
+                    if (zMax > hW) return true; 
+                }
+                
             } else if (c.type === "symmetric-belly") {
                 let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 60;
                 if (yMin < bellyH) {
@@ -583,7 +602,6 @@
             let currentX = 0;
             const gap = 50; 
             
-            // Generate Fleet bases
             fleetConfig.forEach(f => {
                 const originalBase = ULDS[f.baseKey];
                 const c = CONTOURS[f.contourKey];
@@ -597,7 +615,7 @@
 
                     let centerX = currentX + (renderBase.length/2);
                     drawnUlds.push({ base: renderBase, contour: c, centerX: centerX, startX: currentX, endX: currentX + renderBase.length, isLateral: f.orientation === 'lateral' });
-                    drawSharpEnvelope(renderBase, c, centerX);
+                    drawSharpEnvelope(renderBase, c, centerX, f.orientation === 'lateral');
                     currentX += renderBase.length + gap;
                 }
             });
@@ -807,19 +825,32 @@
             });
         }
 
-        function drawSharpEnvelope(b, c, offsetX) {
+        function drawSharpEnvelope(b, c, offsetX, isLateral) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
             
             if (c.type === "main-deck-asymmetric") {
                 let startH = c.slopeStartH || 150;
                 let offset = c.taperOffset || 60;
-                shape.moveTo(-hW, 0); 
-                shape.lineTo(-hW, startH); 
-                shape.lineTo(-hW + offset, c.maxHeight); 
-                shape.lineTo(hW, c.maxHeight);           
-                shape.lineTo(hW, 0);                     
-                shape.lineTo(-hW, 0);
+                
+                if (isLateral) {
+                    // DOUBLE TAPER for lateral configuration
+                    shape.moveTo(-hW, 0); 
+                    shape.lineTo(-hW, startH); 
+                    shape.lineTo(-hW + offset, c.maxHeight); 
+                    shape.lineTo(hW - offset, c.maxHeight);           
+                    shape.lineTo(hW, startH);                     
+                    shape.lineTo(hW, 0);                     
+                    shape.lineTo(-hW, 0);
+                } else {
+                    // SINGLE TAPER (Standard)
+                    shape.moveTo(-hW, 0); 
+                    shape.lineTo(-hW, startH); 
+                    shape.lineTo(-hW + offset, c.maxHeight); 
+                    shape.lineTo(hW, c.maxHeight);           
+                    shape.lineTo(hW, 0);                     
+                    shape.lineTo(-hW, 0);
+                }
 
             } else if (c.type === "symmetric-belly") {
                 let offset = c.taperOffset || 30; 
