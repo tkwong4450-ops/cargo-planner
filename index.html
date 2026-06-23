@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.3</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.4</title>
     
     <style>
         :root {
@@ -104,7 +104,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.3</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.4</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -201,6 +201,7 @@
                                 </optgroup>
                                 <optgroup label="Lower Deck (Belly)">
                                     <option value="Contour_LowerRect">Contour P/Lower Rect</option>
+                                    <option value="Contour_PLA_Belly">Contour PLA (Full Belly Symmetric)</option>
                                     <option value="Contour_AKE">Contour AKE/RKN (Half-Belly)</option>
                                     <option value="Contour_F">Contour F (Wide Belly Taper)</option>
                                     <option value="Contour_H">Contour H (Narrow Belly Taper)</option>
@@ -213,8 +214,7 @@
                         <div>
                             <label>3. Load Orientation</label>
                             <select id="orientationSelect">
-                                <option value="longitudinal">Longitudinal (Side-Loaded / Asymmetric)</option>
-                                <option value="center">Centerline (Symmetric J-Contour)</option>
+                                <option value="longitudinal">Longitudinal</option>
                                 <option value="lateral">Lateral (Turned 90°)</option>
                             </select>
                         </div>
@@ -288,7 +288,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // --- V2.0.3: CENTERLINE LOCKS & CLEAN SLATE NAV ---
+        // --- V2.0.4: TRUE ASYMMETRIC LATERAL, PLA SYMMETRY & DELETE FUNCTION ---
         const ULDS = {
             PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1 },
             PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1 },
@@ -310,6 +310,7 @@
             Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 225, taperOffset: 127 }, 
             Contour_J1: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 244, taperOffset: 70 },
             Contour_LowerRect: { maxHeight: 163, type: "flat" }, 
+            Contour_PLA_Belly: { maxHeight: 163, type: "symmetric-belly", taperOffset: 45, bellyHeight: 60 },
             Contour_AKE: { maxHeight: 163, type: "half-belly", overhang: 45, bellyHeight: 60 },
             Contour_F: { maxHeight: 163, type: "symmetric-belly", taperOffset: 37, bellyHeight: 60 },
             Contour_H: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50 }
@@ -327,7 +328,6 @@
 
         window.onload = () => {
             autoSelectContour(); 
-            // Removed default fleet push per user request for a completely clean slate
             renderFleetList();
         }
 
@@ -418,7 +418,7 @@
             } catch (error) { alert("The parser encountered an unusual text format. We have added a blank row instead."); addRow('', '', '', '', '', true); }
         }
 
-        // V2.0.3 CRITICAL FIX: Orientation locks specific to PZA/PGE Centerline & PLA Transverse Loading
+        // V2.0.4 FIX: Reverting to standard Longitudinal/Lateral, adding PLA Belly Lock
         function autoSelectContour() {
             const baseKey = document.getElementById('baseSelect').value;
             const contourSelect = document.getElementById('contourSelect');
@@ -428,18 +428,17 @@
             orientationSelect.disabled = true;
             orientationSelect.style.backgroundColor = '#e5e7eb';
             
-            if (baseKey === 'PZA' || baseKey === 'PGE') {
-                contourSelect.value = 'Contour_J4';
-                contourSelect.style.backgroundColor = '#fca5a5';
+            if (baseKey === 'PLA') {
+                contourSelect.value = 'Contour_PLA_Belly';
+                contourSelect.style.backgroundColor = '#fef08a';
                 contourSelect.disabled = true;
                 
-                orientationSelect.value = 'center'; // Locked to symmetric contouring
-            } else if (baseKey === 'PLA') {
-                orientationSelect.value = 'lateral'; // Spans the belly
-                contourSelect.value = 'Contour_LowerRect'; 
+                orientationSelect.value = 'lateral';
+                orientationSelect.style.backgroundColor = '#fef08a';
+                orientationSelect.disabled = true;
             } else {
                 orientationSelect.value = 'longitudinal';
-                if (baseKey === 'PMC' || baseKey === 'PAJ') {
+                if (baseKey === 'PMC' || baseKey === 'PAJ' || baseKey === 'PZA' || baseKey === 'PGE') {
                     orientationSelect.disabled = false;
                     orientationSelect.style.backgroundColor = '#f9fafb';
                 }
@@ -478,10 +477,7 @@
                     const b = ULDS[f.baseKey];
                     const posCount = (b.positions || 1) * f.qty;
                     let posBadge = b.positions > 1 ? `<span style="color:#ef4444; font-size:10px; margin-left:5px;">(Locks ${posCount} MD Pos)</span>` : '';
-                    
-                    let oriBadge = '';
-                    if (f.orientation === 'lateral') oriBadge = `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">LATERAL</span>`;
-                    if (f.orientation === 'center') oriBadge = `<span style="background:#8b5cf6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">CENTERLINE</span>`;
+                    let oriBadge = f.orientation === 'lateral' ? `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">LATERAL</span>` : '';
                     
                     container.innerHTML += `
                         <div class="fleet-item">
@@ -527,7 +523,7 @@
             } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; }
         }
 
-        // V2.0.3 CRITICAL FIX: Math bounds synced to symmetric centerline loading
+        // V2.0.4 FIX: Pure Asymmetry for Main Deck, regardless of lateral/longitudinal 
         function checkEnvelopeIntersection(mesh) {
             let box = new THREE.Box3().setFromObject(mesh);
             let centerVec = new THREE.Vector3(); box.getCenter(centerVec);
@@ -551,11 +547,6 @@
                     let ratio = (yMax - startH) / (c.maxHeight - startH);
                     let allowedMinZ = -hW + (ratio * offset);
                     if (zMin < allowedMinZ) return true; 
-                    
-                    if (activeUld.isCenter) {
-                        let allowedMaxZ = hW - (ratio * offset);
-                        if (zMax > allowedMaxZ) return true;
-                    }
                 } else { 
                     if (zMin < -hW) return true; 
                 }
@@ -585,7 +576,6 @@
         }
 
         function goToStage(num) {
-            // V2.0.3 CRITICAL FIX: The Clean Slate Wipe
             if (num === 2) { 
                 if (document.querySelectorAll('#cargoRows .row-grid').length === 0) return alert("Please add a cargo row."); 
                 clearFleet();
@@ -617,26 +607,14 @@
                 
                 for (let i = 0; i < f.qty; i++) {
                     let renderBase = { ...originalBase };
-                    let isLateral = f.orientation === 'lateral';
-                    let isCenter = f.orientation === 'center';
-
-                    if (isLateral) {
+                    if (f.orientation === 'lateral') {
                         renderBase.length = originalBase.width;
                         renderBase.width = originalBase.length;
                     }
 
                     let centerX = currentX + (renderBase.length/2);
-                    drawnUlds.push({ 
-                        base: renderBase, 
-                        contourKey: f.contourKey, 
-                        centerX: centerX, 
-                        startX: currentX, 
-                        endX: currentX + renderBase.length, 
-                        isLateral: isLateral,
-                        isCenter: isCenter || isLateral // Lateral spans full width so it acts symmetric 
-                    });
-                    
-                    drawSharpEnvelope(renderBase, c, centerX, isCenter || isLateral);
+                    drawnUlds.push({ base: renderBase, contourKey: f.contourKey, centerX: centerX, startX: currentX, endX: currentX + renderBase.length, isLateral: f.orientation === 'lateral' });
+                    drawSharpEnvelope(renderBase, c, centerX);
                     currentX += renderBase.length + gap;
                 }
             });
@@ -654,7 +632,7 @@
                 const stackable = r.querySelector('.stackable').checked;
 
                 if (q > 0 && l > 0 && w > 0 && h > 0) {
-                    for (let i = 0; i < q; i++) items.push({ id: `BOX-${boxIdCounter++}`, l, w, h, stackable, isOverflowing: false, isOverlapping: false, isBreaching: false });
+                    for (let i = 0; i < q; i++) items.push({ id: `BOX-${boxIdCounter++}`, l, w, h, stackable, isOverflowing: false, isOverlapping: false, isBreaching: false, rowId: r.id });
                 }
             });
 
@@ -778,14 +756,15 @@
                         <div class="inv-actions">
                             <button onclick="rotateBoxSidebar('${it.id}', 'Y')">↻ Swap L/W</button>
                             <button onclick="rotateBoxSidebar('${it.id}', 'X')">↻ Topple</button>
+                            <button onclick="deleteCargoBox('${it.id}', '${it.rowId}')" style="background:#fee2e2; color:#dc2626;">🗑️ Del</button>
                         </div>
                     </div>`;
                 container.insertAdjacentHTML('beforeend', html);
             });
         }
 
-        // V2.0.3 CRITICAL FIX: Symmetrical drawing rules applied 
-        function drawSharpEnvelope(b, c, offsetX, isSymmetric) {
+        // V2.0.4 FIX: Back to the original, pure asymmetric J curve for all single J contours
+        function drawSharpEnvelope(b, c, offsetX) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
             
@@ -793,14 +772,7 @@
                 let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60;
                 shape.moveTo(-hW, 0); shape.lineTo(-hW, startH); 
                 shape.lineTo(-hW + offset, c.maxHeight); 
-                
-                if (isSymmetric) {
-                    shape.lineTo(hW - offset, c.maxHeight);
-                    shape.lineTo(hW, startH);
-                } else {
-                    shape.lineTo(hW, c.maxHeight);           
-                }
-                
+                shape.lineTo(hW, c.maxHeight);           
                 shape.lineTo(hW, 0); shape.lineTo(-hW, 0);
             } else if (c.type === "symmetric-belly") {
                 let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 50;
@@ -823,6 +795,24 @@
             mesh.position.set(offsetX, 0, 0); edges.position.set(offsetX, 0, 0);
             scene.add(mesh); scene.add(edges);
             contourMeshes.push(mesh, edges);
+        }
+
+        // V2.0.4 NEW: Dedicated cargo deletion syncing UI to Manifest
+        function deleteCargoBox(boxId, rowId) {
+            if(confirm(`Are you sure you want to permanently delete ${boxId} from the manifest?`)) {
+                let row = document.getElementById(rowId);
+                if(row) {
+                    let qtyInput = row.querySelector('.qty');
+                    let currentQty = parseInt(qtyInput.value) || 0;
+                    if(currentQty > 1) {
+                        qtyInput.value = currentQty - 1;
+                    } else {
+                        row.remove();
+                    }
+                    updateManifestSummary();
+                    buildScene(); 
+                }
+            }
         }
 
         function setCamera(view) {
