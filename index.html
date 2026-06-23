@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.2</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.3</title>
     
     <style>
         :root {
@@ -104,7 +104,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.2</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.3</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -213,8 +213,9 @@
                         <div>
                             <label>3. Load Orientation</label>
                             <select id="orientationSelect">
-                                <option value="longitudinal">Longitudinal (Lengthwise)</option>
-                                <option value="lateral">Lateral (Turned 90° / Horizontal)</option>
+                                <option value="longitudinal">Longitudinal (Side-Loaded / Asymmetric)</option>
+                                <option value="center">Centerline (Symmetric J-Contour)</option>
+                                <option value="lateral">Lateral (Turned 90°)</option>
                             </select>
                         </div>
                         <div>
@@ -287,7 +288,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // --- V2.0.2: SYNCED GEOMETRY & UI LOGS ---
+        // --- V2.0.3: CENTERLINE LOCKS & CLEAN SLATE NAV ---
         const ULDS = {
             PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1 },
             PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1 },
@@ -326,7 +327,7 @@
 
         window.onload = () => {
             autoSelectContour(); 
-            fleetConfig.push({ id: Date.now(), baseKey: 'PMC', contourKey: 'Contour_J4', qty: 1, orientation: 'longitudinal' });
+            // Removed default fleet push per user request for a completely clean slate
             renderFleetList();
         }
 
@@ -417,24 +418,31 @@
             } catch (error) { alert("The parser encountered an unusual text format. We have added a blank row instead."); addRow('', '', '', '', '', true); }
         }
 
+        // V2.0.3 CRITICAL FIX: Orientation locks specific to PZA/PGE Centerline & PLA Transverse Loading
         function autoSelectContour() {
             const baseKey = document.getElementById('baseSelect').value;
             const contourSelect = document.getElementById('contourSelect');
             const orientationSelect = document.getElementById('orientationSelect');
+            
+            contourSelect.disabled = false;
+            orientationSelect.disabled = true;
+            orientationSelect.style.backgroundColor = '#e5e7eb';
             
             if (baseKey === 'PZA' || baseKey === 'PGE') {
                 contourSelect.value = 'Contour_J4';
                 contourSelect.style.backgroundColor = '#fca5a5';
                 contourSelect.disabled = true;
                 
-                orientationSelect.disabled = false;
-                orientationSelect.style.backgroundColor = '#f9fafb';
+                orientationSelect.value = 'center'; // Locked to symmetric contouring
+            } else if (baseKey === 'PLA') {
+                orientationSelect.value = 'lateral'; // Spans the belly
+                contourSelect.value = 'Contour_LowerRect'; 
             } else {
-                contourSelect.disabled = false;
-                
                 orientationSelect.value = 'longitudinal';
-                orientationSelect.disabled = true;
-                orientationSelect.style.backgroundColor = '#e5e7eb';
+                if (baseKey === 'PMC' || baseKey === 'PAJ') {
+                    orientationSelect.disabled = false;
+                    orientationSelect.style.backgroundColor = '#f9fafb';
+                }
                 
                 if (ULDS[baseKey] && ULDS[baseKey].lock) {
                     contourSelect.value = ULDS[baseKey].lock;
@@ -470,7 +478,10 @@
                     const b = ULDS[f.baseKey];
                     const posCount = (b.positions || 1) * f.qty;
                     let posBadge = b.positions > 1 ? `<span style="color:#ef4444; font-size:10px; margin-left:5px;">(Locks ${posCount} MD Pos)</span>` : '';
-                    let oriBadge = f.orientation === 'lateral' ? `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">LATERAL</span>` : '';
+                    
+                    let oriBadge = '';
+                    if (f.orientation === 'lateral') oriBadge = `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">LATERAL</span>`;
+                    if (f.orientation === 'center') oriBadge = `<span style="background:#8b5cf6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">CENTERLINE</span>`;
                     
                     container.innerHTML += `
                         <div class="fleet-item">
@@ -516,6 +527,7 @@
             } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; }
         }
 
+        // V2.0.3 CRITICAL FIX: Math bounds synced to symmetric centerline loading
         function checkEnvelopeIntersection(mesh) {
             let box = new THREE.Box3().setFromObject(mesh);
             let centerVec = new THREE.Vector3(); box.getCenter(centerVec);
@@ -539,7 +551,14 @@
                     let ratio = (yMax - startH) / (c.maxHeight - startH);
                     let allowedMinZ = -hW + (ratio * offset);
                     if (zMin < allowedMinZ) return true; 
-                } else { if (zMin < -hW) return true; }
+                    
+                    if (activeUld.isCenter) {
+                        let allowedMaxZ = hW - (ratio * offset);
+                        if (zMax > allowedMaxZ) return true;
+                    }
+                } else { 
+                    if (zMin < -hW) return true; 
+                }
                 if (zMax > hW) return true; 
             } else if (c.type === "symmetric-belly") {
                 let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 60;
@@ -566,7 +585,11 @@
         }
 
         function goToStage(num) {
-            if (num === 2) { if (document.querySelectorAll('#cargoRows .row-grid').length === 0) return alert("Please add a cargo row."); }
+            // V2.0.3 CRITICAL FIX: The Clean Slate Wipe
+            if (num === 2) { 
+                if (document.querySelectorAll('#cargoRows .row-grid').length === 0) return alert("Please add a cargo row."); 
+                clearFleet();
+            }
             if (num === 3) { if (fleetConfig.length === 0) return alert("Please add at least one ULD to your fleet."); }
             
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -594,14 +617,26 @@
                 
                 for (let i = 0; i < f.qty; i++) {
                     let renderBase = { ...originalBase };
-                    if (f.orientation === 'lateral') {
+                    let isLateral = f.orientation === 'lateral';
+                    let isCenter = f.orientation === 'center';
+
+                    if (isLateral) {
                         renderBase.length = originalBase.width;
                         renderBase.width = originalBase.length;
                     }
 
                     let centerX = currentX + (renderBase.length/2);
-                    drawnUlds.push({ base: renderBase, contourKey: f.contourKey, centerX: centerX, startX: currentX, endX: currentX + renderBase.length, isLateral: f.orientation === 'lateral' });
-                    drawSharpEnvelope(renderBase, c, centerX, f.orientation === 'lateral');
+                    drawnUlds.push({ 
+                        base: renderBase, 
+                        contourKey: f.contourKey, 
+                        centerX: centerX, 
+                        startX: currentX, 
+                        endX: currentX + renderBase.length, 
+                        isLateral: isLateral,
+                        isCenter: isCenter || isLateral // Lateral spans full width so it acts symmetric 
+                    });
+                    
+                    drawSharpEnvelope(renderBase, c, centerX, isCenter || isLateral);
                     currentX += renderBase.length + gap;
                 }
             });
@@ -673,7 +708,6 @@
                     labels.push(createLabel(it.id, mesh.position));
                 });
 
-                // V2.0.2 CRITICAL FIX: Ensure envelope breaches accurately trigger UI logs
                 let breachCount = 0;
                 cargoGroup.children.forEach(m => { 
                     if (checkEnvelopeIntersection(m)) { 
@@ -750,7 +784,8 @@
             });
         }
 
-        function drawSharpEnvelope(b, c, offsetX, isLateral) {
+        // V2.0.3 CRITICAL FIX: Symmetrical drawing rules applied 
+        function drawSharpEnvelope(b, c, offsetX, isSymmetric) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
             
@@ -758,7 +793,14 @@
                 let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60;
                 shape.moveTo(-hW, 0); shape.lineTo(-hW, startH); 
                 shape.lineTo(-hW + offset, c.maxHeight); 
-                shape.lineTo(isLateral ? hW - offset : hW, c.maxHeight);           
+                
+                if (isSymmetric) {
+                    shape.lineTo(hW - offset, c.maxHeight);
+                    shape.lineTo(hW, startH);
+                } else {
+                    shape.lineTo(hW, c.maxHeight);           
+                }
+                
                 shape.lineTo(hW, 0); shape.lineTo(-hW, 0);
             } else if (c.type === "symmetric-belly") {
                 let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 50;
@@ -773,8 +815,6 @@
             }
             
             const geometry = new THREE.ExtrudeGeometry(shape, { depth: b.length, bevelEnabled: false });
-            
-            // V2.0.2 CRITICAL FIX: Rotated axis syncs 3D render perfectly with the mathematical coordinate scanner
             geometry.rotateY(-Math.PI / 2); 
             geometry.translate( b.length/2, 0, 0 );
             
