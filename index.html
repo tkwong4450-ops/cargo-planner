@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V1.9.8</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.0</title>
     
     <style>
         :root {
@@ -89,8 +89,9 @@
         .cam-btn { font-size: 10px; padding: 6px 10px; background: #374151; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .cam-btn:hover { background: var(--lh-yellow); color: var(--lh-navy); font-weight: bold; }
         
-        .overflow-badge { background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; animation: pulse 1.5s infinite; }
+        .overflow-badge { background: #ea580c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; animation: pulse 1.5s infinite; }
         .overlap-badge { background: #d946ef; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; }
+        .breach-badge { background: #dc2626; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
 </head>
@@ -101,7 +102,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 1.9.8</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.0</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -282,7 +283,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // --- V1.9.8: DATA ENGINE ---
+        // --- V2.0.0: GEOMETRIC BOUNDARY SCANNER ---
         const ULDS = {
             PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1 },
             PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1 },
@@ -325,7 +326,6 @@
             renderFleetList();
         }
 
-        // --- MANIFEST PARSER ---
         function convertToCM(value, unit) {
             let val = parseFloat(value); if (isNaN(val)) return 0;
             if (!unit) return val; unit = unit.toLowerCase();
@@ -413,7 +413,6 @@
             } catch (error) { alert("The parser encountered an unusual text format. We have added a blank row instead."); addRow('', '', '', '', '', true); }
         }
 
-        // --- FLEET MANAGEMENT ---
         function autoSelectContour() {
             const baseKey = document.getElementById('baseSelect').value;
             const contourSelect = document.getElementById('contourSelect');
@@ -507,74 +506,39 @@
                 cargoGroup.children.forEach(m => { if (checkEnvelopeIntersection(m)) breach = true; });
             }
 
-            if (breach) { badge.className = "status-badge badge-fail"; badge.innerText = "ENVELOPE BREACH"; 
+            if (breach) { 
+                badge.className = "status-badge badge-fail"; badge.innerText = "ENVELOPE BREACH"; 
             } else if (manifest.weight > maxFleetWeight) { badge.className = "status-badge badge-warn"; badge.innerText = "OVERWEIGHT"; 
             } else if (manifest.cbm > maxFleetVol) { badge.className = "status-badge badge-warn"; badge.innerText = "OVER VOLUME"; 
             } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; }
         }
 
-        // --- V1.9.8 PHYSICS: SYMMETRICAL TAPER FOR LATERAL ASYMMETRIC CONTOURS ---
         function checkEnvelopeIntersection(mesh) {
             let box = new THREE.Box3().setFromObject(mesh);
-            let centerVec = new THREE.Vector3(); box.getCenter(centerVec);
-            
             if (mesh.userData.isOverflowing) return false; 
 
             let activeUld = null;
-            for (let u of drawnUlds) { if (centerVec.x >= u.startX - 25 && centerVec.x <= u.endX + 25) { activeUld = u; break; } }
+            for (let u of drawnUlds) { if (box.min.x >= u.startX - 5 && box.max.x <= u.endX + 5) { activeUld = u; break; } }
             if (!activeUld) return true; 
             
-            const b = activeUld.base; const c = activeUld.contour;
-            let zMax = box.max.z; let zMin = box.min.z; let yMax = box.max.y; let yMin = box.min.y;
-            let hW = b.width / 2; let hL = b.length / 2;
+            const b = activeUld.base; const c = CONTOURS[activeUld.contourKey];
+            
+            // Check absolute height limit
+            if (box.max.y > c.maxHeight) return true;
 
-            let localXMax = box.max.x - activeUld.centerX; let localXMin = box.min.x - activeUld.centerX;
-            if (localXMax > hL || localXMin < -hL) return true;
-
+            // Geometry-based taper scan
+            let centerZ = (box.min.z + box.max.z) / 2;
+            let halfW = b.width / 2;
+            
             if (c.type === "main-deck-asymmetric") {
                 let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60;
-                
-                if (activeUld.isLateral) {
-                    // Double taper check
-                    if (yMax > startH) {
-                        let ratio = (yMax - startH) / (c.maxHeight - startH);
-                        let allowedMinZ = -hW + (ratio * offset);
-                        let allowedMaxZ = hW - (ratio * offset);
-                        if (zMin < allowedMinZ || zMax > allowedMaxZ) return true;
-                    } else {
-                        if (zMin < -hW || zMax > hW) return true;
-                    }
-                } else {
-                    // Single taper check
-                    if (yMax > startH) {
-                        let ratio = (yMax - startH) / (c.maxHeight - startH);
-                        let allowedMinZ = -hW + (ratio * offset);
-                        if (zMin < allowedMinZ) return true; 
-                    } else { if (zMin < -hW) return true; }
-                    if (zMax > hW) return true; 
+                if (box.max.y > startH) {
+                    let ratio = (box.max.y - startH) / (c.maxHeight - startH);
+                    let allowedMinZ = -halfW + (ratio * offset);
+                    let allowedMaxZ = activeUld.isLateral ? (halfW - (ratio * offset)) : halfW;
+                    if (box.min.z < allowedMinZ || box.max.z > allowedMaxZ) return true;
                 }
-                
-            } else if (c.type === "symmetric-belly") {
-                let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 60;
-                if (yMin < bellyH) {
-                    let ratio = yMin / bellyH; let allowedZ = hW + (ratio * offset);
-                    if (zMax > allowedZ || zMin < -allowedZ) return true;
-                } else {
-                    let allowedZ = hW + offset;
-                    if (zMax > allowedZ || zMin < -allowedZ) return true;
-                }
-            } else if (c.type === "half-belly") {
-                let overhang = c.overhang || 45; let bellyH = c.bellyHeight || 60;
-                if (yMin < bellyH) {
-                    let ratio = yMin / bellyH; let allowedZ = hW + (ratio * overhang);
-                    if (zMax > allowedZ) return true;
-                } else { if (zMax > hW + overhang) return true; }
-                if (zMin < -hW) return true;
-            } else { 
-                if (zMax > hW || zMin < -hW) return true;
             }
-
-            if (yMax > c.maxHeight) return true;
             return false;
         }
 
@@ -591,7 +555,6 @@
             if (num === 3) { if (!is3DReady) { setTimeout(init3D, 50); } else { buildScene(); } }
         }
 
-        // --- 3D MAP GENERATOR ---
         function buildScene() {
             if (!scene) return;
             while (cargoGroup.children.length > 0) { cargoGroup.remove(cargoGroup.children[0]); }
@@ -614,17 +577,14 @@
                     }
 
                     let centerX = currentX + (renderBase.length/2);
-                    drawnUlds.push({ base: renderBase, contour: c, centerX: centerX, startX: currentX, endX: currentX + renderBase.length, isLateral: f.orientation === 'lateral' });
+                    drawnUlds.push({ base: renderBase, contourKey: f.contourKey, centerX: centerX, startX: currentX, endX: currentX + renderBase.length, isLateral: f.orientation === 'lateral' });
                     drawSharpEnvelope(renderBase, c, centerX, f.orientation === 'lateral');
                     currentX += renderBase.length + gap;
                 }
             });
 
-            let manifest = updateManifestSummary();
-            let warns = [];
             let items = [];
             let boxIdCounter = 1;
-
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
                 const q = parseInt(r.querySelector('.qty').value) || 0;
                 const l = parseFloat(r.querySelector('.length').value) || 0;
@@ -633,7 +593,7 @@
                 const stackable = r.querySelector('.stackable').checked;
 
                 if (q > 0 && l > 0 && w > 0 && h > 0) {
-                    for (let i = 0; i < q; i++) items.push({ id: `BOX-${boxIdCounter++}`, l, w, h, stackable, isOverflowing: false, isOverlapping: false });
+                    for (let i = 0; i < q; i++) items.push({ id: `BOX-${boxIdCounter++}`, l, w, h, stackable, isOverflowing: false, isOverlapping: false, isBreaching: false });
                 }
             });
 
@@ -642,18 +602,16 @@
                 let activeUld = drawnUlds[uldIdx];
                 let cx = -activeUld.base.length/2, cz = -activeUld.base.width/2;
                 let currentY = 0, layerMaxHeight = 0, rowMaxW = 0;
-                
                 let overflowXOffset = 0; let overflowZOffset = 0;
                 const OVERFLOW_START_X = drawnUlds[drawnUlds.length - 1].endX + 250; 
 
                 items.forEach((it) => {
-                    let globalX, globalZ;
-
                     if (uldIdx < drawnUlds.length) {
                         if (cx + it.l > activeUld.base.length/2) { cx = -activeUld.base.length/2; cz += rowMaxW; rowMaxW = 0; }
                         if (cz + it.w > activeUld.base.width/2) { cx = -activeUld.base.length/2; cz = -activeUld.base.width/2; rowMaxW = 0; currentY += layerMaxHeight; layerMaxHeight = 0; }
                         
-                        if ((!it.stackable && currentY > 0) || (currentY + it.h > activeUld.contour.maxHeight)) {
+                        // Height-Limit-Sequence-Check
+                        while (uldIdx < drawnUlds.length && (currentY + it.h > CONTOURS[drawnUlds[uldIdx].contourKey].maxHeight)) {
                             uldIdx++;
                             if (uldIdx < drawnUlds.length) {
                                 activeUld = drawnUlds[uldIdx];
@@ -662,10 +620,9 @@
                         }
                     }
 
+                    let globalX, globalZ;
                     if (uldIdx >= drawnUlds.length) {
                         it.isOverflowing = true;
-                        if (!warns.includes(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity. Check Overflow Zone.`)) warns.push(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity. Check Overflow Zone.`);
-                        
                         if (overflowZOffset + it.w > 500) { overflowZOffset = 0; overflowXOffset += 150; }
                         globalX = OVERFLOW_START_X + overflowXOffset + (it.l/2);
                         globalZ = -250 + overflowZOffset + (it.w/2);
@@ -679,218 +636,43 @@
                     }
 
                     const geo = new THREE.BoxGeometry(it.l, it.h, it.w);
-                    const meshColor = it.isOverflowing ? 0xff0000 : (it.stackable ? 0xffaa00 : 0xdc2626);
-                    const mat = new THREE.MeshPhongMaterial({ color: meshColor, opacity: it.isOverflowing ? 0.8 : 0.95, transparent: true });
-                    const mesh = new THREE.Mesh(geo, mat);
+                    const mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: it.isOverflowing ? 0xea580c : 0xffaa00, transparent: true, opacity: 0.9 }));
                     mesh.position.set(globalX, currentY + (it.h/2), globalZ);
-                    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.6 })));
-                    
                     mesh.userData = { id: it.id, h: it.h, dims: { l: it.l, w: it.w, h: it.h }, isOverflowing: it.isOverflowing, indexRef: items.indexOf(it) };
                     cargoGroup.add(mesh);
                     labels.push(createLabel(it.id, mesh.position));
                 });
 
-                let overlapsFound = 0;
-                for (let i = 0; i < cargoGroup.children.length; i++) {
-                    if (cargoGroup.children[i].userData.isOverflowing) continue; 
-                    
-                    let boxA = new THREE.Box3().setFromObject(cargoGroup.children[i]);
-                    boxA.expandByScalar(-2.0); 
-                    
-                    for (let j = i + 1; j < cargoGroup.children.length; j++) {
-                        if (cargoGroup.children[j].userData.isOverflowing) continue;
-                        
-                        let boxB = new THREE.Box3().setFromObject(cargoGroup.children[j]);
-                        boxB.expandByScalar(-2.0);
-                        
-                        if (boxA.intersectsBox(boxB)) {
-                            cargoGroup.children[i].material.color.setHex(0xd946ef); 
-                            cargoGroup.children[j].material.color.setHex(0xd946ef);
-                            items[cargoGroup.children[i].userData.indexRef].isOverlapping = true;
-                            items[cargoGroup.children[j].userData.indexRef].isOverlapping = true;
-                            overlapsFound++;
-                        }
-                    }
-                }
-
-                if (overlapsFound > 0) {
-                    warns.push(`🚨 OVERLAPPING CARGO: ${overlapsFound} collision(s) detected during auto-pack. Highlighted in MAGENTA. Please repack manually.`);
-                }
-
-                let targetX = (currentX - gap)/2;
-                if (overflowXOffset > 0) targetX += 300; 
-                controls.target.set(targetX, 100, 0);
+                // Post-pack scan
+                cargoGroup.children.forEach(m => { if (checkEnvelopeIntersection(m)) { m.material.color.setHex(0xdc2626); m.userData.isBreaching = true; } });
             }
 
             generateInventoryList(items);
-
-            document.getElementById('metricsVol').innerText = `Volume: ${manifest.cbm.toFixed(2)} CBM | Pcs: ${manifest.pcs}`;
-            document.getElementById('metricsWgt').innerText = `Payload: ${manifest.weight.toFixed(1)} kg`;
-            
-            const logs = document.getElementById('warningLogs');
-            const title = document.getElementById('statusTitle');
-            if (warns.length > 0) { title.innerText = "⚠️ REPACK REQUIRED"; title.style.color = "#ea580c"; }
-            else { title.innerText = "✅ SAFE FLEET FITMENT"; title.style.color = "#16a34a"; }
-            logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
-
             setupDragControls();
             runWeightAudit();
-        }
-
-        function generateInventoryList(items) {
-            const container = document.getElementById('inventoryList'); container.innerHTML = '';
-            items.forEach(it => {
-                const overflowTag = it.isOverflowing ? `<span class="overflow-badge">OVERFLOW</span>` : '';
-                const overlapTag = it.isOverlapping ? `<span class="overlap-badge">OVERLAP</span>` : '';
-                const html = `
-                    <div class="inv-item" id="card_${it.id}" onmouseenter="highlightBox('${it.id}', true)" onmouseleave="highlightBox('${it.id}', false)">
-                        <div class="inv-item-header"><span>${it.id} ${overflowTag} ${overlapTag}</span> <span>${it.stackable ? '🟩 Stack' : '🟥 No Stack'}</span></div>
-                        <div class="inv-grid">
-                            <div><label>L (cm)</label><input type="number" id="inv_${it.id}_l" value="${it.l}" onchange="updateBoxFromSidebar('${it.id}')"></div>
-                            <div><label>W (cm)</label><input type="number" id="inv_${it.id}_w" value="${it.w}" onchange="updateBoxFromSidebar('${it.id}')"></div>
-                            <div><label>H (cm)</label><input type="number" id="inv_${it.id}_h" value="${it.h}" onchange="updateBoxFromSidebar('${it.id}')"></div>
-                        </div>
-                        <div class="inv-actions">
-                            <button onclick="rotateBoxSidebar('${it.id}', 'Y')">↻ Swap L/W</button>
-                            <button onclick="rotateBoxSidebar('${it.id}', 'X')">↻ Topple</button>
-                        </div>
-                    </div>`;
-                container.insertAdjacentHTML('beforeend', html);
-            });
-        }
-
-        function setupDragControls() {
-            if (dragControls) dragControls.dispose();
-            dragControls = new THREE.DragControls(cargoGroup.children, camera, renderer.domElement);
-            
-            dragControls.addEventListener('dragstart', function (event) {
-                controls.enabled = false;
-                dragStartPos.copy(event.object.position); 
-                document.querySelectorAll('.inv-item').forEach(el => el.classList.remove('selected'));
-                const card = document.getElementById(`card_${event.object.userData.id}`);
-                if (card) { card.classList.add('selected'); card.scrollIntoView({behavior: "smooth", block: "center"}); }
-            });
-            
-            dragControls.addEventListener('drag', function (event) {
-                let labelObj = labels.find(l => l.element.innerText === event.object.userData.id);
-                if (labelObj) labelObj.pos = event.object.position;
-            });
-
-            dragControls.addEventListener('dragend', function (event) {
-                controls.enabled = true;
-                let origin = event.object.position.clone();
-                origin.y = 1000; 
-                raycaster.set(origin, new THREE.Vector3(0, -1, 0));
-                
-                let others = cargoGroup.children.filter(c => c !== event.object);
-                let hits = raycaster.intersectObjects(others);
-                
-                if (hits.length > 0) {
-                    let hitBox = hits[0].object;
-                    let topY = hitBox.position.y + (hitBox.userData.h / 2);
-                    event.object.position.y = topY + (event.object.userData.h / 2);
-                } else {
-                    event.object.position.y = event.object.userData.h / 2; 
-                }
-
-                event.object.updateMatrixWorld();
-                let myBox = new THREE.Box3().setFromObject(event.object);
-                myBox.expandByScalar(-1.5); 
-
-                let collisionDetected = false;
-                for (let i=0; i<others.length; i++) {
-                    let otherBox3 = new THREE.Box3().setFromObject(others[i]);
-                    otherBox3.expandByScalar(-1.5);
-                    if (myBox.intersectsBox(otherBox3)) { collisionDetected = true; break; }
-                }
-
-                if (collisionDetected) {
-                    event.object.position.copy(dragStartPos);
-                    let labelObj = labels.find(l => l.element.innerText === event.object.userData.id);
-                    if (labelObj) labelObj.pos = event.object.position;
-                    
-                    const warning = document.getElementById('collisionWarning');
-                    warning.style.display = 'block';
-                    setTimeout(() => { warning.style.display = 'none'; }, 2500);
-                } else {
-                    let itData = cargoGroup.children.find(m => m === event.object);
-                    if(itData) {
-                        const originalColor = itData.userData.isOverflowing ? 0xff0000 : (itData.material.color.getHex() === 0xffaa00 ? 0xffaa00 : 0xdc2626);
-                        event.object.material.color.setHex(originalColor);
-                    }
-                }
-                
-                event.object.userData.isOverflowing = false;
-                runWeightAudit();
-            });
         }
 
         function drawSharpEnvelope(b, c, offsetX, isLateral) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
-            
             if (c.type === "main-deck-asymmetric") {
-                let startH = c.slopeStartH || 150;
-                let offset = c.taperOffset || 60;
-                
-                if (isLateral) {
-                    // DOUBLE TAPER for lateral configuration
-                    shape.moveTo(-hW, 0); 
-                    shape.lineTo(-hW, startH); 
-                    shape.lineTo(-hW + offset, c.maxHeight); 
-                    shape.lineTo(hW - offset, c.maxHeight);           
-                    shape.lineTo(hW, startH);                     
-                    shape.lineTo(hW, 0);                     
-                    shape.lineTo(-hW, 0);
-                } else {
-                    // SINGLE TAPER (Standard)
-                    shape.moveTo(-hW, 0); 
-                    shape.lineTo(-hW, startH); 
-                    shape.lineTo(-hW + offset, c.maxHeight); 
-                    shape.lineTo(hW, c.maxHeight);           
-                    shape.lineTo(hW, 0);                     
-                    shape.lineTo(-hW, 0);
-                }
-
-            } else if (c.type === "symmetric-belly") {
-                let offset = c.taperOffset || 30; 
-                let bellyH = c.bellyHeight || 50;
-                shape.moveTo(-hW, 0);
-                shape.lineTo(-hW - offset, bellyH);
-                shape.lineTo(-hW - offset, c.maxHeight);
-                shape.lineTo(hW + offset, c.maxHeight);
-                shape.lineTo(hW + offset, bellyH);
-                shape.lineTo(hW, 0);
-                shape.lineTo(-hW, 0);
-
-            } else if (c.type === "half-belly") {
-                let overhang = c.overhang || 45; 
-                let bellyH = c.bellyHeight || 60; 
-                shape.moveTo(-hW, 0); 
-                shape.lineTo(-hW, c.maxHeight); 
-                shape.lineTo(hW + overhang, c.maxHeight); 
-                shape.lineTo(hW + overhang, bellyH); 
-                shape.lineTo(hW, 0); 
-                shape.lineTo(-hW, 0); 
-
+                let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60;
+                shape.moveTo(-hW, 0); shape.lineTo(-hW, startH); 
+                shape.lineTo(-hW + offset, c.maxHeight); 
+                shape.lineTo(isLateral ? hW - offset : hW, c.maxHeight);           
+                shape.lineTo(hW, 0); shape.lineTo(-hW, 0);
             } else {
                 shape.moveTo(-hW, 0); shape.lineTo(-hW, c.maxHeight); shape.lineTo(hW, c.maxHeight); shape.lineTo(hW, 0); 
             }
-
             const geometry = new THREE.ExtrudeGeometry(shape, { depth: b.length, bevelEnabled: false });
             geometry.rotateY(Math.PI / 2); geometry.translate( -b.length/2, 0, 0 );
-
-            const material = new THREE.MeshPhysicalMaterial({ color: 0x00ccff, transparent: true, opacity: 0.15, depthWrite: false, side: THREE.DoubleSide });
-            const edgeMat = new THREE.LineBasicMaterial({ color: 0x00ccff, linewidth: 2 });
-            const mesh = new THREE.Mesh(geometry, material);
-            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgeMat);
-            
+            const mesh = new THREE.Mesh(geometry, new THREE.MeshPhysicalMaterial({ color: 0x00ccff, transparent: true, opacity: 0.15, side: THREE.DoubleSide }));
+            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0x00ccff }));
             mesh.position.set(offsetX, 0, 0); edges.position.set(offsetX, 0, 0);
             scene.add(mesh); scene.add(edges);
             contourMeshes.push(mesh, edges);
         }
 
-        // --- UTILS ---
         function setCamera(view) {
             if (!camera || !controls) return;
             if (view === 'top') { camera.position.set(0, 900, 0); controls.target.set(0,0,0); }
@@ -916,12 +698,8 @@
 
         function highlightBox(boxId, isHighlight) {
             let mesh = cargoGroup.children.find(m => m.userData.id === boxId); if (!mesh) return;
-            if (isHighlight) {
-                mesh.material.emissive.setHex(0x994400); mesh.material.opacity = 1; mesh.children[0].material.color.setHex(0xff0000); mesh.scale.set(1.05, 1.05, 1.05); 
-            } else {
-                mesh.material.emissive.setHex(0x000000); mesh.material.opacity = 0.95; mesh.children[0].material.color.setHex(0xffffff); mesh.scale.set(1, 1, 1);
-            }
-            if (renderer) renderer.render(scene, camera);
+            mesh.scale.set(isHighlight ? 1.05 : 1, isHighlight ? 1.05 : 1, isHighlight ? 1.05 : 1);
+            renderer.render(scene, camera);
         }
 
         function updateBoxFromSidebar(boxId) {
@@ -929,10 +707,7 @@
             let l = parseFloat(document.getElementById(`inv_${boxId}_l`).value) || mesh.userData.dims.l;
             let w = parseFloat(document.getElementById(`inv_${boxId}_w`).value) || mesh.userData.dims.w;
             let h = parseFloat(document.getElementById(`inv_${boxId}_h`).value) || mesh.userData.dims.h;
-            
             mesh.userData.dims = {l, w, h}; mesh.geometry.dispose(); mesh.geometry = new THREE.BoxGeometry(l, h, w);
-            mesh.children[0].geometry.dispose(); mesh.children[0].geometry = new THREE.EdgesGeometry(mesh.geometry);
-            if (mesh.position.y < h/2) mesh.position.y = h/2;
             mesh.userData.h = h; renderer.render(scene, camera); runWeightAudit(); 
         }
 
@@ -951,25 +726,20 @@
             renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             renderer.setSize(cnt.clientWidth, cnt.clientHeight); 
             cnt.appendChild(renderer.domElement);
-            
             controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.maxPolarAngle = Math.PI / 2 - 0.05; controls.enableDamping = true;
+            controls.enableDamping = true;
             raycaster = new THREE.Raycaster();
-            
             scene.add(new THREE.AmbientLight(0xffffff, 0.8));
             let d = new THREE.DirectionalLight(0xffffff, 0.6); d.position.set(200, 600, 300); scene.add(d);
-            
             let grid = new THREE.GridHelper(2000, 60, 0x1e293b, 0x0f172a); grid.position.y = -0.5; 
             scene.add(grid); scene.add(cargoGroup);
-            
             animate(); is3DReady = true;
-            window.addEventListener('resize', () => { 
-                camera.aspect = cnt.clientWidth/cnt.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(cnt.clientWidth, cnt.clientHeight); 
-            });
+            window.addEventListener('resize', () => { camera.aspect = cnt.clientWidth/cnt.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(cnt.clientWidth, cnt.clientHeight); });
             buildScene();
         }
 
         function animate() { requestAnimationFrame(animate); controls.update(); updateLabels(); renderer.render(scene, camera); }
+        function setupDragControls() { if (dragControls) dragControls.dispose(); dragControls = new THREE.DragControls(cargoGroup.children, camera, renderer.domElement); dragControls.addEventListener('dragend', runWeightAudit); }
     </script>
 </body>
 </html>
