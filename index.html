@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.1</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.2</title>
     
     <style>
         :root {
@@ -104,7 +104,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.1</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.2</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -287,7 +287,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // --- V2.0.1: DATA ENGINE WITH STRICT GEOMETRY ---
+        // --- V2.0.2: SYNCED GEOMETRY & UI LOGS ---
         const ULDS = {
             PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1 },
             PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1 },
@@ -523,7 +523,6 @@
             if (mesh.userData.isOverflowing) return false; 
 
             let activeUld = null;
-            // Scan logic expanded to catch edges smoothly
             for (let u of drawnUlds) { if (centerVec.x >= u.startX - 25 && centerVec.x <= u.endX + 25) { activeUld = u; break; } }
             if (!activeUld) return true; 
             
@@ -674,13 +673,19 @@
                     labels.push(createLabel(it.id, mesh.position));
                 });
 
-                // Post-pack envelope check (This triggers the visual red alert if packed into a corner slope)
+                // V2.0.2 CRITICAL FIX: Ensure envelope breaches accurately trigger UI logs
+                let breachCount = 0;
                 cargoGroup.children.forEach(m => { 
                     if (checkEnvelopeIntersection(m)) { 
                         m.material.color.setHex(0xdc2626); 
                         m.userData.isBreaching = true; 
+                        breachCount++;
                     } 
                 });
+                
+                if (breachCount > 0) {
+                    warns.push(`🚨 ENVELOPE BREACH: ${breachCount} item(s) penetrating contour. Drag to reposition.`);
+                }
 
                 let overlapsFound = 0;
                 for (let i = 0; i < cargoGroup.children.length; i++) {
@@ -708,7 +713,6 @@
                 controls.target.set(targetX, 100, 0);
             }
 
-            // CRITICAL FIX: Menu Generation Restored
             generateInventoryList(items);
 
             document.getElementById('metricsVol').innerText = `Volume: ${manifest.cbm.toFixed(2)} CBM | Pcs: ${manifest.pcs}`;
@@ -724,7 +728,6 @@
             runWeightAudit();
         }
 
-        // CRITICAL FIX: Function Restored
         function generateInventoryList(items) {
             const container = document.getElementById('inventoryList'); container.innerHTML = '';
             items.forEach(it => {
@@ -750,6 +753,7 @@
         function drawSharpEnvelope(b, c, offsetX, isLateral) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
+            
             if (c.type === "main-deck-asymmetric") {
                 let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60;
                 shape.moveTo(-hW, 0); shape.lineTo(-hW, startH); 
@@ -767,8 +771,13 @@
             } else {
                 shape.moveTo(-hW, 0); shape.lineTo(-hW, c.maxHeight); shape.lineTo(hW, c.maxHeight); shape.lineTo(hW, 0); 
             }
+            
             const geometry = new THREE.ExtrudeGeometry(shape, { depth: b.length, bevelEnabled: false });
-            geometry.rotateY(Math.PI / 2); geometry.translate( -b.length/2, 0, 0 );
+            
+            // V2.0.2 CRITICAL FIX: Rotated axis syncs 3D render perfectly with the mathematical coordinate scanner
+            geometry.rotateY(-Math.PI / 2); 
+            geometry.translate( b.length/2, 0, 0 );
+            
             const mesh = new THREE.Mesh(geometry, new THREE.MeshPhysicalMaterial({ color: 0x00ccff, transparent: true, opacity: 0.15, side: THREE.DoubleSide }));
             const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0x00ccff }));
             mesh.position.set(offsetX, 0, 0); edges.position.set(offsetX, 0, 0);
@@ -865,7 +874,6 @@
 
         function animate() { requestAnimationFrame(animate); controls.update(); updateLabels(); renderer.render(scene, camera); }
         
-        // CRITICAL FIX: Controls Restored
         function setupDragControls() {
             if (dragControls) dragControls.dispose();
             dragControls = new THREE.DragControls(cargoGroup.children, camera, renderer.domElement);
@@ -921,7 +929,6 @@
                     setTimeout(() => { warning.style.display = 'none'; }, 2500);
                 }
                 
-                // Color swap logic based on new drop position
                 if (checkEnvelopeIntersection(event.object)) {
                     event.object.material.color.setHex(0xdc2626);
                     event.object.userData.isBreaching = true;
