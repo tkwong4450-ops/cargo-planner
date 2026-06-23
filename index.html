@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.4</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.5</title>
     
     <style>
         :root {
@@ -104,7 +104,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.4</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.5</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -288,7 +288,7 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // --- V2.0.4: TRUE ASYMMETRIC LATERAL, PLA SYMMETRY & DELETE FUNCTION ---
+        // --- V2.0.5: TRUE SYMMETRY FOR LATERAL MAIN DECK CONTOURS ---
         const ULDS = {
             PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1 },
             PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1 },
@@ -418,7 +418,6 @@
             } catch (error) { alert("The parser encountered an unusual text format. We have added a blank row instead."); addRow('', '', '', '', '', true); }
         }
 
-        // V2.0.4 FIX: Reverting to standard Longitudinal/Lateral, adding PLA Belly Lock
         function autoSelectContour() {
             const baseKey = document.getElementById('baseSelect').value;
             const contourSelect = document.getElementById('contourSelect');
@@ -523,7 +522,7 @@
             } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; }
         }
 
-        // V2.0.4 FIX: Pure Asymmetry for Main Deck, regardless of lateral/longitudinal 
+        // V2.0.5 FIX: Enforcing true math symmetry for lateral main deck contours
         function checkEnvelopeIntersection(mesh) {
             let box = new THREE.Box3().setFromObject(mesh);
             let centerVec = new THREE.Vector3(); box.getCenter(centerVec);
@@ -547,6 +546,11 @@
                     let ratio = (yMax - startH) / (c.maxHeight - startH);
                     let allowedMinZ = -hW + (ratio * offset);
                     if (zMin < allowedMinZ) return true; 
+                    
+                    if (activeUld.isLateral) {
+                        let allowedMaxZ = hW - (ratio * offset);
+                        if (zMax > allowedMaxZ) return true;
+                    }
                 } else { 
                     if (zMin < -hW) return true; 
                 }
@@ -607,14 +611,24 @@
                 
                 for (let i = 0; i < f.qty; i++) {
                     let renderBase = { ...originalBase };
-                    if (f.orientation === 'lateral') {
+                    let isLateral = f.orientation === 'lateral';
+
+                    if (isLateral) {
                         renderBase.length = originalBase.width;
                         renderBase.width = originalBase.length;
                     }
 
                     let centerX = currentX + (renderBase.length/2);
-                    drawnUlds.push({ base: renderBase, contourKey: f.contourKey, centerX: centerX, startX: currentX, endX: currentX + renderBase.length, isLateral: f.orientation === 'lateral' });
-                    drawSharpEnvelope(renderBase, c, centerX);
+                    drawnUlds.push({ 
+                        base: renderBase, 
+                        contourKey: f.contourKey, 
+                        centerX: centerX, 
+                        startX: currentX, 
+                        endX: currentX + renderBase.length, 
+                        isLateral: isLateral
+                    });
+                    
+                    drawSharpEnvelope(renderBase, c, centerX, isLateral);
                     currentX += renderBase.length + gap;
                 }
             });
@@ -763,8 +777,8 @@
             });
         }
 
-        // V2.0.4 FIX: Back to the original, pure asymmetric J curve for all single J contours
-        function drawSharpEnvelope(b, c, offsetX) {
+        // V2.0.5 FIX: Adding symmetry directly to the drawing rules when isLateral is true
+        function drawSharpEnvelope(b, c, offsetX, isLateral) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
             
@@ -772,7 +786,14 @@
                 let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60;
                 shape.moveTo(-hW, 0); shape.lineTo(-hW, startH); 
                 shape.lineTo(-hW + offset, c.maxHeight); 
-                shape.lineTo(hW, c.maxHeight);           
+                
+                if (isLateral) {
+                    shape.lineTo(hW - offset, c.maxHeight);
+                    shape.lineTo(hW, startH);
+                } else {
+                    shape.lineTo(hW, c.maxHeight);           
+                }
+                
                 shape.lineTo(hW, 0); shape.lineTo(-hW, 0);
             } else if (c.type === "symmetric-belly") {
                 let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 50;
@@ -797,7 +818,6 @@
             contourMeshes.push(mesh, edges);
         }
 
-        // V2.0.4 NEW: Dedicated cargo deletion syncing UI to Manifest
         function deleteCargoBox(boxId, rowId) {
             if(confirm(`Are you sure you want to permanently delete ${boxId} from the manifest?`)) {
                 let row = document.getElementById(rowId);
