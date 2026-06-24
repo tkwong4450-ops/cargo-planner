@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.6</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.7</title>
     
     <style>
         :root {
@@ -105,7 +105,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.6</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.7</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -130,8 +130,8 @@
 
             <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
                 <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
-                    <label>💡 Line-by-Line Semantic Scanner (Detects mm, cm, m, /qty)</label>
-                    <textarea id="emailInput" rows="9" placeholder="Paste quote text here...&#13;e.g. Details= 7pcs/283kg/2.5cbm&#13;Dimension= (mm)&#13;416*320*297/1&#13;1750*1140*1175/1&#13;1260*345*55/5"></textarea>
+                    <label>💡 Line-by-Line Semantic Scanner (Detects mm, cm, m, plt, ctn)</label>
+                    <textarea id="emailInput" rows="9" placeholder="Paste quote text here...&#13;e.g. Details= 7plt/283kg/2.5cbm&#13;Dimension= (mm)&#13;416*320*297/1&#13;1750*1140*1175/1&#13;1260*345*55/5ctns"></textarea>
                     <button class="btn btn-secondary" style="width: 100%; margin-top: 5px;" onclick="parseEmail()">⚡ Auto-Extract & Convert</button>
                     <div id="parseWarnings" style="color: #dc2626; font-size: 11px; font-weight: bold; margin-top: 10px;"></div>
                 </div>
@@ -170,7 +170,7 @@
                     <h3 style="margin:0 0 5px 0; font-size:13px; color:#065f46; text-transform:uppercase;">🤖 AI Loadmaster Auto-Setup</h3>
                     <div id="aiSuggestionText" style="font-size: 12px; color: #047857; font-weight: bold;">Analyzing payload constraints...</div>
                 </div>
-                <button class="btn" id="btnApplyAi" style="background:#10b981; color:white; font-size:11px; padding:8px 16px;" onclick="applyAiSuggestion()">Apply Recommendation</button>
+                <button type="button" class="btn" id="btnApplyAi" style="background:#10b981; color:white; font-size:11px; padding:8px 16px; border:none;" onclick="applyAiSuggestion()">Apply Recommendation</button>
             </div>
 
             <div class="grid-2">
@@ -224,6 +224,7 @@
                             <label>3. Load Orientation</label>
                             <select id="orientationSelect">
                                 <option value="longitudinal">Longitudinal</option>
+                                <option value="center">Centerline (Symmetric)</option>
                                 <option value="lateral">Lateral (Turned 90°)</option>
                             </select>
                         </div>
@@ -336,7 +337,7 @@
         let aiRecommendation = null;
 
         window.onload = () => {
-            addRow('', '', '', '', '', true); // Ensure one row exists on startup
+            addRow('', '', '', '', '', true);
             autoSelectContour(); 
             renderFleetList();
         }
@@ -403,6 +404,7 @@
             return { pcs: pcs || 0, weight: safeWeight, cbm: safeCbm };
         }
 
+        // --- V2.0.7 FIX: Expanded Regex for plt, plts, ctn, ctns ---
         function parseEmail() {
             try {
                 const rawText = document.getElementById('emailInput').value;
@@ -423,8 +425,15 @@
                     const dimMatch = clean.match(/(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:\*|x|×)(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:\*|x|×)(\d+(?:\.\d+)?)(cm|mm|m|in)?/);
                     if (dimMatch) {
                         let lRaw = dimMatch[1], lUnit = dimMatch[2] || globalUnit; let wRaw = dimMatch[3], wUnit = dimMatch[4] || globalUnit; let hRaw = dimMatch[5], hUnit = dimMatch[6] || globalUnit; let qty = 1;
-                        const suffixMatch = clean.match(/(?:\/|\\|@)(\d+)$/);
-                        if (suffixMatch) { qty = parseInt(suffixMatch[1]); } else { const prefixMatch = clean.match(/^(\d+)(?:x|\*|pcs|@)/); if (prefixMatch) { qty = parseInt(prefixMatch[1]); } }
+                        
+                        const suffixMatch = clean.match(/(?:\/|\\|@)(\d+)(?:pcs|plt|plts|ctn|ctns)?$/);
+                        if (suffixMatch) { 
+                            qty = parseInt(suffixMatch[1]); 
+                        } else { 
+                            const prefixMatch = clean.match(/^(\d+)(?:x|\*|pcs|plt|plts|ctn|ctns|@)/); 
+                            if (prefixMatch) { qty = parseInt(prefixMatch[1]); } 
+                        }
+                        
                         addRow( qty, convertToCM(lRaw, lUnit).toFixed(1), convertToCM(wRaw, wUnit).toFixed(1), convertToCM(hRaw, hUnit).toFixed(1), '', !isNonStackable );
                         rowsAdded = true;
                     }
@@ -434,7 +443,7 @@
             } catch (error) { alert("The parser encountered an unusual text format. We have added a blank row instead."); addRow('', '', '', '', '', true); }
         }
 
-        // --- V2.0.6: AI Loadmaster Engine ---
+        // --- V2.0.7 FIX: Smarter AI Logic for Bulky Volumes (PZA bias) ---
         function analyzeLoadForAI() {
             let manifest = updateManifestSummary();
             if (manifest.pcs === 0) {
@@ -451,7 +460,7 @@
             });
 
             document.getElementById('btnApplyAi').style.display = 'inline-block';
-            let baseStr = 'PMC'; let contourStr = 'Contour_LowerRect'; let oriStr = 'longitudinal';
+            let baseStr = 'PMC'; let contourStr = 'Contour_J4'; let oriStr = 'longitudinal'; let volPerUld = 10;
             
             if (maxH > 300) {
                 document.getElementById('aiSuggestionText').innerText = `🚨 Alert: Cargo height (${maxH}cm) exceeds absolute Main Deck limits (300cm). Redesign required.`;
@@ -462,26 +471,36 @@
                 document.getElementById('btnApplyAi').style.display = 'none';
                 return;
             } else if (maxL > 411) {
-                baseStr = 'PGE'; contourStr = 'Contour_J4'; oriStr = 'longitudinal';
-            } else if (maxL > 318) {
-                baseStr = 'PZA'; contourStr = 'Contour_J4'; oriStr = 'longitudinal';
-            } else if (maxH > 163) {
-                contourStr = 'Contour_J4'; // Standard Main Deck
+                baseStr = 'PGE'; contourStr = 'Contour_J4'; oriStr = 'center'; volPerUld = 16;
+            } else if (maxL > 318 || manifest.cbm > 16) {
+                // Bulk shipments favor PZA to avoid spanning multiple PMCs
+                baseStr = 'PZA'; contourStr = 'Contour_J4'; oriStr = 'center'; volPerUld = 12;
+            } else if (maxH <= 163 && manifest.cbm < 5) {
+                contourStr = 'Contour_LowerRect'; // Can fit lower deck easily
             }
 
-            let volPerUld = baseStr === 'PZA' ? 10 : (baseStr === 'PGE' ? 15 : (contourStr === 'Contour_J4' ? 12 : 8));
             let estQty = Math.ceil(manifest.cbm / volPerUld);
             if (estQty < 1) estQty = 1;
 
             aiRecommendation = { baseKey: baseStr, contourKey: contourStr, qty: estQty, orientation: oriStr };
-            document.getElementById('aiSuggestionText').innerText = `Optimal Fit: ${estQty}x ${baseStr} (${contourStr.replace('Contour_','')}). Calculated to minimize stowage loss for ${maxL}x${maxH}cm max dims.`;
+            document.getElementById('aiSuggestionText').innerText = `Optimal Fit: ${estQty}x ${baseStr} (${contourStr.replace('Contour_','')}). Optimized for build stability and footprint.`;
         }
 
+        // --- V2.0.7 FIX: Apply AI Button Feedback ---
         function applyAiSuggestion() {
             if (aiRecommendation) {
                 clearFleet();
-                fleetConfig.push({ id: Date.now(), ...aiRecommendation });
+                fleetConfig.push({ id: Date.now() + Math.random(), ...aiRecommendation });
                 renderFleetList();
+                
+                const btn = document.getElementById('btnApplyAi');
+                btn.innerText = '✅ Applied to Fleet!';
+                btn.style.background = '#059669';
+                
+                setTimeout(() => {
+                    btn.innerText = 'Apply Recommendation';
+                    btn.style.background = '#10b981';
+                }, 2000);
             }
         }
 
@@ -543,7 +562,10 @@
                     const b = ULDS[f.baseKey];
                     const posCount = (b.positions || 1) * f.qty;
                     let posBadge = b.positions > 1 ? `<span style="color:#ef4444; font-size:10px; margin-left:5px;">(Locks ${posCount} MD Pos)</span>` : '';
-                    let oriBadge = f.orientation === 'lateral' ? `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">LATERAL</span>` : '';
+                    
+                    let oriBadge = '';
+                    if (f.orientation === 'lateral') oriBadge = `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">LATERAL</span>`;
+                    if (f.orientation === 'center') oriBadge = `<span style="background:#8b5cf6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">CENTER</span>`;
                     
                     container.innerHTML += `
                         <div class="fleet-item">
@@ -589,7 +611,6 @@
             } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; }
         }
 
-        // --- V2.0.6: Detailed Forensic Breach Strings ---
         function checkEnvelopeIntersection(mesh) {
             let box = new THREE.Box3().setFromObject(mesh);
             let centerVec = new THREE.Vector3(); box.getCenter(centerVec);
@@ -614,7 +635,7 @@
                     let allowedMinZ = -hW + (ratio * offset);
                     if (zMin < allowedMinZ) return "Penetrates Left Contour Slope."; 
                     
-                    if (activeUld.isLateral) {
+                    if (activeUld.isLateral || activeUld.isCenter) {
                         let allowedMaxZ = hW - (ratio * offset);
                         if (zMax > allowedMaxZ) return "Penetrates Right Contour Slope.";
                     }
@@ -646,17 +667,13 @@
             return false;
         }
 
-        // --- V2.0.6: Permissive Navigation for Step Deletion Bugs ---
         function goToStage(num) {
-            // Block going to Stage 3 ONLY if fleet is empty
             if (num === 3 && fleetConfig.length === 0) return alert("Please add at least one ULD to your fleet.");
             
-            // Clean slate configuration when opening Stage 2 from Stage 1
             if (num === 2 && document.getElementById('stage1').classList.contains('active')) {
                 clearFleet();
             }
 
-            // Run AI analysis when opening Stage 2
             if (num === 2) {
                 analyzeLoadForAI();
             }
@@ -687,6 +704,7 @@
                 for (let i = 0; i < f.qty; i++) {
                     let renderBase = { ...originalBase };
                     let isLateral = f.orientation === 'lateral';
+                    let isCenter = f.orientation === 'center';
 
                     if (isLateral) {
                         renderBase.length = originalBase.width;
@@ -700,10 +718,11 @@
                         centerX: centerX, 
                         startX: currentX, 
                         endX: currentX + renderBase.length, 
-                        isLateral: isLateral
+                        isLateral: isLateral,
+                        isCenter: isCenter
                     });
                     
-                    drawSharpEnvelope(renderBase, c, centerX, isLateral);
+                    drawSharpEnvelope(renderBase, c, centerX, isLateral || isCenter);
                     currentX += renderBase.length + gap;
                 }
             });
@@ -734,7 +753,6 @@
                 const OVERFLOW_START_X = drawnUlds[drawnUlds.length - 1].endX + 250; 
 
                 items.forEach((it) => {
-                    // --- V2.0.6: The Cascade Packing Bug Fix ---
                     let placed = false;
                     while (!placed && uldIdx < drawnUlds.length) {
                         activeUld = drawnUlds[uldIdx];
@@ -742,20 +760,16 @@
                         let maxW = activeUld.base.width;
                         let maxH = CONTOURS[activeUld.contourKey].maxHeight;
 
-                        // Shift X (Lengthwise Wrap)
                         if (cx + it.l > maxL/2) { cx = -maxL/2; cz += rowMaxW + 2; rowMaxW = 0; }
-                        
-                        // Shift Z (Widthwise Layer Wrap)
                         if (cz + it.w > maxW/2) { cx = -maxL/2; cz = -maxW/2; rowMaxW = 0; currentY += layerMaxHeight + 2; layerMaxHeight = 0; }
 
-                        // Height/Stack Check -> Spill to NEXT ULD
                         if ((currentY + it.h > maxH) || (!it.stackable && currentY > 0)) {
                             uldIdx++;
                             if (uldIdx < drawnUlds.length) {
                                 activeUld = drawnUlds[uldIdx];
                                 cx = -activeUld.base.length/2; cz = -activeUld.base.width/2; currentY = 0; rowMaxW = 0; layerMaxHeight = 0;
                             }
-                            continue; // Re-evaluate in new ULD
+                            continue; 
                         }
                         placed = true;
                     }
@@ -773,7 +787,7 @@
                         if (it.h > layerMaxHeight) layerMaxHeight = it.h;
                         globalX = activeUld.centerX + cx + (it.l/2);
                         globalZ = cz + (it.w/2);
-                        cx += it.l + 2; // Add 2cm gap
+                        cx += it.l + 2; 
                     }
 
                     const geo = new THREE.BoxGeometry(it.l, it.h, it.w);
@@ -863,7 +877,7 @@
             });
         }
 
-        function drawSharpEnvelope(b, c, offsetX, isLateral) {
+        function drawSharpEnvelope(b, c, offsetX, isSymmetric) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
             
@@ -872,7 +886,7 @@
                 shape.moveTo(-hW, 0); shape.lineTo(-hW, startH); 
                 shape.lineTo(-hW + offset, c.maxHeight); 
                 
-                if (isLateral) {
+                if (isSymmetric) {
                     shape.lineTo(hW - offset, c.maxHeight);
                     shape.lineTo(hW, startH);
                 } else {
@@ -913,7 +927,7 @@
                         qtyInput.value = currentQty - 1;
                     } else {
                         row.remove();
-                        ensureCargoRow(); // V2.0.6: Prevents "0 rows" bricking navigation
+                        ensureCargoRow(); 
                     }
                     updateManifestSummary();
                     buildScene(); 
