@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.7</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.8</title>
     
     <style>
         :root {
@@ -105,7 +105,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.7</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.8</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -404,7 +404,6 @@
             return { pcs: pcs || 0, weight: safeWeight, cbm: safeCbm };
         }
 
-        // --- V2.0.7 FIX: Expanded Regex for plt, plts, ctn, ctns ---
         function parseEmail() {
             try {
                 const rawText = document.getElementById('emailInput').value;
@@ -443,7 +442,7 @@
             } catch (error) { alert("The parser encountered an unusual text format. We have added a blank row instead."); addRow('', '', '', '', '', true); }
         }
 
-        // --- V2.0.7 FIX: Smarter AI Logic for Bulky Volumes (PZA bias) ---
+        // --- V2.0.8 FIX: Updated PZA Volume Capacity & Forced Lateral Override ---
         function analyzeLoadForAI() {
             let manifest = updateManifestSummary();
             if (manifest.pcs === 0) {
@@ -471,12 +470,14 @@
                 document.getElementById('btnApplyAi').style.display = 'none';
                 return;
             } else if (maxL > 411) {
-                baseStr = 'PGE'; contourStr = 'Contour_J4'; oriStr = 'center'; volPerUld = 16;
+                baseStr = 'PGE'; contourStr = 'Contour_J4'; oriStr = 'lateral'; volPerUld = 33;
             } else if (maxL > 318 || manifest.cbm > 16) {
-                // Bulk shipments favor PZA to avoid spanning multiple PMCs
-                baseStr = 'PZA'; contourStr = 'Contour_J4'; oriStr = 'center'; volPerUld = 12;
+                // V2.0.8: Use 22 CBM heuristic for PZA, default to lateral for large volumes
+                baseStr = 'PZA'; contourStr = 'Contour_J4'; 
+                oriStr = (manifest.cbm > 16) ? 'lateral' : 'longitudinal'; 
+                volPerUld = 22;
             } else if (maxH <= 163 && manifest.cbm < 5) {
-                contourStr = 'Contour_LowerRect'; // Can fit lower deck easily
+                contourStr = 'Contour_LowerRect'; 
             }
 
             let estQty = Math.ceil(manifest.cbm / volPerUld);
@@ -486,22 +487,34 @@
             document.getElementById('aiSuggestionText').innerText = `Optimal Fit: ${estQty}x ${baseStr} (${contourStr.replace('Contour_','')}). Optimized for build stability and footprint.`;
         }
 
-        // --- V2.0.7 FIX: Apply AI Button Feedback ---
+        // --- V2.0.8 FIX: Force UI Dropdowns to sync with AI Data so users visually verify it applied ---
         function applyAiSuggestion() {
-            if (aiRecommendation) {
-                clearFleet();
-                fleetConfig.push({ id: Date.now() + Math.random(), ...aiRecommendation });
-                renderFleetList();
-                
-                const btn = document.getElementById('btnApplyAi');
-                btn.innerText = '✅ Applied to Fleet!';
-                btn.style.background = '#059669';
-                
-                setTimeout(() => {
-                    btn.innerText = 'Apply Recommendation';
-                    btn.style.background = '#10b981';
-                }, 2000);
-            }
+            if (!aiRecommendation) return;
+            
+            document.getElementById('baseSelect').value = aiRecommendation.baseKey;
+            autoSelectContour(); 
+            document.getElementById('contourSelect').value = aiRecommendation.contourKey;
+            document.getElementById('orientationSelect').value = aiRecommendation.orientation;
+            document.getElementById('uldQtyInput').value = aiRecommendation.qty;
+
+            clearFleet();
+            fleetConfig.push({ 
+                id: Date.now() + Math.random(), 
+                baseKey: aiRecommendation.baseKey, 
+                contourKey: aiRecommendation.contourKey, 
+                qty: aiRecommendation.qty, 
+                orientation: aiRecommendation.orientation 
+            });
+            renderFleetList();
+            
+            const btn = document.getElementById('btnApplyAi');
+            btn.innerText = '✅ Applied to Fleet!';
+            btn.style.background = '#059669';
+            
+            setTimeout(() => {
+                btn.innerText = 'Apply Recommendation';
+                btn.style.background = '#10b981';
+            }, 2000);
         }
 
         function autoSelectContour() {
@@ -611,6 +624,7 @@
             } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; }
         }
 
+        // --- V2.0.8 FIX: Added Geometric Taper Clamping for Center Loads ---
         function checkEnvelopeIntersection(mesh) {
             let box = new THREE.Box3().setFromObject(mesh);
             let centerVec = new THREE.Vector3(); box.getCenter(centerVec);
@@ -629,14 +643,17 @@
             if (localXMax > hL || localXMin < -hL) return "Overhangs ULD Front/Back edge.";
 
             if (c.type === "main-deck-asymmetric") {
-                let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60;
+                let startH = c.slopeStartH || 150; 
+                let offset = c.taperOffset || 60;
+                let effOffset = Math.min(offset, hW - 5); // V2.0.8: Clamps taper mathematically to prevent inverted logic
+
                 if (yMax > startH) {
                     let ratio = (yMax - startH) / (c.maxHeight - startH);
-                    let allowedMinZ = -hW + (ratio * offset);
+                    let allowedMinZ = -hW + (ratio * effOffset);
                     if (zMin < allowedMinZ) return "Penetrates Left Contour Slope."; 
                     
                     if (activeUld.isLateral || activeUld.isCenter) {
-                        let allowedMaxZ = hW - (ratio * offset);
+                        let allowedMaxZ = hW - (ratio * effOffset);
                         if (zMax > allowedMaxZ) return "Penetrates Right Contour Slope.";
                     }
                 } else { 
@@ -877,23 +894,29 @@
             });
         }
 
+        // --- V2.0.8 FIX: Center Load Clamping for Smooth Polygon Generation ---
         function drawSharpEnvelope(b, c, offsetX, isSymmetric) {
             const hW = b.width/2; 
             const shape = new THREE.Shape();
             
             if (c.type === "main-deck-asymmetric") {
-                let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60;
-                shape.moveTo(-hW, 0); shape.lineTo(-hW, startH); 
-                shape.lineTo(-hW + offset, c.maxHeight); 
+                let startH = c.slopeStartH || 150; 
+                let offset = c.taperOffset || 60;
+                let effOffset = Math.min(offset, hW - 5); 
+                
+                shape.moveTo(-hW, 0); 
+                shape.lineTo(-hW, startH); 
+                shape.lineTo(-hW + effOffset, c.maxHeight); 
                 
                 if (isSymmetric) {
-                    shape.lineTo(hW - offset, c.maxHeight);
+                    shape.lineTo(hW - effOffset, c.maxHeight);
                     shape.lineTo(hW, startH);
                 } else {
                     shape.lineTo(hW, c.maxHeight);           
                 }
                 
-                shape.lineTo(hW, 0); shape.lineTo(-hW, 0);
+                shape.lineTo(hW, 0); 
+                shape.lineTo(-hW, 0);
             } else if (c.type === "symmetric-belly") {
                 let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 50;
                 shape.moveTo(-hW, 0); shape.lineTo(-hW - offset, bellyH); shape.lineTo(-hW - offset, c.maxHeight);
