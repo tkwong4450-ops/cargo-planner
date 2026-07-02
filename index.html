@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V2.0.9</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V2.1.0</title>
     
     <style>
         :root {
@@ -64,7 +64,10 @@
         .badge-warn { background: #f59e0b; color: white; }
 
         .fleet-list-container { background: white; border: 1px solid var(--lh-border); border-radius: 8px; padding: 15px; min-height: 250px; }
-        .fleet-item { display: grid; grid-template-columns: 50px 1fr 1.5fr 40px; gap: 10px; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; font-size: 13px; font-weight: bold; }
+        .fleet-item { display: grid; grid-template-columns: 65px 1fr 1.5fr 40px; gap: 10px; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; font-size: 13px; font-weight: bold; }
+        .qty-stepper { background: var(--lh-yellow); color: var(--lh-navy); padding: 4px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .qty-btn { cursor: pointer; padding: 0 4px; font-weight: 900; opacity: 0.7; transition: 0.2s; user-select: none; }
+        .qty-btn:hover { opacity: 1; transform: scale(1.2); }
         
         .map-layout { display: grid; grid-template-columns: 280px 1fr 320px; gap: 20px; height: 650px; }
         .controls-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; }
@@ -97,7 +100,6 @@
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
-    
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 </head>
 <body>
@@ -107,7 +109,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.0.9</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.1.0</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -125,7 +127,7 @@
             <div style="background: #eef2ff; padding: 15px; border-radius: 8px; border: 1px solid #c7d2fe; margin-bottom: 20px;">
                 <label style="color: #3730a3;">Total Shipment Weight Override (Optional)</label>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="number" id="totalShipmentWeight" placeholder="e.g., 6432.50" oninput="updateManifestSummary()" style="max-width: 250px; border-color: #a5b4fc; margin-bottom:0;">
+                    <input type="number" id="totalShipmentWeight" placeholder="e.g., 9526" oninput="updateManifestSummary()" style="max-width: 250px; border-color: #a5b4fc; margin-bottom:0;">
                     <span style="font-size: 12px; color: #4f46e5; font-weight: bold;">kg (Overrides individual totals for capacity audits)</span>
                 </div>
             </div>
@@ -133,7 +135,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
                 <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
                     <label>💡 Tesseract OCR: Paste text OR a Screenshot (Ctrl+V)</label>
-                    <textarea id="emailInput" rows="9" placeholder="Paste quote text OR image here...&#13;e.g.&#13;8 x 120x100x120&#13;4 x 120x100x160&#13;Gross weight: 1,323 kg"></textarea>
+                    <textarea id="emailInput" rows="9" placeholder="Paste quote text OR image here...&#13;e.g.&#13;30 pallets&#13;120 x 100 x 132 cm per pallet&#13;Total weight: 9,526 kg"></textarea>
                     <button class="btn btn-secondary" style="width: 100%; margin-top: 5px;" onclick="parseEmail()">⚡ Auto-Extract & Convert</button>
                     <div id="parseWarnings" style="color: #dc2626; font-size: 11px; font-weight: bold; margin-top: 10px;"></div>
                 </div>
@@ -189,10 +191,12 @@
                                     <option value="PZA">PZA (20ft Base - 411 x 244 cm)</option>
                                     <option value="PGE">PGE (20ft Base - 606 x 244 cm)</option>
                                     <option value="PLA">PLA (2x LD3 Footprint - 318 x 153 cm)</option>
-                                    <option value="PKC">PKC Narrow/Wide Pallet (156 x 153 cm)</option> </optgroup>
+                                    <option value="PKC">PKC Narrow/Wide Pallet (156 x 153 cm)</option>
+                                </optgroup>
                                 <optgroup label="Certified Containers (Locked Contours)">
                                     <option value="AKE">AKE / LD3 Container (156 x 153 cm)</option>
-                                    <option value="AKH">AKH Narrow-Body Container (156 x 153 cm)</option> <option value="AMP">AMP Container (PMC Base / Lower Deck)</option>
+                                    <option value="AKH">AKH Narrow-Body Container (156 x 153 cm)</option>
+                                    <option value="AMP">AMP Container (PMC Base / Lower Deck)</option>
                                     <option value="AMJ">AMJ Container (PAJ Base / Lower Deck)</option>
                                     <option value="AMX">AMX Container (Netting Door / Lower Deck)</option>
                                     <option value="HMJ">HMJ Horse Stall (PAJ/PMC Base / Main Deck)</option>
@@ -213,7 +217,8 @@
                                     <option value="Contour_LowerRect">Contour P/Lower Rect</option>
                                     <option value="Contour_PLA_Belly">Contour PLA (Full Belly Symmetric)</option>
                                     <option value="Contour_AKE">Contour AKE/RKN (Half-Belly)</option>
-                                    <option value="Contour_AKH">Contour AKH (Narrow Belly)</option> <option value="Contour_F">Contour F (Wide Belly Taper)</option>
+                                    <option value="Contour_AKH">Contour AKH (Narrow Belly)</option>
+                                    <option value="Contour_F">Contour F (Wide Belly Taper)</option>
                                     <option value="Contour_H">Contour H (Narrow Belly Taper)</option>
                                 </optgroup>
                             </select>
@@ -299,16 +304,15 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // --- V2.0.9 FIX: Added AKH as Container, decoupled PKC ---
         const ULDS = {
             PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1 },
             PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1 },
             PZA: { length: 411, width: 244, maxWeight: 6800, positions: 2 }, 
             PGE: { length: 606, width: 244, maxWeight: 11300, positions: 2 }, 
             PLA: { length: 318, width: 153, maxWeight: 3175, positions: 1 },
-            PKC: { length: 156, width: 153, maxWeight: 1587, positions: 1 }, // Pallet: Unlocked
+            PKC: { length: 156, width: 153, maxWeight: 1587, positions: 1 },
             AKE: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE", positions: 1 },
-            AKH: { length: 156, width: 153, maxWeight: 1134, lock: "Contour_AKH", positions: 1 }, // Added AKH
+            AKH: { length: 156, width: 153, maxWeight: 1134, lock: "Contour_AKH", positions: 1 },
             AMP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1 },
             AMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_LowerRect", positions: 1 },
             AMX: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1 },
@@ -324,7 +328,7 @@
             Contour_LowerRect: { maxHeight: 163, type: "flat" }, 
             Contour_PLA_Belly: { maxHeight: 163, type: "symmetric-belly", taperOffset: 45, bellyHeight: 60 },
             Contour_AKE: { maxHeight: 163, type: "half-belly", overhang: 45, bellyHeight: 60 },
-            Contour_AKH: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50 }, // Added AKH specific contour
+            Contour_AKH: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50 },
             Contour_F: { maxHeight: 163, type: "symmetric-belly", taperOffset: 37, bellyHeight: 60 },
             Contour_H: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50 }
         };
@@ -347,7 +351,6 @@
             setupOCR();
         }
 
-        // --- V2.0.9 NEW: Tesseract Screenshot Pipeline ---
         function setupOCR() {
             document.getElementById('emailInput').addEventListener('paste', async (e) => {
                 const items = (e.clipboardData || e.originalEvent.clipboardData).items;
@@ -399,6 +402,7 @@
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', html); updateManifestSummary();
+            return id;
         }
 
         function ensureCargoRow() {
@@ -438,50 +442,64 @@
             return { pcs: pcs || 0, weight: safeWeight, cbm: safeCbm };
         }
 
-        // --- V2.0.9 FIX: Advanced Commas & Prefix Extraction Regex ---
+        // --- V2.1.0 FIX: Advanced Global Parsing for detached Qty, Commas, and Inline lists ---
         function parseEmail() {
             try {
                 const rawText = document.getElementById('emailInput').value;
                 if (!rawText.trim()) return alert("Please paste text or an image into the box.");
                 document.getElementById('cargoRows').innerHTML = ''; document.getElementById('parseWarnings').innerText = '';
                 
-                // Fix: Catch gross weight with commas, then strip the commas
-                const wgtMatch = rawText.match(/(?:weight|wgt)[\s:=]*([\d,]+(?:\.\d+)?)|([\d,]+(?:\.\d+)?)\s*(?:kgs|kg|kilos)/i);
-                if (wgtMatch) {
-                    const cleanWgt = (wgtMatch[1] || wgtMatch[2]).replace(/,/g, '');
-                    document.getElementById('totalShipmentWeight').value = parseFloat(cleanWgt) || "";
-                }
+                // Strip commas FIRST so 9,526 is safely read as 9526
+                const cleanForWeights = rawText.replace(/,/g, '');
+                const wgtMatch = cleanForWeights.match(/(?:weight|wgt|vw|g\.w|gross\s*weight)[^\d]*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilo)/i);
+                if (wgtMatch) { document.getElementById('totalShipmentWeight').value = wgtMatch[1] || wgtMatch[2] || ""; }
 
                 const isNonStackable = /non-stackable|non stackable|no stack/i.test(rawText.replace(/\n/g, ' '));
                 let globalUnit = "cm"; 
                 const unitMatch = rawText.match(/(?:dimension|dim|size)(?:s)?\s*[=:]?\s*\(?(mm|cm|m|in)\)?/i);
                 if (unitMatch) { globalUnit = unitMatch[1].toLowerCase(); document.getElementById('parseWarnings').innerText = `💡 Detected global base unit: ${globalUnit.toUpperCase()}`; document.getElementById('parseWarnings').style.color = "#16a34a"; }
 
-                const lines = rawText.split('\n'); let rowsAdded = false;
+                const lines = rawText.split('\n'); 
+                let rowsAddedCount = 0;
+                let firstRowId = null;
+
                 lines.forEach(line => {
-                    let clean = line.replace(/\s+/g, '').toLowerCase();
-                    const dimMatch = clean.match(/(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:\*|x|×)(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:\*|x|×)(\d+(?:\.\d+)?)(cm|mm|m|in)?/);
-                    if (dimMatch) {
-                        let lRaw = dimMatch[1], lUnit = dimMatch[2] || globalUnit; let wRaw = dimMatch[3], wUnit = dimMatch[4] || globalUnit; let hRaw = dimMatch[5], hUnit = dimMatch[6] || globalUnit; let qty = 1;
+                    let cleanLine = line.replace(/\s+/g, '').toLowerCase();
+                    // Global execution per line to capture comma-separated dimensions like 100x80x80/5, 50x50x50/3
+                    const dimRegex = /(?:(\d+)(?:x|\*|pcs|plt|plts|ctn|ctns|@))?(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*|×)(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*|×)[a-z]*(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:(?:\/|\\|@)(\d+)(?:pcs|plt|plts|ctn|ctns)?)?/g;
+                    
+                    let match;
+                    while ((match = dimRegex.exec(cleanLine)) !== null) {
+                        let prefixQty = match[1] ? parseInt(match[1]) : null;
+                        let suffixQty = match[8] ? parseInt(match[8]) : null;
+                        let qty = prefixQty || suffixQty || null; // Will fallback to global logic later if null
                         
-                        // Fix: Expanded prefix catching for formats like "8x..." or "8 x ..."
-                        const prefixMatch = clean.match(/^(\d+)(?:x|\*|pcs|plt|plts|ctn|ctns|@)/i); 
-                        if (prefixMatch) { 
-                            qty = parseInt(prefixMatch[1]); 
-                        } else {
-                            const suffixMatch = clean.match(/(?:\/|\\|@)(\d+)(?:pcs|plt|plts|ctn|ctns)?$/i);
-                            if (suffixMatch) qty = parseInt(suffixMatch[1]);
-                        }
+                        let lRaw = match[2], lUnit = match[3] || globalUnit; 
+                        let wRaw = match[4], wUnit = match[5] || globalUnit; 
+                        let hRaw = match[6], hUnit = match[7] || globalUnit; 
                         
-                        addRow( qty, convertToCM(lRaw, lUnit).toFixed(1), convertToCM(wRaw, wUnit).toFixed(1), convertToCM(hRaw, hUnit).toFixed(1), '', !isNonStackable );
-                        rowsAdded = true;
+                        let rowId = addRow( qty || 1, convertToCM(lRaw, lUnit).toFixed(1), convertToCM(wRaw, wUnit).toFixed(1), convertToCM(hRaw, hUnit).toFixed(1), '', !isNonStackable );
+                        rowsAddedCount++;
+                        if (!firstRowId) firstRowId = rowId;
                     }
                 });
-                if (!rowsAdded) { addRow('', '', '', '', '', true); }
+
+                // Detached Quantity Fallback Check (e.g. "30 pallets" on a different line from dims)
+                const globalQtyMatch = cleanForWeights.match(/(\d+)\s*(?:pallets|plts|skids|pcs|ctns|cartons|boxes)/i);
+                if (globalQtyMatch && rowsAddedCount === 1) {
+                    let fallbackQty = parseInt(globalQtyMatch[1]);
+                    if (fallbackQty > 1) {
+                        let firstRow = document.getElementById(firstRowId);
+                        if (firstRow) firstRow.querySelector('.qty').value = fallbackQty;
+                    }
+                }
+
+                if (rowsAddedCount === 0) { addRow('', '', '', '', '', true); }
                 updateManifestSummary();
-            } catch (error) { alert("The parser encountered an unusual text format. We have added a blank row instead."); addRow('', '', '', '', '', true); }
+            } catch (error) { alert("The parser encountered an unusual format. A blank row was added."); addRow('', '', '', '', '', true); }
         }
 
+        // --- V2.1.0 FIX: Smart Belly Priority for AI ---
         function analyzeLoadForAI() {
             let manifest = updateManifestSummary();
             if (manifest.pcs === 0) {
@@ -505,17 +523,18 @@
                 document.getElementById('btnApplyAi').style.display = 'none';
                 return;
             } else if (maxL > 606) {
-                document.getElementById('aiSuggestionText').innerText = `🚨 Alert: Cargo length (${maxL}cm) exceeds absolute PGE limits (606cm). Requires nose-door or special charter.`;
+                document.getElementById('aiSuggestionText').innerText = `🚨 Alert: Cargo length (${maxL}cm) exceeds absolute PGE limits (606cm). Requires special charter.`;
                 document.getElementById('btnApplyAi').style.display = 'none';
                 return;
+            } else if (maxH <= 163 && maxL <= 318) {
+                // V2.1.0: Fiercely prioritize Lower Deck if the cargo physically fits, avoiding expensive Main Deck slots.
+                baseStr = 'PMC'; contourStr = 'Contour_LowerRect'; oriStr = 'longitudinal'; volPerUld = 10;
             } else if (maxL > 411) {
                 baseStr = 'PGE'; contourStr = 'Contour_J4'; oriStr = 'lateral'; volPerUld = 33;
             } else if (maxL > 318 || manifest.cbm > 16) {
                 baseStr = 'PZA'; contourStr = 'Contour_J4'; 
                 oriStr = (manifest.cbm > 16) ? 'lateral' : 'longitudinal'; 
                 volPerUld = 22;
-            } else if (maxH <= 163 && manifest.cbm < 5) {
-                contourStr = 'Contour_LowerRect'; 
             }
 
             let estQty = Math.ceil(manifest.cbm / volPerUld);
@@ -525,14 +544,22 @@
             document.getElementById('aiSuggestionText').innerText = `Optimal Fit: ${estQty}x ${baseStr} (${contourStr.replace('Contour_','')}). Optimized for build stability and footprint.`;
         }
 
+        // --- V2.1.0 FIX: Bypassed "Auto-Reset" overwriting the AI choice ---
         function applyAiSuggestion() {
             if (!aiRecommendation) return;
             
-            document.getElementById('baseSelect').value = aiRecommendation.baseKey;
-            autoSelectContour(); 
-            document.getElementById('contourSelect').value = aiRecommendation.contourKey;
-            document.getElementById('orientationSelect').value = aiRecommendation.orientation;
+            const base = document.getElementById('baseSelect');
+            const contour = document.getElementById('contourSelect');
+            const ori = document.getElementById('orientationSelect');
+
+            base.value = aiRecommendation.baseKey;
+            contour.value = aiRecommendation.contourKey;
+            ori.value = aiRecommendation.orientation;
             document.getElementById('uldQtyInput').value = aiRecommendation.qty;
+
+            // Manually lock states to prevent autoSelectContour() from resetting them 1 second later
+            contour.disabled = ULDS[aiRecommendation.baseKey].lock ? true : false;
+            ori.disabled = (aiRecommendation.baseKey === 'PLA' || aiRecommendation.baseKey === 'AKE' || aiRecommendation.baseKey === 'AKH') ? true : false;
 
             clearFleet();
             fleetConfig.push({ 
@@ -598,8 +625,18 @@
             renderFleetList();
         }
 
+        // --- V2.1.0 FIX: Live Fleet Editing ---
+        function changeFleetQty(id, delta) {
+            let item = fleetConfig.find(f => f.id === id);
+            if (item) {
+                item.qty += delta;
+                if (item.qty < 1) item.qty = 1; // Enforce minimum of 1
+                renderFleetList();
+                if (document.getElementById('stage3').classList.contains('active')) buildScene(); 
+            }
+        }
+
         function removeFromFleet(id) { fleetConfig = fleetConfig.filter(f => f.id !== id); renderFleetList(); }
-        
         function clearFleet() { fleetConfig = []; renderFleetList(); }
 
         function renderFleetList() {
@@ -619,7 +656,11 @@
                     
                     container.innerHTML += `
                         <div class="fleet-item">
-                            <div style="background:var(--lh-yellow); color:var(--lh-navy); padding:4px; text-align:center; border-radius:4px;">${f.qty}x</div>
+                            <div class="qty-stepper">
+                                <div class="qty-btn" onclick="changeFleetQty(${f.id}, -1)">-</div>
+                                <div>${f.qty}x</div>
+                                <div class="qty-btn" onclick="changeFleetQty(${f.id}, 1)">+</div>
+                            </div>
                             <div>${f.baseKey} ${posBadge} ${oriBadge}</div>
                             <div style="color:#6b7280; font-size:11px;">${f.contourKey.replace('Contour_', '')}</div>
                             <button class="btn-danger" style="margin:0; width:100%;" onclick="removeFromFleet(${f.id})">×</button>
@@ -813,7 +854,7 @@
                         let maxW = activeUld.base.width;
                         let maxH = CONTOURS[activeUld.contourKey].maxHeight;
                         
-                        // --- V2.0.9 FIX: 2D AI Auto-Rotation for optimal density ---
+                        // 2D AI Auto-Rotation Layering Check
                         let normalFit = Math.floor(maxL / it.l) * Math.floor(maxW / it.w);
                         let rotatedFit = Math.floor(maxL / it.w) * Math.floor(maxW / it.l);
                         if (rotatedFit > normalFit) {
