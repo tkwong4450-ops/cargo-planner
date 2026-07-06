@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V2.1.2</title>
+    <title>Lufthansa Cargo Fleet Optimization Pro - V2.1.3</title>
     
     <style>
         :root {
@@ -94,7 +94,6 @@
         .cam-btn:hover { background: var(--lh-yellow); color: var(--lh-navy); font-weight: bold; }
         
         .overflow-badge { background: #ea580c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; animation: pulse 1.5s infinite; }
-        .overlap-badge { background: #d946ef; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; }
         
         .lh-footer { position: fixed; bottom: 12px; right: 20px; font-size: 11px; font-weight: 900; color: var(--lh-navy); opacity: 0.6; pointer-events: none; z-index: 9999; text-transform: uppercase; letter-spacing: 1px; }
 
@@ -110,7 +109,7 @@
             <div class="lh-icon">LH</div>
             <div class="title">
                 <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.1.2</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.1.3</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -128,8 +127,12 @@
             <div style="background: #eef2ff; padding: 15px; border-radius: 8px; border: 1px solid #c7d2fe; margin-bottom: 20px;">
                 <label style="color: #3730a3;">Total Shipment Weight Override (Inline Calculator)</label>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="text" id="totalShipmentWeight" placeholder="e.g., 1327*5" oninput="updateManifestSummary()" style="max-width: 250px; border-color: #a5b4fc; margin-bottom:0; font-family: monospace; font-size:16px;">
-                    <span style="font-size: 12px; color: #4f46e5; font-weight: bold;">kg (Type math like 1327*5, auto-calculates)</span>
+                    <input type="text" id="totalShipmentWeight" placeholder="e.g., 1327*5" 
+                           oninput="updateManifestSummary()" 
+                           onblur="evaluateMathField(this)" 
+                           onkeydown="if(event.key === 'Enter') evaluateMathField(this)"
+                           style="max-width: 250px; border-color: #a5b4fc; margin-bottom:0; font-family: monospace; font-size:16px;">
+                    <span style="font-size: 12px; color: #4f46e5; font-weight: bold;">kg (Press Enter or click away to execute math)</span>
                 </div>
             </div>
 
@@ -283,7 +286,7 @@
                         
                         <div style="margin-bottom: 15px;">
                             <button class="btn btn-primary" style="width: 100%; background: #059669; color: white; font-size: 12px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);" onclick="autoPackFleet()">🧲 AUTO-SNAP & PACK UNIT</button>
-                            <p style="font-size: 9px; color: #6b7280; text-align: center; margin: 4px 0 0 0;">Edge-to-edge solid logic. Overflow pushed out.</p>
+                            <p style="font-size: 9px; color: #6b7280; text-align: center; margin: 4px 0 0 0;">Edge-to-edge solid logic. Overflow safely pushed out.</p>
                         </div>
                         
                         <div style="background: #eff6ff; padding: 15px; border-radius: 6px; border: 1px solid #bfdbfe; font-size: 11px; line-height: 1.5; color: #1e3a8a;">
@@ -423,7 +426,23 @@
             document.querySelectorAll('.stackable').forEach(cb => cb.checked = masterVal); updateManifestSummary();
         }
 
-        // --- V2.1.2 FIX: Active Inline Calculator Evaluator ---
+        // --- V2.1.3 FIX: Evaluating Math and physically writing it to the box ---
+        function evaluateMathField(input) {
+            let val = input.value;
+            if (!val || val.trim() === '') return;
+            try {
+                // Strip commas first so "1,327 * 5" becomes "1327 * 5"
+                let cleanVal = val.replace(/,/g, '');
+                let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, '');
+                if(sanitized) {
+                    let result = Function('"use strict";return (' + sanitized + ')')();
+                    // Update field visibly with the evaluated integer
+                    input.value = Math.round(result); 
+                    updateManifestSummary();
+                }
+            } catch(e) { } // Ignore typing mid-math
+        }
+
         function updateManifestSummary() {
             let pcs = 0, calcWeight = 0, totalVolCBM = 0;
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
@@ -439,9 +458,10 @@
             const weightRaw = document.getElementById('totalShipmentWeight').value;
             if (weightRaw.trim() !== '') {
                 try {
-                    let sanitized = weightRaw.replace(/[^0-9\.\*\/\+\-\(\)]/g, '');
+                    let cleanVal = weightRaw.replace(/,/g, '');
+                    let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, '');
                     if(sanitized) overrideInput = Function('"use strict";return (' + sanitized + ')')();
-                } catch(e) {} // Ignore partial typing like "1327*" until user finishes
+                } catch(e) {} 
             }
 
             const isOverride = overrideInput > 0;
@@ -458,7 +478,6 @@
             return { pcs: pcs || 0, weight: safeWeight, cbm: safeCbm };
         }
 
-        // --- V2.1.2 FIX: Volume-to-Cube Inference Engine ---
         function parseEmail() {
             try {
                 const rawText = document.getElementById('emailInput').value;
@@ -467,9 +486,8 @@
                 
                 const cleanForWeights = rawText.replace(/,/g, '');
                 
-                // 1. Capture Total Weight strictly
                 const wgtMatch = cleanForWeights.match(/(?:total\s*weight|net\s*weight|gross\s*weight|chargeable\s*weight|weight|wgt)[^\d]*([\d\.]+)\s*(?:kg|kgs|kilo)/i);
-                if (wgtMatch) { document.getElementById('totalShipmentWeight').value = wgtMatch[1]; }
+                if (wgtMatch) { document.getElementById('totalShipmentWeight').value = wgtMatch[1]; evaluateMathField(document.getElementById('totalShipmentWeight')); }
 
                 const isNonStackable = /non-stackable|non stackable|no stack/i.test(rawText.replace(/\n/g, ' '));
                 let globalUnit = "cm"; 
@@ -505,7 +523,6 @@
                     }
                 });
 
-                // Fallback: If no dimensions exist but Pcs, Wgt, CBM do -> Create Perfect Cube
                 if (rowsAddedCount === 0) {
                     const pcsMatch = cleanForWeights.match(/(\d+)\s*(?:pcs|pieces|quantity|qty|pallets|plts)/i);
                     const cbmMatch = cleanForWeights.match(/([\d\.]+)\s*(?:cbm|m3|volume|vol)/i);
@@ -515,7 +532,7 @@
                         let fCbm = parseFloat(cbmMatch[1]);
                         if (fPcs > 0 && fCbm > 0) {
                             let cbmPerPiece = fCbm / fPcs;
-                            let sideMeters = Math.pow(cbmPerPiece, 1/3); // Perfect cube root
+                            let sideMeters = Math.pow(cbmPerPiece, 1/3); 
                             let sideCm = (sideMeters * 100).toFixed(1);
                             
                             let fWgtEa = '';
@@ -588,7 +605,7 @@
             document.getElementById('aiSuggestionText').innerText = `Optimal Fit: ${estQty}x ${baseStr} (${contourStr.replace('Contour_','')}). Optimized for build stability and footprint.`;
         }
 
-        // --- V2.1.2 FIX: Flash animation so user knows Fleet was updated instantly ---
+        // --- V2.1.3 FIX: Enforced Strict Fleet Array wipe & DOM sync ---
         function applyAiSuggestion() {
             if (!aiRecommendation) return;
             
@@ -604,7 +621,8 @@
             contour.disabled = ULDS[aiRecommendation.baseKey].lock ? true : false;
             ori.disabled = (aiRecommendation.baseKey === 'PLA' || aiRecommendation.baseKey === 'AKE' || aiRecommendation.baseKey === 'AKH') ? true : false;
 
-            clearFleet();
+            // Instantly clear and physically force the new item into the DOM logic
+            fleetConfig = []; 
             fleetConfig.push({ 
                 id: Date.now() + Math.random(), 
                 baseKey: aiRecommendation.baseKey, 
@@ -618,10 +636,9 @@
             btn.innerText = '✅ Applied to Fleet!';
             btn.style.background = '#059669';
             
-            // Visual Flash on Fleet Container
             const fleetBox = document.getElementById('fleetContainerBox');
             fleetBox.style.animation = 'none';
-            void fleetBox.offsetWidth; // trigger reflow
+            void fleetBox.offsetWidth; 
             fleetBox.style.animation = 'highlightFlash 1.5s ease-out';
             
             setTimeout(() => {
@@ -765,8 +782,7 @@
             let hW = b.width / 2; let hL = b.length / 2;
 
             let localXMax = box.max.x - activeUld.centerX; let localXMin = box.min.x - activeUld.centerX;
-            // Removed front/back margin checks for tight packs
-            if (localXMax > hL + 1 || localXMin < -hL - 1) return "Overhangs ULD Front/Back edge.";
+            if (localXMax > hL + 0.5 || localXMin < -hL - 0.5) return "Overhangs ULD Front/Back edge.";
 
             if (c.type === "main-deck-asymmetric") {
                 let startH = c.slopeStartH || 150; 
@@ -783,9 +799,9 @@
                         if (zMax > allowedMaxZ) return "Penetrates Right Contour Slope.";
                     }
                 } else { 
-                    if (zMin < -hW - 1) return "Overhangs ULD Left Base edge."; 
+                    if (zMin < -hW - 0.5) return "Overhangs ULD Left Base edge."; 
                 }
-                if (zMax > hW + 1) return "Overhangs ULD Right Base edge."; 
+                if (zMax > hW + 0.5) return "Overhangs ULD Right Base edge."; 
             } else if (c.type === "symmetric-belly") {
                 let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 60;
                 if (yMin < bellyH) {
@@ -793,20 +809,20 @@
                     if (zMax > allowedZ || zMin < -allowedZ) return "Penetrates Bottom Lower-Deck curve.";
                 } else {
                     let allowedZ = hW + offset;
-                    if (zMax > allowedZ + 1 || zMin < -allowedZ - 1) return "Exceeds absolute Belly Width.";
+                    if (zMax > allowedZ + 0.5 || zMin < -allowedZ - 0.5) return "Exceeds absolute Belly Width.";
                 }
             } else if (c.type === "half-belly") {
                 let overhang = c.overhang || 45; let bellyH = c.bellyHeight || 60;
                 if (yMin < bellyH) {
                     let ratio = yMin / bellyH; let allowedZ = hW + (ratio * overhang);
                     if (zMax > allowedZ) return "Penetrates Contour slope.";
-                } else { if (zMax > hW + overhang + 1) return "Exceeds Centerline width."; }
-                if (zMin < -hW - 1) return "Overhangs Outboard edge.";
+                } else { if (zMax > hW + overhang + 0.5) return "Exceeds Centerline width."; }
+                if (zMin < -hW - 0.5) return "Overhangs Outboard edge.";
             } else { 
-                if (zMax > hW + 1 || zMin < -hW - 1) return "Overhangs ULD side edges.";
+                if (zMax > hW + 0.5 || zMin < -hW - 0.5) return "Overhangs ULD side edges.";
             }
 
-            if (yMax > c.maxHeight) return `Exceeds max contour height (${c.maxHeight}cm).`;
+            if (yMax > c.maxHeight + 0.5) return `Exceeds max contour height (${c.maxHeight}cm).`;
             return false;
         }
 
@@ -824,13 +840,14 @@
             if (num === 3) { if (!is3DReady) { setTimeout(init3D, 50); } else { buildScene(); } }
         }
 
-        // --- V2.1.2 FIX: Geometry-Synchronized Solid Packer with Zero Margin ---
+        // --- V2.1.3 FIX: Bulletproof AutoPack tracking to prevent Origin Collapse ---
         function autoPackFleet() {
             if (drawnUlds.length === 0 || cargoGroup.children.length === 0) return;
             
             let uldIdx = 0;
             let activeUld = drawnUlds[uldIdx];
-            let cx = -activeUld.base.length/2, cz = -activeUld.base.width/2;
+            let cx = -activeUld.base.length/2;
+            let cz = -activeUld.base.width/2;
             let currentY = 0, layerMaxHeight = 0, rowMaxW = 0;
             let overflowXOffset = 0, overflowZOffset = 0;
             const OVERFLOW_START_X = drawnUlds[drawnUlds.length - 1].endX + 250; 
@@ -849,30 +866,44 @@
                     let maxW = activeUld.base.width;
                     let maxH = CONTOURS[activeUld.contourKey].maxHeight;
 
-                    // ZERO Margin for Solid Unit Load 
-                    let margin = 0;
-
                     let normalFit = Math.floor(maxL / l) * Math.floor(maxW / w);
                     let rotatedFit = Math.floor(maxL / w) * Math.floor(maxW / l);
                     
-                    // IF it rotates for better fit, we MUST alter the actual 3D Box Geometry so it doesn't double-draw
                     if (rotatedFit > normalFit) { 
                         let temp = l; l = w; w = temp; 
                         it.dims.l = l; it.dims.w = w;
                         mesh.geometry.dispose();
                         mesh.geometry = new THREE.BoxGeometry(l, h, w);
-                        mesh.children[0].geometry.dispose();
-                        mesh.children[0].geometry = new THREE.EdgesGeometry(mesh.geometry);
+                        if (mesh.children.length > 0) {
+                            mesh.children[0].geometry.dispose();
+                            mesh.children[0].geometry = new THREE.EdgesGeometry(mesh.geometry);
+                        }
                     }
 
-                    if (cx + l > maxL/2) { cx = -maxL/2; cz += rowMaxW + margin; rowMaxW = 0; }
-                    if (cz + w > maxW/2) { cx = -maxL/2; cz = -maxW/2; rowMaxW = 0; currentY += layerMaxHeight + margin; layerMaxHeight = 0; }
+                    // V2.1.3 Strict Boundary Checks preventing infinite wrap collapse
+                    if (cx !== -maxL/2 && cx + l > maxL/2) { 
+                        cx = -maxL/2; 
+                        cz += rowMaxW; 
+                        rowMaxW = 0; 
+                    }
+                    
+                    if (cz !== -maxW/2 && cz + w > maxW/2) { 
+                        cx = -maxL/2; 
+                        cz = -maxW/2; 
+                        rowMaxW = 0; 
+                        currentY += layerMaxHeight; 
+                        layerMaxHeight = 0; 
+                    }
 
                     if ((currentY + h > maxH) || (!it.stackable && currentY > 0)) {
                         uldIdx++;
                         if (uldIdx < drawnUlds.length) {
                             activeUld = drawnUlds[uldIdx];
-                            cx = -activeUld.base.length/2; cz = -activeUld.base.width/2; currentY = 0; rowMaxW = 0; layerMaxHeight = 0;
+                            cx = -activeUld.base.length/2; 
+                            cz = -activeUld.base.width/2; 
+                            currentY = 0; 
+                            rowMaxW = 0; 
+                            layerMaxHeight = 0;
                         }
                         continue; 
                     }
@@ -892,7 +923,7 @@
                     if (h > layerMaxHeight) layerMaxHeight = h;
                     globalX = activeUld.centerX + cx + (l/2);
                     globalZ = cz + (w/2);
-                    cx += l + margin; 
+                    cx += l; 
                 }
 
                 mesh.position.set(globalX, currentY + (h/2), globalZ);
