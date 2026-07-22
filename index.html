@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lufthansa Cargo Fleet Optimization Pro - V2.1.0 (Custom)</title>
+    <title>Cargo Planner - Fleet Optimization Engine Pro</title>
     
     <style>
         :root {
@@ -97,21 +97,21 @@
         .overlap-badge { background: #d946ef; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; }
         
         .lh-footer { position: fixed; bottom: 12px; right: 20px; font-size: 11px; font-weight: 900; color: var(--lh-navy); opacity: 0.6; pointer-events: none; z-index: 9999; text-transform: uppercase; letter-spacing: 1px; }
+        .lh-disclaimer { position: fixed; bottom: 12px; left: 20px; font-size: 11px; font-weight: 900; color: var(--lh-navy); opacity: 0.6; pointer-events: none; z-index: 9999; text-transform: uppercase; letter-spacing: 1px; }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        /* NEW: Flash Animation for Fleet Application */
         @keyframes highlightFlash { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); border-color: #10b981; } 50% { box-shadow: 0 0 20px 10px rgba(16, 185, 129, 0); border-color: #10b981; } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); border-color: var(--lh-border); } }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 </head>
 <body>
 
     <header>
         <div class="logo-group">
-            <div class="lh-icon">LH</div>
+            <div class="lh-icon">CP</div>
             <div class="title">
-                <h1>Lufthansa Cargo</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.1.0</span></p>
+                <h1>Cargo Planner</h1>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.1.4</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -129,7 +129,6 @@
             <div style="background: #eef2ff; padding: 15px; border-radius: 8px; border: 1px solid #c7d2fe; margin-bottom: 20px;">
                 <label style="color: #3730a3;">Total Shipment Weight Override (Inline Calculator)</label>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <!-- MODIFIED: Changed to text type and added listeners to evaluate math immediately -->
                     <input type="text" id="totalShipmentWeight" placeholder="e.g., 256*12" 
                            oninput="updateManifestSummary()" 
                            onblur="evaluateMathField(this)" 
@@ -142,7 +141,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
                 <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
                     <label>💡 Tesseract OCR: Paste text OR a Screenshot (Ctrl+V)</label>
-                    <textarea id="emailInput" rows="9" placeholder="Paste quote text OR image here...&#13;e.g.&#13;30 pallets&#13;120 x 100 x 132 cm per pallet&#13;Total weight: 9,526 kg"></textarea>
+                    <textarea id="emailInput" rows="9" placeholder="Paste quote text OR image here...&#13;e.g.&#13;112.0 cmX175.0 cmX81.0 cmX1X90.0 kgXUP"></textarea>
                     <button class="btn btn-secondary" style="width: 100%; margin-top: 5px;" onclick="parseEmail()">⚡ Auto-Extract & Convert</button>
                     <div id="parseWarnings" style="color: #dc2626; font-size: 11px; font-weight: bold; margin-top: 10px;"></div>
                 </div>
@@ -250,7 +249,6 @@
                     <button class="btn btn-secondary" style="width:100%; margin-top: 10px;" onclick="addToFleet()">+ Add to Fleet</button>
                 </div>
                 
-                <!-- MODIFIED: Added ID fleetContainerBox for the flash animation -->
                 <div class="fleet-list-container" id="fleetContainerBox">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid var(--lh-border);">
                         <h3 style="margin:0; font-size:14px; color:var(--lh-navy); text-transform:uppercase;">📋 Current Fleet</h3>
@@ -287,7 +285,22 @@
                             <div style="font-size: 12px; font-weight: bold; color: #4b5563;" id="metricsWgt">Payload: -- kg</div>
                             <div id="warningLogs" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--lh-border); font-size: 11px; color: #dc2626; font-weight: bold; line-height: 1.4; max-height: 100px; overflow-y: auto;"></div>
                         </div>
-                        <div style="background: #eff6ff; padding: 15px; border-radius: 6px; border: 1px solid #bfdbfe; font-size: 11px; line-height: 1.5; color: #1e3a8a;">
+
+                        <!-- NEW V2.1.4 Quick Add ULD Feature -->
+                        <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                            <h3 style="margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase; font-weight: 900; color: var(--lh-navy);">➕ Quick Add ULD</h3>
+                            <div style="display: flex; gap: 5px;">
+                                <select id="quickUldType" style="margin-bottom: 0; padding: 8px; font-size: 11px; flex:1;">
+                                    <option value="PMC_Lower">PMC (Lower Deck)</option>
+                                    <option value="PMC_Main">PMC (Main Deck - J4)</option>
+                                    <option value="PZA_Main">PZA (20ft Main Deck)</option>
+                                    <option value="AKE_Lower">AKE (Lower Deck)</option>
+                                </select>
+                                <button class="btn btn-secondary" style="padding: 8px; font-size: 10px;" onclick="addQuickUld()">Add</button>
+                            </div>
+                        </div>
+
+                        <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid var(--lh-border); font-size: 11px; line-height: 1.5; color: #1e3a8a;">
                             <strong style="display:block; margin-bottom: 5px; font-size: 12px; text-align: center;">⚡ PRECISION DRAG CONTROLS</strong>
                             <div style="display: flex; gap: 5px; margin-top: 10px;">
                                 <button class="cam-btn" onclick="setCamera('top')">TOP VIEW</button>
@@ -305,6 +318,7 @@
         </div>
     </main>
 
+    <div class="lh-disclaimer">⚠️ Disclaimer: All information provided is for reference and estimation only.</div>
     <div class="lh-footer">All rights reserved @ TK Wong</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -424,7 +438,6 @@
             document.querySelectorAll('.stackable').forEach(cb => cb.checked = masterVal); updateManifestSummary();
         }
 
-        // NEW: Inline Calculator Evaluator
         function evaluateMathField(input) {
             let val = input.value;
             if (!val || val.trim() === '') return;
@@ -480,8 +493,29 @@
                 if (!rawText.trim()) return alert("Please paste text or an image into the box.");
                 document.getElementById('cargoRows').innerHTML = ''; document.getElementById('parseWarnings').innerText = '';
                 
-                // Strip commas FIRST so 9,526 is safely read as 9526
                 const cleanForWeights = rawText.replace(/,/g, '');
+                let rowsAddedCount = 0;
+
+                // V2.1.4: Direct regex bypass for the strict CMS XUP string format
+                const xupRegex = /(\d+(?:\.\d+)?)\s*cmX(\d+(?:\.\d+)?)\s*cmX(\d+(?:\.\d+)?)\s*cmX(\d+)X(\d+(?:\.\d+)?)\s*kgXUP/gi;
+                let xupMatch;
+                let xupMatched = false;
+
+                while ((xupMatch = xupRegex.exec(cleanForWeights)) !== null) {
+                    xupMatched = true;
+                    let l = xupMatch[1], w = xupMatch[2], h = xupMatch[3], qty = parseInt(xupMatch[4]), totalWgt = parseFloat(xupMatch[5]);
+                    let wgtEa = (totalWgt / qty).toFixed(1);
+                    addRow(qty, l, w, h, wgtEa, true); // Assuming default stackable for these
+                    rowsAddedCount++;
+                }
+
+                // If it successfully captured XUP formatting, immediately end processing to prevent duplication
+                if (xupMatched) {
+                    updateManifestSummary();
+                    return; 
+                }
+
+                // Fallback to standard robust parsing
                 const wgtMatch = cleanForWeights.match(/(?:weight|wgt|vw|g\.w|gross\s*weight)[^\d]*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilo)/i);
                 if (wgtMatch) { 
                     document.getElementById('totalShipmentWeight').value = wgtMatch[1] || wgtMatch[2] || ""; 
@@ -494,7 +528,6 @@
                 if (unitMatch) { globalUnit = unitMatch[1].toLowerCase(); document.getElementById('parseWarnings').innerText = `💡 Detected global base unit: ${globalUnit.toUpperCase()}`; document.getElementById('parseWarnings').style.color = "#16a34a"; }
 
                 const lines = rawText.split('\n'); 
-                let rowsAddedCount = 0;
                 let firstRowId = null;
 
                 lines.forEach(line => {
@@ -574,7 +607,6 @@
             document.getElementById('aiSuggestionText').innerText = `Optimal Fit: ${estQty}x ${baseStr} (${contourStr.replace('Contour_','')}). Optimized for build stability and footprint.`;
         }
 
-        // MODIFIED: Instant visual injection into the Fleet
         function applyAiSuggestion() {
             if (!aiRecommendation) return;
             
@@ -590,7 +622,6 @@
             contour.disabled = ULDS[aiRecommendation.baseKey].lock ? true : false;
             ori.disabled = (aiRecommendation.baseKey === 'PLA' || aiRecommendation.baseKey === 'AKE' || aiRecommendation.baseKey === 'AKH') ? true : false;
 
-            // Direct Overwrite
             fleetConfig = [{ 
                 id: Date.now() + Math.random(), 
                 baseKey: aiRecommendation.baseKey, 
@@ -604,7 +635,6 @@
             btn.innerText = '✅ Applied to Fleet!';
             btn.style.background = '#059669';
             
-            // Visual Flash Confirmation
             const fleetBox = document.getElementById('fleetContainerBox');
             if(fleetBox) {
                 fleetBox.style.animation = 'none';
@@ -660,6 +690,26 @@
             
             fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty, orientation });
             renderFleetList();
+        }
+
+        // V2.1.4 Quick Add Function
+        function addQuickUld() {
+            const type = document.getElementById('quickUldType').value;
+            let baseKey, contourKey, orientation = 'longitudinal';
+            if (type === 'PMC_Lower') { baseKey = 'PMC'; contourKey = 'Contour_LowerRect'; }
+            else if (type === 'PMC_Main') { baseKey = 'PMC'; contourKey = 'Contour_J4'; }
+            else if (type === 'PZA_Main') { baseKey = 'PZA'; contourKey = 'Contour_J4'; orientation = 'lateral'; }
+            else if (type === 'AKE_Lower') { baseKey = 'AKE'; contourKey = 'Contour_AKE'; }
+            
+            fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty: 1, orientation });
+            
+            // Notify UI visually
+            const flashColor = '#10b981';
+            const logBox = document.getElementById('warningLogs');
+            logBox.innerHTML = `<span style='color:${flashColor};'>✅ Instantly added 1x ${baseKey} to fleet!</span>`;
+            
+            renderFleetList();
+            buildScene();
         }
 
         function changeFleetQty(id, delta) {
@@ -862,6 +912,7 @@
             let items = [];
             let boxIdCounter = 1;
 
+            // Extract all raw pieces to load
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
                 const q = parseInt(r.querySelector('.qty').value) || 0;
                 const l = parseFloat(r.querySelector('.length').value) || 0;
@@ -873,6 +924,18 @@
                     for (let i = 0; i < q; i++) items.push({ id: `BOX-${boxIdCounter++}`, l, w, h, stackable, isOverflowing: false, isOverlapping: false, isBreaching: false, rowId: r.id });
                 }
             });
+
+            // V2.1.4 Performance Check: Avoid rendering edges for massive shipments
+            let enableEdges = items.length <= 80;
+            let enableCollisions = items.length <= 100;
+
+            // V2.1.4 Memory Optimization: Geometry and Material Caching
+            const geoCache = {};
+            const matCache = {
+                normal: new THREE.MeshPhongMaterial({ color: 0xffaa00, transparent: true, opacity: 0.95 }),
+                noStack: new THREE.MeshPhongMaterial({ color: 0xdc2626, transparent: true, opacity: 0.95 }),
+                overflow: new THREE.MeshPhongMaterial({ color: 0xff0000, transparent: true, opacity: 0.8 })
+            };
 
             if (items.length > 0 && drawnUlds.length > 0) {
                 let uldIdx = 0;
@@ -890,7 +953,6 @@
                         let maxW = activeUld.base.width;
                         let maxH = CONTOURS[activeUld.contourKey].maxHeight;
                         
-                        // 2D AI Auto-Rotation Layering Check
                         let normalFit = Math.floor(maxL / it.l) * Math.floor(maxW / it.w);
                         let rotatedFit = Math.floor(maxL / it.w) * Math.floor(maxW / it.l);
                         if (rotatedFit > normalFit) {
@@ -929,12 +991,20 @@
                         cx += it.l + 2; 
                     }
 
-                    const geo = new THREE.BoxGeometry(it.l, it.h, it.w);
-                    const meshColor = it.isOverflowing ? 0xff0000 : (it.stackable ? 0xffaa00 : 0xdc2626);
-                    const mat = new THREE.MeshPhongMaterial({ color: meshColor, transparent: true, opacity: it.isOverflowing ? 0.8 : 0.95 });
-                    const mesh = new THREE.Mesh(geo, mat);
+                    // Memory optimized Geometry Pull
+                    let geoKey = `${it.l}_${it.h}_${it.w}`;
+                    if (!geoCache[geoKey]) geoCache[geoKey] = new THREE.BoxGeometry(it.l, it.h, it.w);
+                    const geo = geoCache[geoKey];
+
+                    const matRef = it.isOverflowing ? matCache.overflow : (it.stackable ? matCache.normal : matCache.noStack);
+                    
+                    // Critical: clone the material for each mesh so color highlights don't affect all siblings
+                    const mesh = new THREE.Mesh(geo, matRef.clone());
                     mesh.position.set(globalX, currentY + (it.h/2), globalZ);
-                    mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.6 })));
+                    
+                    if (enableEdges) {
+                        mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.6 })));
+                    }
                     
                     mesh.userData = { id: it.id, h: it.h, dims: { l: it.l, w: it.w, h: it.h }, isOverflowing: it.isOverflowing, stackable: it.stackable, indexRef: items.indexOf(it) };
                     cargoGroup.add(mesh);
@@ -948,30 +1018,34 @@
                         m.material.color.setHex(0xdc2626); 
                         m.userData.isBreaching = true; 
                         breachCount++;
-                        warns.push(`🚨 ${m.userData.id}: ${breachStatus}`);
+                        if(!warns.includes(`🚨 Contour Breaches detected. Review items in RED.`)) warns.push(`🚨 Contour Breaches detected. Review items in RED.`);
                     } 
                 });
 
-                let overlapsFound = 0;
-                for (let i = 0; i < cargoGroup.children.length; i++) {
-                    if (cargoGroup.children[i].userData.isOverflowing) continue; 
-                    let boxA = new THREE.Box3().setFromObject(cargoGroup.children[i]);
-                    boxA.expandByScalar(-2.0); 
-                    for (let j = i + 1; j < cargoGroup.children.length; j++) {
-                        if (cargoGroup.children[j].userData.isOverflowing) continue;
-                        let boxB = new THREE.Box3().setFromObject(cargoGroup.children[j]);
-                        boxB.expandByScalar(-2.0);
-                        if (boxA.intersectsBox(boxB)) {
-                            cargoGroup.children[i].material.color.setHex(0xd946ef); 
-                            cargoGroup.children[j].material.color.setHex(0xd946ef);
-                            items[cargoGroup.children[i].userData.indexRef].isOverlapping = true;
-                            items[cargoGroup.children[j].userData.indexRef].isOverlapping = true;
-                            overlapsFound++;
+                // V2.1.4: CPU Throttling for Collisions
+                if (enableCollisions) {
+                    let overlapsFound = 0;
+                    for (let i = 0; i < cargoGroup.children.length; i++) {
+                        if (cargoGroup.children[i].userData.isOverflowing) continue; 
+                        let boxA = new THREE.Box3().setFromObject(cargoGroup.children[i]);
+                        boxA.expandByScalar(-2.0); 
+                        for (let j = i + 1; j < cargoGroup.children.length; j++) {
+                            if (cargoGroup.children[j].userData.isOverflowing) continue;
+                            let boxB = new THREE.Box3().setFromObject(cargoGroup.children[j]);
+                            boxB.expandByScalar(-2.0);
+                            if (boxA.intersectsBox(boxB)) {
+                                cargoGroup.children[i].material.color.setHex(0xd946ef); 
+                                cargoGroup.children[j].material.color.setHex(0xd946ef);
+                                items[cargoGroup.children[i].userData.indexRef].isOverlapping = true;
+                                items[cargoGroup.children[j].userData.indexRef].isOverlapping = true;
+                                overlapsFound++;
+                            }
                         }
                     }
+                    if (overlapsFound > 0) warns.push(`🚨 OVERLAPPING CARGO: ${overlapsFound} collision(s) detected. Please drag to repack.`);
+                } else {
+                    warns.push(`⚡ PERFORMANCE MODE ACTIVE: Overlap checking suspended for large volumes (>100 pcs). Bounds checked visually.`);
                 }
-
-                if (overlapsFound > 0) warns.push(`🚨 OVERLAPPING CARGO: ${overlapsFound} collision(s) detected. Please drag to repack.`);
 
                 let targetX = (currentX - gap)/2;
                 if (overflowXOffset > 0) targetX += 300; 
@@ -987,7 +1061,12 @@
             const title = document.getElementById('statusTitle');
             if (warns.length > 0) { title.innerText = "⚠️ REPACK REQUIRED"; title.style.color = "#ea580c"; }
             else { title.innerText = "✅ SAFE FLEET FITMENT"; title.style.color = "#16a34a"; }
-            logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
+            
+            if(document.getElementById('warningLogs').innerHTML.includes('Instantly added')) {
+                 // Do not overwrite flash notification if it exists from Quick Add
+            } else {
+                 logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
+            }
 
             setupDragControls();
             runWeightAudit();
@@ -995,7 +1074,12 @@
 
         function generateInventoryList(items) {
             const container = document.getElementById('inventoryList'); container.innerHTML = '';
-            items.forEach(it => {
+            
+            // Render limit to prevent sidebar lag for huge piece counts
+            const maxList = 150;
+            const toRender = items.slice(0, maxList);
+            
+            toRender.forEach(it => {
                 const overflowTag = it.isOverflowing ? `<span class="overflow-badge">OVERFLOW</span>` : '';
                 const overlapTag = it.isOverlapping ? `<span class="overlap-badge">OVERLAP</span>` : '';
                 const html = `
@@ -1014,6 +1098,10 @@
                     </div>`;
                 container.insertAdjacentHTML('beforeend', html);
             });
+            
+            if(items.length > maxList) {
+                container.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:10px; font-size:10px; font-weight:bold;">...and ${items.length - maxList} more items. (List truncated for performance)</div>`);
+            }
         }
 
         function drawSharpEnvelope(b, c, offsetX, isSymmetric) {
@@ -1093,6 +1181,9 @@
             document.getElementById('canvasContainer').appendChild(div); return { element: div, pos: position };
         }
         function updateLabels() {
+            // Label rendering optimization
+            if (labels.length > 50) return; // Hide floating text if scene is crowded to maintain FPS
+            
             const canvas = renderer.domElement; const hw = canvas.clientWidth / 2, hh = canvas.clientHeight / 2;
             labels.forEach(lbl => {
                 let vec = lbl.pos.clone(); vec.project(camera);
@@ -1119,7 +1210,11 @@
             let h = parseFloat(document.getElementById(`inv_${boxId}_h`).value) || mesh.userData.dims.h;
             
             mesh.userData.dims = {l, w, h}; mesh.geometry.dispose(); mesh.geometry = new THREE.BoxGeometry(l, h, w);
-            mesh.children[0].geometry.dispose(); mesh.children[0].geometry = new THREE.EdgesGeometry(mesh.geometry);
+            if (mesh.children.length > 0) {
+                mesh.children[0].geometry.dispose(); 
+                mesh.children[0].geometry = new THREE.EdgesGeometry(mesh.geometry);
+            }
+            
             if (mesh.position.y < h/2) mesh.position.y = h/2;
             mesh.userData.h = h;
             
@@ -1204,24 +1299,28 @@
                 }
 
                 event.object.updateMatrixWorld();
-                let myBox = new THREE.Box3().setFromObject(event.object);
-                myBox.expandByScalar(-1.5); 
+                
+                // Only do N^2 collision bounce if under limit, otherwise let user place it freely
+                if(cargoGroup.children.length <= 100) {
+                    let myBox = new THREE.Box3().setFromObject(event.object);
+                    myBox.expandByScalar(-1.5); 
 
-                let collisionDetected = false;
-                for (let i=0; i<others.length; i++) {
-                    let otherBox3 = new THREE.Box3().setFromObject(others[i]);
-                    otherBox3.expandByScalar(-1.5);
-                    if (myBox.intersectsBox(otherBox3)) { collisionDetected = true; break; }
-                }
+                    let collisionDetected = false;
+                    for (let i=0; i<others.length; i++) {
+                        let otherBox3 = new THREE.Box3().setFromObject(others[i]);
+                        otherBox3.expandByScalar(-1.5);
+                        if (myBox.intersectsBox(otherBox3)) { collisionDetected = true; break; }
+                    }
 
-                if (collisionDetected) {
-                    event.object.position.copy(dragStartPos);
-                    let labelObj = labels.find(l => l.element.innerText === event.object.userData.id);
-                    if (labelObj) labelObj.pos = event.object.position;
-                    
-                    const warning = document.getElementById('collisionWarning');
-                    warning.style.display = 'block';
-                    setTimeout(() => { warning.style.display = 'none'; }, 2500);
+                    if (collisionDetected) {
+                        event.object.position.copy(dragStartPos);
+                        let labelObj = labels.find(l => l.element.innerText === event.object.userData.id);
+                        if (labelObj) labelObj.pos = event.object.position;
+                        
+                        const warning = document.getElementById('collisionWarning');
+                        warning.style.display = 'block';
+                        setTimeout(() => { warning.style.display = 'none'; }, 2500);
+                    }
                 }
                 
                 let breachStatus = checkEnvelopeIntersection(event.object);
