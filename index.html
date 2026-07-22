@@ -6,14 +6,7 @@
     <title>Cargo Planner - Fleet Optimization Engine Pro</title>
     
     <style>
-        :root {
-            --lh-navy: #001b44;
-            --lh-yellow: #ffaa00;
-            --lh-yellow-hover: #e69900;
-            --lh-light: #f4f5f7;
-            --lh-border: #d1d5db;
-            --lh-text: #1f2937;
-        }
+        :root { --lh-navy: #001b44; --lh-yellow: #ffaa00; --lh-yellow-hover: #e69900; --lh-light: #f4f5f7; --lh-border: #d1d5db; --lh-text: #1f2937; }
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         body { margin: 0; background-color: var(--lh-light); color: var(--lh-text); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
         
@@ -29,7 +22,7 @@
         .step:hover { background: rgba(255,170,0,0.3); color: white; }
         .step.active { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 2px 8px rgba(255,170,0,0.4); pointer-events: none; }
         
-        main { flex: 1; max-width: 1400px; width: 100%; margin: 0 auto; padding: 30px; display: flex; justify-content: center; position: relative; z-index: 10; }
+        main { flex: 1; max-width: 1500px; width: 100%; margin: 0 auto; padding: 20px; display: flex; justify-content: center; position: relative; z-index: 10; }
         .panel { background: white; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); padding: 30px; width: 100%; display: none; border: 1px solid var(--lh-border); }
         .panel.active { display: block; }
         
@@ -63,19 +56,19 @@
         .badge-fail { background: #ef4444; color: white; animation: pulse 2s infinite; }
         .badge-warn { background: #f59e0b; color: white; }
 
-        .fleet-list-container { background: white; border: 1px solid var(--lh-border); border-radius: 8px; padding: 15px; min-height: 250px; transition: 0.3s; }
+        .fleet-list-container { background: white; border: 1px solid var(--lh-border); border-radius: 8px; padding: 15px; transition: 0.3s; display: flex; flex-direction: column; }
         .fleet-item { display: grid; grid-template-columns: 65px 1fr 1.5fr 40px; gap: 10px; align-items: center; padding: 10px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; font-size: 13px; font-weight: bold; }
         .qty-stepper { background: var(--lh-yellow); color: var(--lh-navy); padding: 4px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
         .qty-btn { cursor: pointer; padding: 0 4px; font-weight: 900; opacity: 0.7; transition: 0.2s; user-select: none; }
         .qty-btn:hover { opacity: 1; transform: scale(1.2); }
         
-        .map-layout { display: grid; grid-template-columns: 280px 1fr 320px; gap: 20px; height: 650px; }
-        .controls-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; overflow-y: auto; }
+        .map-layout { display: grid; grid-template-columns: 280px 1fr 340px; gap: 15px; height: 700px; }
+        .controls-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; overflow-y: auto; gap: 10px; }
         #canvasContainer { background: #020813; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--lh-border); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); width: 100%; height: 100%; cursor: grab; }
         #canvasContainer:active { cursor: grabbing; }
         
-        .inventory-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; }
-        .inv-item { background: white; border: 1px solid var(--lh-border); padding: 12px; margin-bottom: 10px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
+        .inventory-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .inv-item { background: white; border: 1px solid var(--lh-border); padding: 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
         .inv-item:hover { border-color: var(--lh-yellow); box-shadow: 0 4px 12px rgba(255,170,0,0.2); }
         .inv-item.selected { border-color: var(--lh-yellow); box-shadow: 0 0 0 2px rgba(255,170,0,0.3); }
         .inv-item-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; color: var(--lh-navy); margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--lh-border); }
@@ -90,7 +83,7 @@
         #collisionWarning { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #dc2626; color: white; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 100; display: none; pointer-events: none; }
         .actions-bar { border-top: 1px solid var(--lh-border); padding-top: 20px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
 
-        .cam-btn { font-size: 10px; padding: 6px 10px; background: #374151; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .cam-btn { font-size: 10px; padding: 6px 10px; background: #374151; color: white; border: none; border-radius: 4px; cursor: pointer; flex: 1; }
         .cam-btn:hover { background: var(--lh-yellow); color: var(--lh-navy); font-weight: bold; }
         
         .overflow-badge { background: #ea580c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; animation: pulse 1.5s infinite; }
@@ -101,6 +94,13 @@
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
         @keyframes highlightFlash { 0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); border-color: #10b981; } 50% { box-shadow: 0 0 20px 10px rgba(16, 185, 129, 0); border-color: #10b981; } 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); border-color: var(--lh-border); } }
+        
+        /* Tab styling for Page 3 right panel */
+        .tab-header { display: flex; border-bottom: 2px solid var(--lh-border); margin-bottom: 10px; }
+        .tab-btn { flex: 1; padding: 8px; font-size: 11px; font-weight: 900; border: none; background: none; color: #6b7280; cursor: pointer; text-transform: uppercase; }
+        .tab-btn.active { color: var(--lh-navy); border-bottom: 3px solid var(--lh-yellow); }
+        .tab-content { display: none; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
+        .tab-content.active { display: flex; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 </head>
@@ -111,7 +111,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.1.4</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.2.0</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -122,6 +122,7 @@
     </header>
 
     <main>
+        <!-- STAGE 1 -->
         <div class="panel active" id="stage1">
             <h2 class="section-title">📦 Step 1: Shipment Manifest</h2>
             <p class="section-desc">Extract dimensions and weights via Semantic Parsing or <b style="color:var(--lh-yellow);">Paste a Screenshot!</b></p>
@@ -130,9 +131,7 @@
                 <label style="color: #3730a3;">Total Shipment Weight Override (Inline Calculator)</label>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <input type="text" id="totalShipmentWeight" placeholder="e.g., 256*12" 
-                           oninput="updateManifestSummary()" 
-                           onblur="evaluateMathField(this)" 
-                           onkeydown="if(event.key === 'Enter') evaluateMathField(this)"
+                           oninput="updateManifestSummary()" onblur="evaluateMathField(this)" onkeydown="if(event.key === 'Enter') evaluateMathField(this)"
                            style="max-width: 250px; border-color: #a5b4fc; margin-bottom:0; font-family: monospace; font-size:16px;">
                     <span style="font-size: 12px; color: #4f46e5; font-weight: bold;">kg (Press Enter to execute math)</span>
                 </div>
@@ -141,7 +140,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
                 <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
                     <label>💡 Tesseract OCR: Paste text OR a Screenshot (Ctrl+V)</label>
-                    <textarea id="emailInput" rows="9" placeholder="Paste quote text OR image here...&#13;e.g.&#13;112.0 cmX175.0 cmX81.0 cmX1X90.0 kgXUP"></textarea>
+                    <textarea id="emailInput" rows="9" placeholder="Paste quote text OR image here...&#13;e.g.&#13;Dim: 100x80x82/22&#13;OR&#13;112.0 cmX175.0 cmX81.0 cmX1X90.0 kgXUP"></textarea>
                     <button class="btn btn-secondary" style="width: 100%; margin-top: 5px;" onclick="parseEmail()">⚡ Auto-Extract & Convert</button>
                     <div id="parseWarnings" style="color: #dc2626; font-size: 11px; font-weight: bold; margin-top: 10px;"></div>
                 </div>
@@ -171,6 +170,7 @@
             </div>
         </div>
 
+        <!-- STAGE 2 -->
         <div class="panel" id="stage2">
             <h2 class="section-title">✈️ Step 2: Modular Fleet Builder</h2>
             <p class="section-desc">Combine multiple ULDs, orientations, and contours into a custom fleet profile.</p>
@@ -186,54 +186,19 @@
             <div class="grid-2">
                 <div style="background: #eff6ff; padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe;">
                     <h3 style="margin-top:0; font-size:14px; color:#1e3a8a; text-transform:uppercase;">➕ Manual Equipment Entry</h3>
-                    
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div>
-                            <label>1. Target Equipment (ULD)</label>
-                            <select id="baseSelect" onchange="autoSelectContour();">
-                                <optgroup label="Standard Pallets">
-                                    <option value="PMC">PMC / P6P (318 x 244 cm)</option>
-                                    <option value="PAJ">PAJ / P1P (318 x 224 cm)</option>
-                                    <option value="PZA">PZA (20ft Base - 411 x 244 cm)</option>
-                                    <option value="PGE">PGE (20ft Base - 606 x 244 cm)</option>
-                                    <option value="PLA">PLA (2x LD3 Footprint - 318 x 153 cm)</option>
-                                    <option value="PKC">PKC Narrow/Wide Pallet (156 x 153 cm)</option>
-                                </optgroup>
-                                <optgroup label="Certified Containers (Locked Contours)">
-                                    <option value="AKE">AKE / LD3 Container (156 x 153 cm)</option>
-                                    <option value="AKH">AKH Narrow-Body Container (156 x 153 cm)</option>
-                                    <option value="AMP">AMP Container (PMC Base / Lower Deck)</option>
-                                    <option value="AMJ">AMJ Container (PAJ Base / Lower Deck)</option>
-                                    <option value="AMX">AMX Container (Netting Door / Lower Deck)</option>
-                                    <option value="HMJ">HMJ Horse Stall (PAJ/PMC Base / Main Deck)</option>
-                                    <option value="RKN">RKN Cool Container (LD3 Base)</option>
-                                    <option value="RAP">RAP Cool Container (AMP Base)</option>
-                                </optgroup>
-                            </select>
+                            <label>1. Equipment (ULD)</label>
+                            <select id="baseSelect" onchange="autoSelectContour();"></select>
                         </div>
                         <div>
-                            <label>2. Safety Envelope</label>
-                            <select id="contourSelect">
-                                <optgroup label="Maindeck">
-                                    <option value="Contour_J1">Contour J1 (MD Asymmetric)</option>
-                                    <option value="Contour_J3">Contour J3 (MD Rectangular)</option>
-                                    <option value="Contour_J4">Contour J4 (MD Aft Heavy Taper)</option>
-                                </optgroup>
-                                <optgroup label="Lower Deck (Belly)">
-                                    <option value="Contour_LowerRect">Contour P/Lower Rect</option>
-                                    <option value="Contour_PLA_Belly">Contour PLA (Full Belly Symmetric)</option>
-                                    <option value="Contour_AKE">Contour AKE/RKN (Half-Belly)</option>
-                                    <option value="Contour_AKH">Contour AKH (Narrow Belly)</option>
-                                    <option value="Contour_F">Contour F (Wide Belly Taper)</option>
-                                    <option value="Contour_H">Contour H (Narrow Belly Taper)</option>
-                                </optgroup>
-                            </select>
+                            <label>2. Envelope Contour</label>
+                            <select id="contourSelect"></select>
                         </div>
                     </div>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
                         <div>
-                            <label>3. Load Orientation</label>
+                            <label>3. Orientation</label>
                             <select id="orientationSelect">
                                 <option value="longitudinal">Longitudinal</option>
                                 <option value="center">Centerline (Symmetric)</option>
@@ -245,18 +210,15 @@
                             <input type="number" id="uldQtyInput" value="1" min="1" max="30" style="font-weight: 900; font-size: 16px;">
                         </div>
                     </div>
-                    
                     <button class="btn btn-secondary" style="width:100%; margin-top: 10px;" onclick="addToFleet()">+ Add to Fleet</button>
                 </div>
                 
-                <div class="fleet-list-container" id="fleetContainerBox">
+                <div class="fleet-list-container" id="fleetContainerBoxStage2">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid var(--lh-border);">
                         <h3 style="margin:0; font-size:14px; color:var(--lh-navy); text-transform:uppercase;">📋 Current Fleet</h3>
                         <button onclick="clearFleet()" style="background: none; border: none; color: #dc2626; font-size: 11px; font-weight: 900; cursor: pointer; text-decoration: underline;">🗑️ CLEAR ALL</button>
                     </div>
-                    <div id="fleetList" style="flex: 1; overflow-y: auto;">
-                        <div style="text-align:center; padding: 30px; color:#9ca3af; font-size: 12px; font-weight:bold;">No ULDs added yet.</div>
-                    </div>
+                    <div id="fleetListStage2" style="flex: 1; overflow-y: auto;"></div>
                 </div>
             </div>
             
@@ -275,51 +237,60 @@
             </div>
         </div>
 
+        <!-- STAGE 3 -->
         <div class="panel" id="stage3">
             <div class="map-layout">
                 <div class="controls-panel">
-                    <div>
-                        <div style="background: white; border: 1px solid var(--lh-border); padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                            <h3 id="statusTitle" style="margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; font-weight: 900;">Analysis Pending</h3>
-                            <div style="font-size: 12px; font-weight: bold; color: #4b5563; margin-bottom: 5px;" id="metricsVol">Volume: -- cbm</div>
-                            <div style="font-size: 12px; font-weight: bold; color: #4b5563;" id="metricsWgt">Payload: -- kg</div>
-                            <div id="warningLogs" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--lh-border); font-size: 11px; color: #dc2626; font-weight: bold; line-height: 1.4; max-height: 100px; overflow-y: auto;"></div>
-                        </div>
+                    <div style="background: white; border: 1px solid var(--lh-border); padding: 15px; border-radius: 6px;">
+                        <h3 id="statusTitle" style="margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; font-weight: 900;">Analysis Pending</h3>
+                        <div style="font-size: 12px; font-weight: bold; color: #4b5563; margin-bottom: 5px;" id="metricsVol">Volume: -- cbm</div>
+                        <div style="font-size: 12px; font-weight: bold; color: #4b5563;" id="metricsWgt">Payload: -- kg</div>
+                        <div id="warningLogs" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--lh-border); font-size: 11px; color: #dc2626; font-weight: bold; line-height: 1.4; max-height: 100px; overflow-y: auto;"></div>
+                    </div>
 
-                        <!-- NEW V2.1.4 Quick Add ULD Feature -->
-                        <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
-                            <h3 style="margin: 0 0 10px 0; font-size: 11px; text-transform: uppercase; font-weight: 900; color: var(--lh-navy);">➕ Quick Add ULD</h3>
-                            <div style="display: flex; gap: 5px;">
-                                <select id="quickUldType" style="margin-bottom: 0; padding: 8px; font-size: 11px; flex:1;">
-                                    <option value="PMC_Lower">PMC (Lower Deck)</option>
-                                    <option value="PMC_Main">PMC (Main Deck - J4)</option>
-                                    <option value="PZA_Main">PZA (20ft Main Deck)</option>
-                                    <option value="AKE_Lower">AKE (Lower Deck)</option>
-                                </select>
-                                <button class="btn btn-secondary" style="padding: 8px; font-size: 10px;" onclick="addQuickUld()">Add</button>
-                            </div>
-                        </div>
+                    <button class="btn btn-primary" style="width: 100%; padding: 10px; font-size:11px;" onclick="buildScene()">🔄 AUTO-PACK / REARRANGE</button>
 
-                        <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid var(--lh-border); font-size: 11px; line-height: 1.5; color: #1e3a8a;">
-                            <strong style="display:block; margin-bottom: 5px; font-size: 12px; text-align: center;">⚡ PRECISION DRAG CONTROLS</strong>
-                            <div style="display: flex; gap: 5px; margin-top: 10px;">
-                                <button class="cam-btn" onclick="setCamera('top')">TOP VIEW</button>
-                                <button class="cam-btn" onclick="setCamera('front')">FRONT VIEW</button>
-                                <button class="cam-btn" onclick="setCamera('side')">SIDE VIEW</button>
-                            </div>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 6px;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 11px; text-transform: uppercase; font-weight: 900; color: var(--lh-navy);">➕ Quick Add Contour/ULD</h3>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <select id="quickUldType" style="margin-bottom: 0; padding: 6px; font-size: 10px;"></select>
+                            <button class="btn btn-secondary" style="padding: 6px; font-size: 10px;" onclick="addQuickUld()">Inject to Fleet</button>
                         </div>
                     </div>
-                    <button class="btn btn-secondary" style="width: 100%; margin-top: 15px;" onclick="goToStage(2)">← Re-Configure Fleet</button>
+
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--lh-border); font-size: 11px; color: #1e3a8a;">
+                        <strong style="display:block; margin-bottom: 8px; font-size: 11px; text-align: center;">⚡ CAMERA CONTROLS</strong>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="cam-btn" onclick="setCamera('top')">TOP</button>
+                            <button class="cam-btn" onclick="setCamera('front')">FRONT</button>
+                            <button class="cam-btn" onclick="setCamera('side')">SIDE</button>
+                        </div>
+                    </div>
+                    
+                    <div style="flex:1;"></div>
+                    <button class="btn btn-outline" style="font-size:10px; padding:8px;" onclick="goToStage(2)">← Go Back</button>
                 </div>
                 
                 <div id="canvasContainer"><div id="collisionWarning">❌ COLLISION REJECTED: Box returned to origin.</div></div>
-                <div class="inventory-panel"><div id="inventoryList"></div></div>
+                
+                <div class="inventory-panel" style="padding:0; overflow:hidden;">
+                    <div class="tab-header" style="background: white; padding: 10px 10px 0 10px;">
+                        <button class="tab-btn active" id="tabItemsBtn" onclick="switchTab('items')">📦 Items</button>
+                        <button class="tab-btn" id="tabFleetBtn" onclick="switchTab('fleet')">✈️ Fleet Editor</button>
+                    </div>
+                    <div class="tab-content active" id="tabItems" style="padding: 10px;">
+                        <div id="inventoryList"></div>
+                    </div>
+                    <div class="tab-content" id="tabFleet" style="padding: 10px;">
+                        <div id="fleetListStage3" style="width: 100%;"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </main>
 
     <div class="lh-disclaimer">⚠️ Disclaimer: All information provided is for reference and estimation only.</div>
-    <div class="lh-footer">All rights reserved @ TK Wong</div>
+    <div class="lh-footer">Cargo Planner Pro @ TK Wong</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -327,32 +298,32 @@
     
     <script>
         const ULDS = {
-            PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1 },
-            PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1 },
-            PZA: { length: 411, width: 244, maxWeight: 6800, positions: 2 }, 
-            PGE: { length: 606, width: 244, maxWeight: 11300, positions: 2 }, 
-            PLA: { length: 318, width: 153, maxWeight: 3175, positions: 1 },
-            PKC: { length: 156, width: 153, maxWeight: 1587, positions: 1 },
-            AKE: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE", positions: 1 },
-            AKH: { length: 156, width: 153, maxWeight: 1134, lock: "Contour_AKH", positions: 1 },
-            AMP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1 },
-            AMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_LowerRect", positions: 1 },
-            AMX: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1 },
-            HMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_J1", positions: 1 },
-            RKN: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE", positions: 1 },
-            RAP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1 }
+            PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1, name: "PMC / P6P" },
+            PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1, name: "PAJ / P1P" },
+            PZA: { length: 411, width: 244, maxWeight: 6800, positions: 2, name: "PZA (20ft)" }, 
+            PGE: { length: 606, width: 244, maxWeight: 11300, positions: 2, name: "PGE (20ft)" }, 
+            PLA: { length: 318, width: 153, maxWeight: 3175, positions: 1, name: "PLA (Half Pallet)" },
+            PKC: { length: 156, width: 153, maxWeight: 1587, positions: 1, name: "PKC" },
+            AKE: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE", positions: 1, name: "AKE / LD3" },
+            AKH: { length: 156, width: 153, maxWeight: 1134, lock: "Contour_AKH", positions: 1, name: "AKH" },
+            AMP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "AMP" },
+            AMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_LowerRect", positions: 1, name: "AMJ" },
+            AMX: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "AMX" },
+            HMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_J1", positions: 1, name: "HMJ Horse Stall" },
+            RKN: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE", positions: 1, name: "RKN Cool" },
+            RAP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "RAP Cool" }
         };
 
         const CONTOURS = {
-            Contour_J3: { maxHeight: 300, type: "flat" }, 
-            Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 225, taperOffset: 127 }, 
-            Contour_J1: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 244, taperOffset: 70 },
-            Contour_LowerRect: { maxHeight: 163, type: "flat" }, 
-            Contour_PLA_Belly: { maxHeight: 163, type: "symmetric-belly", taperOffset: 45, bellyHeight: 60 },
-            Contour_AKE: { maxHeight: 163, type: "half-belly", overhang: 45, bellyHeight: 60 },
-            Contour_AKH: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50 },
-            Contour_F: { maxHeight: 163, type: "symmetric-belly", taperOffset: 37, bellyHeight: 60 },
-            Contour_H: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50 }
+            Contour_J3: { maxHeight: 300, type: "flat", name: "Contour J3 (MD Rectangular)" }, 
+            Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 225, taperOffset: 127, name: "Contour J4 (MD Aft Heavy Taper)" }, 
+            Contour_J1: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 244, taperOffset: 70, name: "Contour J1 (MD Asymmetric)" },
+            Contour_LowerRect: { maxHeight: 163, type: "flat", name: "Contour Lower Deck Rectangular" }, 
+            Contour_PLA_Belly: { maxHeight: 163, type: "symmetric-belly", taperOffset: 45, bellyHeight: 60, name: "Contour PLA Belly" },
+            Contour_AKE: { maxHeight: 163, type: "half-belly", overhang: 45, bellyHeight: 60, name: "Contour AKE Half-Belly" },
+            Contour_AKH: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50, name: "Contour AKH Narrow Belly" },
+            Contour_F: { maxHeight: 163, type: "symmetric-belly", taperOffset: 37, bellyHeight: 60, name: "Contour F (Wide Belly)" },
+            Contour_H: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50, name: "Contour H (Narrow Belly)" }
         };
 
         let scene, camera, renderer, controls, dragControls, raycaster;
@@ -367,10 +338,52 @@
         let aiRecommendation = null;
 
         window.onload = () => {
+            populateSelects();
             addRow('', '', '', '', '', true);
             autoSelectContour(); 
             renderFleetList();
             setupOCR();
+        }
+
+        function populateSelects() {
+            const baseSelect = document.getElementById('baseSelect');
+            const contourSelect = document.getElementById('contourSelect');
+            const quickSelect = document.getElementById('quickUldType');
+            
+            baseSelect.innerHTML = ''; contourSelect.innerHTML = ''; quickSelect.innerHTML = '';
+            
+            Object.keys(ULDS).forEach(k => {
+                baseSelect.innerHTML += `<option value="${k}">${ULDS[k].name}</option>`;
+            });
+            Object.keys(CONTOURS).forEach(k => {
+                contourSelect.innerHTML += `<option value="${k}">${CONTOURS[k].name}</option>`;
+            });
+
+            // Populate Quick Add with all sensible combinations
+            Object.keys(ULDS).forEach(bKey => {
+                if (ULDS[bKey].lock) {
+                    quickSelect.innerHTML += `<option value="${bKey}|${ULDS[bKey].lock}">${ULDS[bKey].name} + ${CONTOURS[ULDS[bKey].lock].name}</option>`;
+                } else {
+                    Object.keys(CONTOURS).forEach(cKey => {
+                        if (cKey.includes("Lower") || cKey.includes("J")) {
+                            quickSelect.innerHTML += `<option value="${bKey}|${cKey}">${ULDS[bKey].name} + ${CONTOURS[cKey].name}</option>`;
+                        }
+                    });
+                }
+            });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tabId === 'items') {
+                document.getElementById('tabItemsBtn').classList.add('active');
+                document.getElementById('tabItems').classList.add('active');
+            } else {
+                document.getElementById('tabFleetBtn').classList.add('active');
+                document.getElementById('tabFleet').classList.add('active');
+            }
         }
 
         function setupOCR() {
@@ -427,28 +440,15 @@
             return id;
         }
 
-        function ensureCargoRow() {
-            if (document.querySelectorAll('#cargoRows .row-grid').length === 0) {
-                addRow('', '', '', '', '', true);
-            }
-        }
-
-        function toggleAllStack() {
-            const masterVal = document.getElementById('masterStack').checked;
-            document.querySelectorAll('.stackable').forEach(cb => cb.checked = masterVal); updateManifestSummary();
-        }
+        function ensureCargoRow() { if (document.querySelectorAll('#cargoRows .row-grid').length === 0) { addRow('', '', '', '', '', true); } }
+        function toggleAllStack() { const masterVal = document.getElementById('masterStack').checked; document.querySelectorAll('.stackable').forEach(cb => cb.checked = masterVal); updateManifestSummary(); }
 
         function evaluateMathField(input) {
-            let val = input.value;
-            if (!val || val.trim() === '') return;
+            let val = input.value; if (!val || val.trim() === '') return;
             try {
                 let cleanVal = val.replace(/,/g, '');
                 let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, '');
-                if(sanitized) {
-                    let result = Function('"use strict";return (' + sanitized + ')')();
-                    input.value = Math.round(result); 
-                    updateManifestSummary();
-                }
+                if(sanitized) { let result = Function('"use strict";return (' + sanitized + ')')(); input.value = Math.round(result); updateManifestSummary(); }
             } catch(e) { } 
         }
 
@@ -463,22 +463,17 @@
                 pcs += q; calcWeight += (q * w); totalVolCBM += ((len * wid * hei) / 1000000) * q;
             });
             
-            let overrideInput = 0;
-            const weightRaw = document.getElementById('totalShipmentWeight').value;
+            let overrideInput = 0; const weightRaw = document.getElementById('totalShipmentWeight').value;
             if (weightRaw && weightRaw.trim() !== '') {
                 try {
-                    let cleanVal = weightRaw.replace(/,/g, '');
-                    let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, '');
+                    let cleanVal = weightRaw.replace(/,/g, ''); let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, '');
                     if(sanitized) overrideInput = Function('"use strict";return (' + sanitized + ')')();
                 } catch(e) {} 
             }
             
-            const isOverride = overrideInput > 0;
-            const finalWeight = isOverride ? overrideInput : calcWeight;
-            
+            const isOverride = overrideInput > 0; const finalWeight = isOverride ? overrideInput : calcWeight;
             const label = document.getElementById('manifestSummaryLabel');
-            label.innerText = isOverride ? "Manifest Totals (WEIGHT OVERRIDDEN)" : "Manifest Totals";
-            label.style.color = isOverride ? "#ef4444" : "var(--lh-yellow)";
+            label.innerText = isOverride ? "Manifest Totals (WEIGHT OVERRIDDEN)" : "Manifest Totals"; label.style.color = isOverride ? "#ef4444" : "var(--lh-yellow)";
 
             const safeWeight = finalWeight || 0; const safeCbm = totalVolCBM || 0;
             document.getElementById('manifestSummary').innerText = `${pcs} Pcs | ${safeWeight.toFixed(1)} kg | ${safeCbm.toFixed(3)} CBM`;
@@ -496,67 +491,61 @@
                 const cleanForWeights = rawText.replace(/,/g, '');
                 let rowsAddedCount = 0;
 
-                // V2.1.4: Direct regex bypass for the strict CMS XUP string format
+                // Priority 1: XUP Format Check (112.0 cmX175.0 cmX81.0 cmX1X90.0 kgXUP)
                 const xupRegex = /(\d+(?:\.\d+)?)\s*cmX(\d+(?:\.\d+)?)\s*cmX(\d+(?:\.\d+)?)\s*cmX(\d+)X(\d+(?:\.\d+)?)\s*kgXUP/gi;
-                let xupMatch;
-                let xupMatched = false;
-
+                let xupMatch; let xupMatched = false;
                 while ((xupMatch = xupRegex.exec(cleanForWeights)) !== null) {
                     xupMatched = true;
                     let l = xupMatch[1], w = xupMatch[2], h = xupMatch[3], qty = parseInt(xupMatch[4]), totalWgt = parseFloat(xupMatch[5]);
-                    let wgtEa = (totalWgt / qty).toFixed(1);
-                    addRow(qty, l, w, h, wgtEa, true); // Assuming default stackable for these
-                    rowsAddedCount++;
+                    addRow(qty, l, w, h, (totalWgt / qty).toFixed(1), true); rowsAddedCount++;
+                }
+                if (xupMatched) { updateManifestSummary(); return; }
+
+                // Priority 2: Dim Format Check (Dim: 100x80x82/22)
+                const dimFormatRegex = /dim[^\d]*(\d+(?:\.\d+)?)\s*(?:x|\*|×)\s*(\d+(?:\.\d+)?)\s*(?:x|\*|×)\s*(\d+(?:\.\d+)?)(?:\s*(?:\/|\\|@|qty)\s*(\d+))?/gi;
+                let dimMatch; let dimMatched = false;
+                while ((dimMatch = dimFormatRegex.exec(cleanForWeights)) !== null) {
+                    dimMatched = true;
+                    let l = dimMatch[1], w = dimMatch[2], h = dimMatch[3], qty = dimMatch[4] ? parseInt(dimMatch[4]) : 1;
+                    addRow(qty, l, w, h, '', true); rowsAddedCount++;
+                }
+                if (dimMatched) { 
+                    // Attempt to snag total weight if available nearby
+                    const wgtMatch = cleanForWeights.match(/(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilo)/i);
+                    if (wgtMatch) { 
+                        document.getElementById('totalShipmentWeight').value = wgtMatch[1]; evaluateMathField(document.getElementById('totalShipmentWeight'));
+                    }
+                    updateManifestSummary(); return; 
                 }
 
-                // If it successfully captured XUP formatting, immediately end processing to prevent duplication
-                if (xupMatched) {
-                    updateManifestSummary();
-                    return; 
-                }
-
-                // Fallback to standard robust parsing
+                // Priority 3: Fallback standard parser
                 const wgtMatch = cleanForWeights.match(/(?:weight|wgt|vw|g\.w|gross\s*weight)[^\d]*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilo)/i);
-                if (wgtMatch) { 
-                    document.getElementById('totalShipmentWeight').value = wgtMatch[1] || wgtMatch[2] || ""; 
-                    evaluateMathField(document.getElementById('totalShipmentWeight'));
-                }
+                if (wgtMatch) { document.getElementById('totalShipmentWeight').value = wgtMatch[1] || wgtMatch[2] || ""; evaluateMathField(document.getElementById('totalShipmentWeight')); }
 
                 const isNonStackable = /non-stackable|non stackable|no stack/i.test(rawText.replace(/\n/g, ' '));
                 let globalUnit = "cm"; 
                 const unitMatch = rawText.match(/(?:dimension|dim|size)(?:s)?\s*[=:]?\s*\(?(mm|cm|m|in)\)?/i);
-                if (unitMatch) { globalUnit = unitMatch[1].toLowerCase(); document.getElementById('parseWarnings').innerText = `💡 Detected global base unit: ${globalUnit.toUpperCase()}`; document.getElementById('parseWarnings').style.color = "#16a34a"; }
+                if (unitMatch) { globalUnit = unitMatch[1].toLowerCase(); document.getElementById('parseWarnings').innerText = `💡 Detected global base unit: ${globalUnit.toUpperCase()}`; }
 
-                const lines = rawText.split('\n'); 
-                let firstRowId = null;
-
+                const lines = rawText.split('\n'); let firstRowId = null;
                 lines.forEach(line => {
                     let cleanLine = line.replace(/\s+/g, '').toLowerCase();
-                    const dimRegex = /(?:(\d+)(?:x|\*|pcs|plt|plts|ctn|ctns|@))?(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*|×)(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*|×)[a-z]*(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:(?:\/|\\|@)(\d+)(?:pcs|plt|plts|ctn|ctns)?)?/g;
-                    
+                    const stdDimRegex = /(?:(\d+)(?:x|\*|pcs|plt|plts|ctn|ctns|@))?(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*|×)(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*|×)[a-z]*(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:(?:\/|\\|@)(\d+)(?:pcs|plt|plts|ctn|ctns)?)?/g;
                     let match;
-                    while ((match = dimRegex.exec(cleanLine)) !== null) {
-                        let prefixQty = match[1] ? parseInt(match[1]) : null;
-                        let suffixQty = match[8] ? parseInt(match[8]) : null;
-                        let qty = prefixQty || suffixQty || null; 
-                        
+                    while ((match = stdDimRegex.exec(cleanLine)) !== null) {
+                        let qty = match[1] ? parseInt(match[1]) : (match[8] ? parseInt(match[8]) : 1);
                         let lRaw = match[2], lUnit = match[3] || globalUnit; 
                         let wRaw = match[4], wUnit = match[5] || globalUnit; 
                         let hRaw = match[6], hUnit = match[7] || globalUnit; 
-                        
-                        let rowId = addRow( qty || 1, convertToCM(lRaw, lUnit).toFixed(1), convertToCM(wRaw, wUnit).toFixed(1), convertToCM(hRaw, hUnit).toFixed(1), '', !isNonStackable );
-                        rowsAddedCount++;
-                        if (!firstRowId) firstRowId = rowId;
+                        let rowId = addRow( qty, convertToCM(lRaw, lUnit).toFixed(1), convertToCM(wRaw, wUnit).toFixed(1), convertToCM(hRaw, hUnit).toFixed(1), '', !isNonStackable );
+                        rowsAddedCount++; if (!firstRowId) firstRowId = rowId;
                     }
                 });
 
                 const globalQtyMatch = cleanForWeights.match(/(\d+)\s*(?:pallets|plts|skids|pcs|ctns|cartons|boxes)/i);
                 if (globalQtyMatch && rowsAddedCount === 1) {
                     let fallbackQty = parseInt(globalQtyMatch[1]);
-                    if (fallbackQty > 1) {
-                        let firstRow = document.getElementById(firstRowId);
-                        if (firstRow) firstRow.querySelector('.qty').value = fallbackQty;
-                    }
+                    if (fallbackQty > 1) { let firstRow = document.getElementById(firstRowId); if (firstRow) firstRow.querySelector('.qty').value = fallbackQty; }
                 }
 
                 if (rowsAddedCount === 0) { addRow('', '', '', '', '', true); }
@@ -564,120 +553,21 @@
             } catch (error) { alert("The parser encountered an unusual format. A blank row was added."); addRow('', '', '', '', '', true); }
         }
 
-        function analyzeLoadForAI() {
-            let manifest = updateManifestSummary();
-            if (manifest.pcs === 0) {
-                document.getElementById('aiSuggestionText').innerText = "Please add cargo parameters on Step 1 to receive a recommendation.";
-                document.getElementById('btnApplyAi').style.display = 'none';
-                return;
-            }
-
-            let maxL = 0, maxH = 0;
-            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
-                let l = parseFloat(r.querySelector('.length').value) || 0;
-                let h = parseFloat(r.querySelector('.height').value) || 0;
-                if (l > maxL) maxL = l; if (h > maxH) maxH = h;
-            });
-
-            document.getElementById('btnApplyAi').style.display = 'inline-block';
-            let baseStr = 'PMC'; let contourStr = 'Contour_J4'; let oriStr = 'longitudinal'; let volPerUld = 10;
-            
-            if (maxH > 300) {
-                document.getElementById('aiSuggestionText').innerText = `🚨 Alert: Cargo height (${maxH}cm) exceeds absolute Main Deck limits (300cm). Redesign required.`;
-                document.getElementById('btnApplyAi').style.display = 'none';
-                return;
-            } else if (maxL > 606) {
-                document.getElementById('aiSuggestionText').innerText = `🚨 Alert: Cargo length (${maxL}cm) exceeds absolute PGE limits (606cm). Requires special charter.`;
-                document.getElementById('btnApplyAi').style.display = 'none';
-                return;
-            } else if (maxH <= 163 && maxL <= 318) {
-                baseStr = 'PMC'; contourStr = 'Contour_LowerRect'; oriStr = 'longitudinal'; volPerUld = 10;
-            } else if (maxL > 411) {
-                baseStr = 'PGE'; contourStr = 'Contour_J4'; oriStr = 'lateral'; volPerUld = 33;
-            } else if (maxL > 318 || manifest.cbm > 16) {
-                baseStr = 'PZA'; contourStr = 'Contour_J4'; 
-                oriStr = (manifest.cbm > 16) ? 'lateral' : 'longitudinal'; 
-                volPerUld = 22;
-            }
-
-            let estQty = Math.ceil(manifest.cbm / volPerUld);
-            if (estQty < 1) estQty = 1;
-
-            aiRecommendation = { baseKey: baseStr, contourKey: contourStr, qty: estQty, orientation: oriStr };
-            document.getElementById('aiSuggestionText').innerText = `Optimal Fit: ${estQty}x ${baseStr} (${contourStr.replace('Contour_','')}). Optimized for build stability and footprint.`;
-        }
-
-        function applyAiSuggestion() {
-            if (!aiRecommendation) return;
-            
-            const base = document.getElementById('baseSelect');
-            const contour = document.getElementById('contourSelect');
-            const ori = document.getElementById('orientationSelect');
-
-            base.value = aiRecommendation.baseKey;
-            contour.value = aiRecommendation.contourKey;
-            ori.value = aiRecommendation.orientation;
-            document.getElementById('uldQtyInput').value = aiRecommendation.qty;
-
-            contour.disabled = ULDS[aiRecommendation.baseKey].lock ? true : false;
-            ori.disabled = (aiRecommendation.baseKey === 'PLA' || aiRecommendation.baseKey === 'AKE' || aiRecommendation.baseKey === 'AKH') ? true : false;
-
-            fleetConfig = [{ 
-                id: Date.now() + Math.random(), 
-                baseKey: aiRecommendation.baseKey, 
-                contourKey: aiRecommendation.contourKey, 
-                qty: aiRecommendation.qty, 
-                orientation: aiRecommendation.orientation 
-            }];
-            renderFleetList();
-            
-            const btn = document.getElementById('btnApplyAi');
-            btn.innerText = '✅ Applied to Fleet!';
-            btn.style.background = '#059669';
-            
-            const fleetBox = document.getElementById('fleetContainerBox');
-            if(fleetBox) {
-                fleetBox.style.animation = 'none';
-                void fleetBox.offsetWidth; 
-                fleetBox.style.animation = 'highlightFlash 1.5s ease-out';
-            }
-            
-            setTimeout(() => {
-                btn.innerText = 'Apply Recommendation';
-                btn.style.background = '#10b981';
-            }, 2000);
-        }
-
         function autoSelectContour() {
             const baseKey = document.getElementById('baseSelect').value;
             const contourSelect = document.getElementById('contourSelect');
             const orientationSelect = document.getElementById('orientationSelect');
             
-            contourSelect.disabled = false;
-            orientationSelect.disabled = true;
-            orientationSelect.style.backgroundColor = '#e5e7eb';
+            contourSelect.disabled = false; orientationSelect.disabled = true; orientationSelect.style.backgroundColor = '#e5e7eb';
             
             if (baseKey === 'PLA') {
-                contourSelect.value = 'Contour_PLA_Belly';
-                contourSelect.style.backgroundColor = '#fef08a';
-                contourSelect.disabled = true;
-                
-                orientationSelect.value = 'lateral';
-                orientationSelect.style.backgroundColor = '#fef08a';
-                orientationSelect.disabled = true;
+                contourSelect.value = 'Contour_PLA_Belly'; contourSelect.style.backgroundColor = '#fef08a'; contourSelect.disabled = true;
+                orientationSelect.value = 'lateral'; orientationSelect.style.backgroundColor = '#fef08a'; orientationSelect.disabled = true;
             } else {
                 orientationSelect.value = 'longitudinal';
-                if (baseKey === 'PMC' || baseKey === 'PAJ' || baseKey === 'PZA' || baseKey === 'PGE') {
-                    orientationSelect.disabled = false;
-                    orientationSelect.style.backgroundColor = '#f9fafb';
-                }
-                
-                if (ULDS[baseKey] && ULDS[baseKey].lock) {
-                    contourSelect.value = ULDS[baseKey].lock;
-                    contourSelect.style.backgroundColor = '#fef08a';
-                } else {
-                    contourSelect.style.backgroundColor = '#f9fafb';
-                }
+                if (baseKey === 'PMC' || baseKey === 'PAJ' || baseKey === 'PZA' || baseKey === 'PGE') { orientationSelect.disabled = false; orientationSelect.style.backgroundColor = '#f9fafb'; }
+                if (ULDS[baseKey] && ULDS[baseKey].lock) { contourSelect.value = ULDS[baseKey].lock; contourSelect.style.backgroundColor = '#fef08a'; } 
+                else { contourSelect.style.backgroundColor = '#f9fafb'; }
             }
             setTimeout(() => { if (!contourSelect.disabled) contourSelect.style.backgroundColor = '#f9fafb'; }, 1000);
         }
@@ -687,73 +577,59 @@
             const contourKey = document.getElementById('contourSelect').value;
             const qty = parseInt(document.getElementById('uldQtyInput').value) || 1;
             const orientation = document.getElementById('orientationSelect').value;
-            
             fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty, orientation });
             renderFleetList();
         }
 
-        // V2.1.4 Quick Add Function
         function addQuickUld() {
-            const type = document.getElementById('quickUldType').value;
-            let baseKey, contourKey, orientation = 'longitudinal';
-            if (type === 'PMC_Lower') { baseKey = 'PMC'; contourKey = 'Contour_LowerRect'; }
-            else if (type === 'PMC_Main') { baseKey = 'PMC'; contourKey = 'Contour_J4'; }
-            else if (type === 'PZA_Main') { baseKey = 'PZA'; contourKey = 'Contour_J4'; orientation = 'lateral'; }
-            else if (type === 'AKE_Lower') { baseKey = 'AKE'; contourKey = 'Contour_AKE'; }
+            const val = document.getElementById('quickUldType').value;
+            if(!val) return;
+            const parts = val.split('|');
+            let baseKey = parts[0];
+            let contourKey = parts[1];
+            let orientation = (baseKey === 'PZA' || baseKey === 'PGE') ? 'lateral' : 'longitudinal';
             
             fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty: 1, orientation });
-            
-            // Notify UI visually
-            const flashColor = '#10b981';
-            const logBox = document.getElementById('warningLogs');
-            logBox.innerHTML = `<span style='color:${flashColor};'>✅ Instantly added 1x ${baseKey} to fleet!</span>`;
-            
             renderFleetList();
             buildScene();
         }
 
         function changeFleetQty(id, delta) {
             let item = fleetConfig.find(f => f.id === id);
-            if (item) {
-                item.qty += delta;
-                if (item.qty < 1) item.qty = 1; // Enforce minimum of 1
-                renderFleetList();
-                if (document.getElementById('stage3').classList.contains('active')) buildScene(); 
-            }
+            if (item) { item.qty += delta; if (item.qty < 1) item.qty = 1; renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
         }
 
-        function removeFromFleet(id) { fleetConfig = fleetConfig.filter(f => f.id !== id); renderFleetList(); }
-        function clearFleet() { fleetConfig = []; renderFleetList(); }
+        function removeFromFleet(id) { fleetConfig = fleetConfig.filter(f => f.id !== id); renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
+        function clearFleet() { fleetConfig = []; renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
 
         function renderFleetList() {
-            const container = document.getElementById('fleetList');
+            const containers = [document.getElementById('fleetListStage2'), document.getElementById('fleetListStage3')];
+            let html = '';
+            
             if (fleetConfig.length === 0) {
-                container.innerHTML = '<div style="text-align:center; padding: 30px; color:#9ca3af; font-size: 12px; font-weight:bold;">No ULDs added yet.</div>';
+                html = '<div style="text-align:center; padding: 30px; color:#9ca3af; font-size: 12px; font-weight:bold;">No ULDs added yet.</div>';
             } else {
-                container.innerHTML = '';
                 fleetConfig.forEach(f => {
-                    const b = ULDS[f.baseKey];
+                    const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey];
                     const posCount = (b.positions || 1) * f.qty;
-                    let posBadge = b.positions > 1 ? `<span style="color:#ef4444; font-size:10px; margin-left:5px;">(Locks ${posCount} MD Pos)</span>` : '';
+                    let posBadge = b.positions > 1 ? `<span style="color:#ef4444; font-size:10px; margin-left:5px;">(Locks ${posCount} Pos)</span>` : '';
+                    let oriBadge = f.orientation !== 'longitudinal' ? `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">${f.orientation.toUpperCase()}</span>` : '';
                     
-                    let oriBadge = '';
-                    if (f.orientation === 'lateral') oriBadge = `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">LATERAL</span>`;
-                    if (f.orientation === 'center') oriBadge = `<span style="background:#8b5cf6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">CENTER</span>`;
-                    
-                    container.innerHTML += `
+                    html += `
                         <div class="fleet-item">
                             <div class="qty-stepper">
                                 <div class="qty-btn" onclick="changeFleetQty(${f.id}, -1)">-</div>
                                 <div>${f.qty}x</div>
                                 <div class="qty-btn" onclick="changeFleetQty(${f.id}, 1)">+</div>
                             </div>
-                            <div>${f.baseKey} ${posBadge} ${oriBadge}</div>
-                            <div style="color:#6b7280; font-size:11px;">${f.contourKey.replace('Contour_', '')}</div>
+                            <div>${b.name} ${posBadge} ${oriBadge}</div>
+                            <div style="color:#6b7280; font-size:11px;">${c.name}</div>
                             <button class="btn-danger" style="margin:0; width:100%;" onclick="removeFromFleet(${f.id})">×</button>
                         </div>
                     `;
                 });
             }
+            containers.forEach(c => { if(c) c.innerHTML = html; });
             runWeightAudit();
         }
 
@@ -763,12 +639,9 @@
 
             fleetConfig.forEach(f => {
                 const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey];
-                maxFleetWeight += (b.maxWeight * f.qty);
-                totalPositions += (b.positions || 1) * f.qty;
-                
+                maxFleetWeight += (b.maxWeight * f.qty); totalPositions += (b.positions || 1) * f.qty;
                 let volCBM = (b.length * b.width * c.maxHeight) / 1000000;
-                if (c.type !== "flat") volCBM *= 0.85; 
-                maxFleetVol += (volCBM * f.qty);
+                if (c.type !== "flat") volCBM *= 0.85; maxFleetVol += (volCBM * f.qty);
             });
 
             document.getElementById('weightText').innerText = `Total: ${manifest.weight.toFixed(1)} kg / Fleet Max: ${maxFleetWeight} kg`;
@@ -788,12 +661,12 @@
             } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; }
         }
 
+        // Returns false if valid, returns string reason if breaching
         function checkEnvelopeIntersection(mesh) {
             let box = new THREE.Box3().setFromObject(mesh);
             let centerVec = new THREE.Vector3(); box.getCenter(centerVec);
             
             if (mesh.userData.isOverflowing) return false; 
-
             let activeUld = null;
             for (let u of drawnUlds) { if (centerVec.x >= u.startX - 25 && centerVec.x <= u.endX + 25) { activeUld = u; break; } }
             if (!activeUld) return "Outside Fleet Bounds."; 
@@ -801,62 +674,80 @@
             const b = activeUld.base; const c = CONTOURS[activeUld.contourKey];
             let zMax = box.max.z; let zMin = box.min.z; let yMax = box.max.y; let yMin = box.min.y;
             let hW = b.width / 2; let hL = b.length / 2;
-
             let localXMax = box.max.x - activeUld.centerX; let localXMin = box.min.x - activeUld.centerX;
+            
             if (localXMax > hL || localXMin < -hL) return "Overhangs ULD Front/Back edge.";
 
             if (c.type === "main-deck-asymmetric") {
-                let startH = c.slopeStartH || 150; 
-                let offset = c.taperOffset || 60;
-                let effOffset = Math.min(offset, hW - 5); 
-
+                let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60; let effOffset = Math.min(offset, hW - 5); 
                 if (yMax > startH) {
                     let ratio = (yMax - startH) / (c.maxHeight - startH);
                     let allowedMinZ = -hW + (ratio * effOffset);
-                    if (zMin < allowedMinZ) return "Penetrates Left Contour Slope."; 
-                    
+                    if (zMin < allowedMinZ) return "Penetrates Left Slope."; 
                     if (activeUld.isLateral || activeUld.isCenter) {
                         let allowedMaxZ = hW - (ratio * effOffset);
-                        if (zMax > allowedMaxZ) return "Penetrates Right Contour Slope.";
+                        if (zMax > allowedMaxZ) return "Penetrates Right Slope.";
                     }
-                } else { 
-                    if (zMin < -hW) return "Overhangs ULD Left Base edge."; 
-                }
-                if (zMax > hW) return "Overhangs ULD Right Base edge."; 
+                } else { if (zMin < -hW) return "Overhangs Base."; }
+                if (zMax > hW) return "Overhangs Right Base."; 
             } else if (c.type === "symmetric-belly") {
                 let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 60;
                 if (yMin < bellyH) {
                     let ratio = yMin / bellyH; let allowedZ = hW + (ratio * offset);
-                    if (zMax > allowedZ || zMin < -allowedZ) return "Penetrates Bottom Lower-Deck curve.";
+                    if (zMax > allowedZ || zMin < -allowedZ) return "Penetrates Lower curve.";
                 } else {
                     let allowedZ = hW + offset;
-                    if (zMax > allowedZ || zMin < -allowedZ) return "Exceeds absolute Belly Width.";
+                    if (zMax > allowedZ || zMin < -allowedZ) return "Exceeds Belly Width.";
                 }
             } else if (c.type === "half-belly") {
                 let overhang = c.overhang || 45; let bellyH = c.bellyHeight || 60;
                 if (yMin < bellyH) {
                     let ratio = yMin / bellyH; let allowedZ = hW + (ratio * overhang);
-                    if (zMax > allowedZ) return "Penetrates Contour slope.";
-                } else { if (zMax > hW + overhang) return "Exceeds Centerline width."; }
+                    if (zMax > allowedZ) return "Penetrates Slope.";
+                } else { if (zMax > hW + overhang) return "Exceeds Center width."; }
                 if (zMin < -hW) return "Overhangs Outboard edge.";
             } else { 
-                if (zMax > hW || zMin < -hW) return "Overhangs ULD side edges.";
+                if (zMax > hW || zMin < -hW) return "Overhangs side edges.";
             }
 
-            if (yMax > c.maxHeight) return `Exceeds max contour height (${c.maxHeight}cm).`;
+            if (yMax > c.maxHeight) return `Exceeds max height (${c.maxHeight}cm).`;
             return false;
+        }
+
+        function analyzeLoadForAI() {
+            let manifest = updateManifestSummary();
+            if (manifest.pcs === 0) { document.getElementById('aiSuggestionText').innerText = "Please add cargo parameters on Step 1."; document.getElementById('btnApplyAi').style.display = 'none'; return; }
+            let maxL = 0, maxH = 0;
+            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
+                let l = parseFloat(r.querySelector('.length').value) || 0; let h = parseFloat(r.querySelector('.height').value) || 0;
+                if (l > maxL) maxL = l; if (h > maxH) maxH = h;
+            });
+            document.getElementById('btnApplyAi').style.display = 'inline-block';
+            let baseStr = 'PMC'; let contourStr = 'Contour_J4'; let oriStr = 'longitudinal'; let volPerUld = 10;
+            
+            if (maxH > 300) { document.getElementById('aiSuggestionText').innerText = `🚨 Cargo height (${maxH}cm) exceeds limits.`; document.getElementById('btnApplyAi').style.display = 'none'; return; } 
+            else if (maxL > 606) { document.getElementById('aiSuggestionText').innerText = `🚨 Cargo length (${maxL}cm) exceeds limits.`; document.getElementById('btnApplyAi').style.display = 'none'; return; } 
+            else if (maxH <= 163 && maxL <= 318) { baseStr = 'PMC'; contourStr = 'Contour_LowerRect'; oriStr = 'longitudinal'; volPerUld = 10; } 
+            else if (maxL > 411) { baseStr = 'PGE'; contourStr = 'Contour_J4'; oriStr = 'lateral'; volPerUld = 33; } 
+            else if (maxL > 318 || manifest.cbm > 16) { baseStr = 'PZA'; contourStr = 'Contour_J4'; oriStr = (manifest.cbm > 16) ? 'lateral' : 'longitudinal'; volPerUld = 22; }
+
+            let estQty = Math.ceil(manifest.cbm / volPerUld); if (estQty < 1) estQty = 1;
+            aiRecommendation = { baseKey: baseStr, contourKey: contourStr, qty: estQty, orientation: oriStr };
+            document.getElementById('aiSuggestionText').innerText = `Optimal Fit: ${estQty}x ${baseStr} (${contourStr.replace('Contour_','')}).`;
+        }
+
+        function applyAiSuggestion() {
+            if (!aiRecommendation) return;
+            fleetConfig = [{ id: Date.now() + Math.random(), baseKey: aiRecommendation.baseKey, contourKey: aiRecommendation.contourKey, qty: aiRecommendation.qty, orientation: aiRecommendation.orientation }];
+            renderFleetList();
+            const btn = document.getElementById('btnApplyAi'); btn.innerText = '✅ Applied!'; btn.style.background = '#059669';
+            setTimeout(() => { btn.innerText = 'Apply Recommendation'; btn.style.background = '#10b981'; }, 2000);
         }
 
         function goToStage(num) {
             if (num === 3 && fleetConfig.length === 0) return alert("Please add at least one ULD to your fleet.");
-            
-            if (num === 2 && document.getElementById('stage1').classList.contains('active')) {
-                clearFleet();
-            }
-
-            if (num === 2) {
-                analyzeLoadForAI();
-            }
+            if (num === 2 && document.getElementById('stage1').classList.contains('active')) clearFleet();
+            if (num === 2) analyzeLoadForAI();
             
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
             document.getElementById('stage' + num).classList.add('active');
@@ -874,45 +765,24 @@
             clearLabels();
             drawnUlds = [];
 
-            let currentX = 0;
-            const gap = 50; 
+            let currentX = 0; const gap = 60; 
             
             fleetConfig.forEach(f => {
-                const originalBase = ULDS[f.baseKey];
-                const c = CONTOURS[f.contourKey];
-                
+                const originalBase = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey];
                 for (let i = 0; i < f.qty; i++) {
                     let renderBase = { ...originalBase };
-                    let isLateral = f.orientation === 'lateral';
-                    let isCenter = f.orientation === 'center';
-
-                    if (isLateral) {
-                        renderBase.length = originalBase.width;
-                        renderBase.width = originalBase.length;
-                    }
+                    let isLateral = f.orientation === 'lateral'; let isCenter = f.orientation === 'center';
+                    if (isLateral) { renderBase.length = originalBase.width; renderBase.width = originalBase.length; }
 
                     let centerX = currentX + (renderBase.length/2);
-                    drawnUlds.push({ 
-                        base: renderBase, 
-                        contourKey: f.contourKey, 
-                        centerX: centerX, 
-                        startX: currentX, 
-                        endX: currentX + renderBase.length, 
-                        isLateral: isLateral,
-                        isCenter: isCenter
-                    });
-                    
+                    drawnUlds.push({ base: renderBase, contourKey: f.contourKey, centerX: centerX, startX: currentX, endX: currentX + renderBase.length, isLateral, isCenter });
                     drawSharpEnvelope(renderBase, c, centerX, isLateral || isCenter);
                     currentX += renderBase.length + gap;
                 }
             });
 
-            let manifest = updateManifestSummary();
-            let warns = [];
-            let items = [];
-            let boxIdCounter = 1;
+            let manifest = updateManifestSummary(); let warns = []; let items = []; let boxIdCounter = 1;
 
-            // Extract all raw pieces to load
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
                 const q = parseInt(r.querySelector('.qty').value) || 0;
                 const l = parseFloat(r.querySelector('.length').value) || 0;
@@ -925,21 +795,12 @@
                 }
             });
 
-            // V2.1.4 Performance Check: Avoid rendering edges for massive shipments
             let enableEdges = items.length <= 80;
             let enableCollisions = items.length <= 100;
-
-            // V2.1.4 Memory Optimization: Geometry and Material Caching
             const geoCache = {};
-            const matCache = {
-                normal: new THREE.MeshPhongMaterial({ color: 0xffaa00, transparent: true, opacity: 0.95 }),
-                noStack: new THREE.MeshPhongMaterial({ color: 0xdc2626, transparent: true, opacity: 0.95 }),
-                overflow: new THREE.MeshPhongMaterial({ color: 0xff0000, transparent: true, opacity: 0.8 })
-            };
 
             if (items.length > 0 && drawnUlds.length > 0) {
-                let uldIdx = 0;
-                let activeUld = drawnUlds[uldIdx];
+                let uldIdx = 0; let activeUld = drawnUlds[uldIdx];
                 let cx = -activeUld.base.length/2, cz = -activeUld.base.width/2;
                 let currentY = 0, layerMaxHeight = 0, rowMaxW = 0;
                 let overflowXOffset = 0; let overflowZOffset = 0;
@@ -947,38 +808,60 @@
 
                 items.forEach((it) => {
                     let placed = false;
+                    let globalX, globalZ;
+
+                    // V2.2.0 Contour-Hugging Loop
                     while (!placed && uldIdx < drawnUlds.length) {
                         activeUld = drawnUlds[uldIdx];
-                        let maxL = activeUld.base.length;
-                        let maxW = activeUld.base.width;
+                        let maxL = activeUld.base.length; let maxW = activeUld.base.width;
                         let maxH = CONTOURS[activeUld.contourKey].maxHeight;
                         
+                        // Auto-Rotate for best fit logic
                         let normalFit = Math.floor(maxL / it.l) * Math.floor(maxW / it.w);
                         let rotatedFit = Math.floor(maxL / it.w) * Math.floor(maxW / it.l);
-                        if (rotatedFit > normalFit) {
-                            let temp = it.l;
-                            it.l = it.w;
-                            it.w = temp;
-                        }
+                        if (rotatedFit > normalFit) { let temp = it.l; it.l = it.w; it.w = temp; }
 
                         if (cx + it.l > maxL/2) { cx = -maxL/2; cz += rowMaxW + 2; rowMaxW = 0; }
                         if (cz + it.w > maxW/2) { cx = -maxL/2; cz = -maxW/2; rowMaxW = 0; currentY += layerMaxHeight + 2; layerMaxHeight = 0; }
 
                         if ((currentY + it.h > maxH) || (!it.stackable && currentY > 0)) {
                             uldIdx++;
-                            if (uldIdx < drawnUlds.length) {
-                                activeUld = drawnUlds[uldIdx];
-                                cx = -activeUld.base.length/2; cz = -activeUld.base.width/2; currentY = 0; rowMaxW = 0; layerMaxHeight = 0;
-                            }
+                            if (uldIdx < drawnUlds.length) { activeUld = drawnUlds[uldIdx]; cx = -activeUld.base.length/2; cz = -activeUld.base.width/2; currentY = 0; rowMaxW = 0; layerMaxHeight = 0; }
                             continue; 
                         }
+
+                        // Predictive Contour Test (The "Hugging" Fix)
+                        globalX = activeUld.centerX + cx + (it.l/2);
+                        globalZ = cz + (it.w/2);
+                        
+                        // Create a dummy mesh for testing bounds before committing
+                        let dummyGeo = new THREE.BoxGeometry(it.l, it.h, it.w);
+                        let dummyMesh = new THREE.Mesh(dummyGeo, new THREE.MeshBasicMaterial());
+                        dummyMesh.position.set(globalX, currentY + (it.h/2), globalZ);
+                        dummyMesh.userData = { isOverflowing: false };
+                        dummyMesh.updateMatrixWorld();
+                        
+                        let breachTest = checkEnvelopeIntersection(dummyMesh);
+                        dummyGeo.dispose();
+
+                        if (breachTest) {
+                            // Hit a slanted wall. Push inward toward centerline or forward
+                            cz += 15; // move inward by 15cm steps
+                            if (cz + it.w > maxW/2) {
+                                // If pushed off the pallet laterally, reset Z and push forward X
+                                cz = -maxW/2; 
+                                cx += it.l + 5; 
+                                if (cx + it.l > maxL/2) { cx = -maxL/2; currentY += (it.h + 2); } // Forced up a layer
+                            }
+                            continue; // re-evaluate while loop
+                        }
+
                         placed = true;
                     }
 
-                    let globalX, globalZ;
                     if (uldIdx >= drawnUlds.length) {
                         it.isOverflowing = true;
-                        if (!warns.includes(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity. Check Overflow Zone.`)) warns.push(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity. Check Overflow Zone.`);
+                        if (!warns.includes(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity.`)) warns.push(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity.`);
                         if (overflowZOffset + it.w > 500) { overflowZOffset = 0; overflowXOffset += 150; }
                         globalX = OVERFLOW_START_X + overflowXOffset + (it.l/2);
                         globalZ = -250 + overflowZOffset + (it.w/2);
@@ -986,69 +869,49 @@
                     } else {
                         if (it.w > rowMaxW) rowMaxW = it.w;
                         if (it.h > layerMaxHeight) layerMaxHeight = it.h;
-                        globalX = activeUld.centerX + cx + (it.l/2);
-                        globalZ = cz + (it.w/2);
-                        cx += it.l + 2; 
+                        cx += it.l + 2; // Advance cursor for next box
                     }
 
-                    // Memory optimized Geometry Pull
                     let geoKey = `${it.l}_${it.h}_${it.w}`;
                     if (!geoCache[geoKey]) geoCache[geoKey] = new THREE.BoxGeometry(it.l, it.h, it.w);
                     const geo = geoCache[geoKey];
 
-                    const matRef = it.isOverflowing ? matCache.overflow : (it.stackable ? matCache.normal : matCache.noStack);
+                    let color = it.isOverflowing ? 0xff0000 : (it.stackable ? 0xffaa00 : 0xdc2626);
+                    const mat = new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: it.isOverflowing ? 0.8 : 0.95 });
                     
-                    // Critical: clone the material for each mesh so color highlights don't affect all siblings
-                    const mesh = new THREE.Mesh(geo, matRef.clone());
+                    const mesh = new THREE.Mesh(geo, mat);
                     mesh.position.set(globalX, currentY + (it.h/2), globalZ);
-                    
-                    if (enableEdges) {
-                        mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.6 })));
-                    }
+                    if (enableEdges) { mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.6 }))); }
                     
                     mesh.userData = { id: it.id, h: it.h, dims: { l: it.l, w: it.w, h: it.h }, isOverflowing: it.isOverflowing, stackable: it.stackable, indexRef: items.indexOf(it) };
                     cargoGroup.add(mesh);
                     labels.push(createLabel(it.id, mesh.position));
                 });
 
-                let breachCount = 0;
+                // Post-placement verification
                 cargoGroup.children.forEach(m => { 
                     let breachStatus = checkEnvelopeIntersection(m);
-                    if (breachStatus) { 
-                        m.material.color.setHex(0xdc2626); 
-                        m.userData.isBreaching = true; 
-                        breachCount++;
-                        if(!warns.includes(`🚨 Contour Breaches detected. Review items in RED.`)) warns.push(`🚨 Contour Breaches detected. Review items in RED.`);
-                    } 
+                    if (breachStatus) { m.material.color.setHex(0xdc2626); m.userData.isBreaching = true; if(!warns.includes(`🚨 Contour Breaches detected.`)) warns.push(`🚨 Contour Breaches detected.`); } 
                 });
 
-                // V2.1.4: CPU Throttling for Collisions
                 if (enableCollisions) {
                     let overlapsFound = 0;
                     for (let i = 0; i < cargoGroup.children.length; i++) {
                         if (cargoGroup.children[i].userData.isOverflowing) continue; 
-                        let boxA = new THREE.Box3().setFromObject(cargoGroup.children[i]);
-                        boxA.expandByScalar(-2.0); 
+                        let boxA = new THREE.Box3().setFromObject(cargoGroup.children[i]); boxA.expandByScalar(-2.0); 
                         for (let j = i + 1; j < cargoGroup.children.length; j++) {
                             if (cargoGroup.children[j].userData.isOverflowing) continue;
-                            let boxB = new THREE.Box3().setFromObject(cargoGroup.children[j]);
-                            boxB.expandByScalar(-2.0);
+                            let boxB = new THREE.Box3().setFromObject(cargoGroup.children[j]); boxB.expandByScalar(-2.0);
                             if (boxA.intersectsBox(boxB)) {
-                                cargoGroup.children[i].material.color.setHex(0xd946ef); 
-                                cargoGroup.children[j].material.color.setHex(0xd946ef);
-                                items[cargoGroup.children[i].userData.indexRef].isOverlapping = true;
-                                items[cargoGroup.children[j].userData.indexRef].isOverlapping = true;
-                                overlapsFound++;
+                                cargoGroup.children[i].material.color.setHex(0xd946ef); cargoGroup.children[j].material.color.setHex(0xd946ef);
+                                items[cargoGroup.children[i].userData.indexRef].isOverlapping = true; items[cargoGroup.children[j].userData.indexRef].isOverlapping = true; overlapsFound++;
                             }
                         }
                     }
-                    if (overlapsFound > 0) warns.push(`🚨 OVERLAPPING CARGO: ${overlapsFound} collision(s) detected. Please drag to repack.`);
-                } else {
-                    warns.push(`⚡ PERFORMANCE MODE ACTIVE: Overlap checking suspended for large volumes (>100 pcs). Bounds checked visually.`);
-                }
+                    if (overlapsFound > 0) warns.push(`🚨 OVERLAPPING CARGO: ${overlapsFound} collision(s) detected.`);
+                } else { warns.push(`⚡ PERF MODE ACTIVE: Fast rendering enabled for high piece count.`); }
 
-                let targetX = (currentX - gap)/2;
-                if (overflowXOffset > 0) targetX += 300; 
+                let targetX = (currentX - gap)/2; if (overflowXOffset > 0) targetX += 300; 
                 controls.target.set(targetX, 100, 0);
             }
 
@@ -1061,71 +924,43 @@
             const title = document.getElementById('statusTitle');
             if (warns.length > 0) { title.innerText = "⚠️ REPACK REQUIRED"; title.style.color = "#ea580c"; }
             else { title.innerText = "✅ SAFE FLEET FITMENT"; title.style.color = "#16a34a"; }
-            
-            if(document.getElementById('warningLogs').innerHTML.includes('Instantly added')) {
-                 // Do not overwrite flash notification if it exists from Quick Add
-            } else {
-                 logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
-            }
+            logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
 
-            setupDragControls();
-            runWeightAudit();
+            setupDragControls(); runWeightAudit();
         }
 
         function generateInventoryList(items) {
             const container = document.getElementById('inventoryList'); container.innerHTML = '';
-            
-            // Render limit to prevent sidebar lag for huge piece counts
-            const maxList = 150;
-            const toRender = items.slice(0, maxList);
-            
+            const maxList = 100; const toRender = items.slice(0, maxList);
             toRender.forEach(it => {
                 const overflowTag = it.isOverflowing ? `<span class="overflow-badge">OVERFLOW</span>` : '';
                 const overlapTag = it.isOverlapping ? `<span class="overlap-badge">OVERLAP</span>` : '';
                 const html = `
                     <div class="inv-item" id="card_${it.id}" onmouseenter="highlightBox('${it.id}', true)" onmouseleave="highlightBox('${it.id}', false)">
-                        <div class="inv-item-header"><span>${it.id} ${overflowTag} ${overlapTag}</span> <span>${it.stackable ? '🟩 Stack' : '🟥 No Stack'}</span></div>
+                        <div class="inv-item-header"><span>${it.id} ${overflowTag} ${overlapTag}</span> <span>${it.stackable ? '🟩' : '🟥'}</span></div>
                         <div class="inv-grid">
-                            <div><label>L (cm)</label><input type="number" id="inv_${it.id}_l" value="${it.l}" onchange="updateBoxFromSidebar('${it.id}')"></div>
-                            <div><label>W (cm)</label><input type="number" id="inv_${it.id}_w" value="${it.w}" onchange="updateBoxFromSidebar('${it.id}')"></div>
-                            <div><label>H (cm)</label><input type="number" id="inv_${it.id}_h" value="${it.h}" onchange="updateBoxFromSidebar('${it.id}')"></div>
+                            <div><label>L</label><input type="number" id="inv_${it.id}_l" value="${it.l}" onchange="updateBoxFromSidebar('${it.id}')"></div>
+                            <div><label>W</label><input type="number" id="inv_${it.id}_w" value="${it.w}" onchange="updateBoxFromSidebar('${it.id}')"></div>
+                            <div><label>H</label><input type="number" id="inv_${it.id}_h" value="${it.h}" onchange="updateBoxFromSidebar('${it.id}')"></div>
                         </div>
                         <div class="inv-actions">
-                            <button onclick="rotateBoxSidebar('${it.id}', 'Y')">↻ Swap L/W</button>
-                            <button onclick="rotateBoxSidebar('${it.id}', 'X')">↻ Topple</button>
-                            <button onclick="deleteCargoBox('${it.id}', '${it.rowId}')" style="background:#fee2e2; color:#dc2626;">🗑️ Del</button>
+                            <button onclick="rotateBoxSidebar('${it.id}', 'Y')">↻ L/W</button>
+                            <button onclick="rotateBoxSidebar('${it.id}', 'X')">↻ H</button>
+                            <button onclick="deleteCargoBox('${it.id}', '${it.rowId}')" style="background:#fee2e2; color:#dc2626;">🗑️</button>
                         </div>
                     </div>`;
                 container.insertAdjacentHTML('beforeend', html);
             });
-            
-            if(items.length > maxList) {
-                container.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:10px; font-size:10px; font-weight:bold;">...and ${items.length - maxList} more items. (List truncated for performance)</div>`);
-            }
+            if(items.length > maxList) container.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:10px; font-size:10px; font-weight:bold;">...and ${items.length - maxList} more items.</div>`);
         }
 
         function drawSharpEnvelope(b, c, offsetX, isSymmetric) {
-            const hW = b.width/2; 
-            const shape = new THREE.Shape();
-            
+            const hW = b.width/2; const shape = new THREE.Shape();
             if (c.type === "main-deck-asymmetric") {
-                let startH = c.slopeStartH || 150; 
-                let offset = c.taperOffset || 60;
-                let effOffset = Math.min(offset, hW - 5); 
-                
-                shape.moveTo(-hW, 0); 
-                shape.lineTo(-hW, startH); 
-                shape.lineTo(-hW + effOffset, c.maxHeight); 
-                
-                if (isSymmetric) {
-                    shape.lineTo(hW - effOffset, c.maxHeight);
-                    shape.lineTo(hW, startH);
-                } else {
-                    shape.lineTo(hW, c.maxHeight);           
-                }
-                
-                shape.lineTo(hW, 0); 
-                shape.lineTo(-hW, 0);
+                let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60; let effOffset = Math.min(offset, hW - 5); 
+                shape.moveTo(-hW, 0); shape.lineTo(-hW, startH); shape.lineTo(-hW + effOffset, c.maxHeight); 
+                if (isSymmetric) { shape.lineTo(hW - effOffset, c.maxHeight); shape.lineTo(hW, startH); } else { shape.lineTo(hW, c.maxHeight); }
+                shape.lineTo(hW, 0); shape.lineTo(-hW, 0);
             } else if (c.type === "symmetric-belly") {
                 let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 50;
                 shape.moveTo(-hW, 0); shape.lineTo(-hW - offset, bellyH); shape.lineTo(-hW - offset, c.maxHeight);
@@ -1137,32 +972,21 @@
             } else {
                 shape.moveTo(-hW, 0); shape.lineTo(-hW, c.maxHeight); shape.lineTo(hW, c.maxHeight); shape.lineTo(hW, 0); 
             }
-            
             const geometry = new THREE.ExtrudeGeometry(shape, { depth: b.length, bevelEnabled: false });
-            geometry.rotateY(-Math.PI / 2); 
-            geometry.translate( b.length/2, 0, 0 );
-            
+            geometry.rotateY(-Math.PI / 2); geometry.translate( b.length/2, 0, 0 );
             const mesh = new THREE.Mesh(geometry, new THREE.MeshPhysicalMaterial({ color: 0x00ccff, transparent: true, opacity: 0.15, side: THREE.DoubleSide }));
             const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0x00ccff }));
             mesh.position.set(offsetX, 0, 0); edges.position.set(offsetX, 0, 0);
-            scene.add(mesh); scene.add(edges);
-            contourMeshes.push(mesh, edges);
+            scene.add(mesh); scene.add(edges); contourMeshes.push(mesh, edges);
         }
 
         function deleteCargoBox(boxId, rowId) {
-            if(confirm(`Are you sure you want to permanently delete ${boxId} from the manifest?`)) {
+            if(confirm(`Permanently delete ${boxId}?`)) {
                 let row = document.getElementById(rowId);
                 if(row) {
-                    let qtyInput = row.querySelector('.qty');
-                    let currentQty = parseInt(qtyInput.value) || 0;
-                    if(currentQty > 1) {
-                        qtyInput.value = currentQty - 1;
-                    } else {
-                        row.remove();
-                        ensureCargoRow(); 
-                    }
-                    updateManifestSummary();
-                    buildScene(); 
+                    let qtyInput = row.querySelector('.qty'); let currentQty = parseInt(qtyInput.value) || 0;
+                    if(currentQty > 1) { qtyInput.value = currentQty - 1; } else { row.remove(); ensureCargoRow(); }
+                    updateManifestSummary(); buildScene(); 
                 }
             }
         }
@@ -1181,25 +1005,19 @@
             document.getElementById('canvasContainer').appendChild(div); return { element: div, pos: position };
         }
         function updateLabels() {
-            // Label rendering optimization
-            if (labels.length > 50) return; // Hide floating text if scene is crowded to maintain FPS
-            
+            if (labels.length > 50) return; 
             const canvas = renderer.domElement; const hw = canvas.clientWidth / 2, hh = canvas.clientHeight / 2;
             labels.forEach(lbl => {
                 let vec = lbl.pos.clone(); vec.project(camera);
                 if (vec.z > 1) { lbl.element.style.display = 'none'; return; } 
-                lbl.element.style.display = 'block';
-                lbl.element.style.left = (vec.x * hw + hw) + 'px'; lbl.element.style.top = (-vec.y * hh + hh) + 'px';
+                lbl.element.style.display = 'block'; lbl.element.style.left = (vec.x * hw + hw) + 'px'; lbl.element.style.top = (-vec.y * hh + hh) + 'px';
             });
         }
 
         function highlightBox(boxId, isHighlight) {
             let mesh = cargoGroup.children.find(m => m.userData.id === boxId); if (!mesh) return;
-            if (isHighlight) {
-                mesh.material.emissive.setHex(0x994400); mesh.material.opacity = 1; mesh.scale.set(1.05, 1.05, 1.05); 
-            } else {
-                mesh.material.emissive.setHex(0x000000); mesh.material.opacity = 0.95; mesh.scale.set(1, 1, 1);
-            }
+            if (isHighlight) { mesh.material.emissive.setHex(0x994400); mesh.material.opacity = 1; mesh.scale.set(1.05, 1.05, 1.05); } 
+            else { mesh.material.emissive.setHex(0x000000); mesh.material.opacity = 0.95; mesh.scale.set(1, 1, 1); }
             if (renderer) renderer.render(scene, camera);
         }
 
@@ -1210,22 +1028,12 @@
             let h = parseFloat(document.getElementById(`inv_${boxId}_h`).value) || mesh.userData.dims.h;
             
             mesh.userData.dims = {l, w, h}; mesh.geometry.dispose(); mesh.geometry = new THREE.BoxGeometry(l, h, w);
-            if (mesh.children.length > 0) {
-                mesh.children[0].geometry.dispose(); 
-                mesh.children[0].geometry = new THREE.EdgesGeometry(mesh.geometry);
-            }
-            
-            if (mesh.position.y < h/2) mesh.position.y = h/2;
-            mesh.userData.h = h;
+            if (mesh.children.length > 0) { mesh.children[0].geometry.dispose(); mesh.children[0].geometry = new THREE.EdgesGeometry(mesh.geometry); }
+            if (mesh.position.y < h/2) mesh.position.y = h/2; mesh.userData.h = h;
             
             let breachStatus = checkEnvelopeIntersection(mesh);
-            if (breachStatus) {
-                mesh.material.color.setHex(0xdc2626); mesh.userData.isBreaching = true;
-            } else {
-                const originalColor = mesh.userData.isOverflowing ? 0xff0000 : (mesh.userData.stackable === false ? 0xdc2626 : 0xffaa00);
-                mesh.material.color.setHex(originalColor); mesh.userData.isBreaching = false;
-            }
-            
+            if (breachStatus) { mesh.material.color.setHex(0xdc2626); mesh.userData.isBreaching = true; } 
+            else { const originalColor = mesh.userData.isOverflowing ? 0xff0000 : (mesh.userData.stackable === false ? 0xdc2626 : 0xffaa00); mesh.material.color.setHex(originalColor); mesh.userData.isBreaching = false; }
             renderer.render(scene, camera); runWeightAudit(); 
         }
 
@@ -1238,27 +1046,14 @@
 
         function init3D() {
             const cnt = document.getElementById('canvasContainer');
-            scene = new THREE.Scene(); 
-            camera = new THREE.PerspectiveCamera(45, cnt.clientWidth/cnt.clientHeight, 1, 3000);
-            camera.position.set(550, 450, 650);
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(cnt.clientWidth, cnt.clientHeight); 
-            cnt.appendChild(renderer.domElement);
-            
-            controls = new THREE.OrbitControls(camera, renderer.domElement);
-            controls.maxPolarAngle = Math.PI / 2 - 0.05; controls.enableDamping = true;
+            scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(45, cnt.clientWidth/cnt.clientHeight, 1, 3000); camera.position.set(550, 450, 650);
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setSize(cnt.clientWidth, cnt.clientHeight); cnt.appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement); controls.maxPolarAngle = Math.PI / 2 - 0.05; controls.enableDamping = true;
             raycaster = new THREE.Raycaster();
-            
-            scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            let d = new THREE.DirectionalLight(0xffffff, 0.6); d.position.set(200, 600, 300); scene.add(d);
-            
-            let grid = new THREE.GridHelper(2000, 60, 0x1e293b, 0x0f172a); grid.position.y = -0.5; 
-            scene.add(grid); scene.add(cargoGroup);
-            
+            scene.add(new THREE.AmbientLight(0xffffff, 0.8)); let d = new THREE.DirectionalLight(0xffffff, 0.6); d.position.set(200, 600, 300); scene.add(d);
+            let grid = new THREE.GridHelper(2000, 60, 0x1e293b, 0x0f172a); grid.position.y = -0.5; scene.add(grid); scene.add(cargoGroup);
             animate(); is3DReady = true;
-            window.addEventListener('resize', () => { 
-                camera.aspect = cnt.clientWidth/cnt.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(cnt.clientWidth, cnt.clientHeight); 
-            });
+            window.addEventListener('resize', () => { camera.aspect = cnt.clientWidth/cnt.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(cnt.clientWidth, cnt.clientHeight); });
             buildScene();
         }
 
@@ -1267,74 +1062,27 @@
         function setupDragControls() {
             if (dragControls) dragControls.dispose();
             dragControls = new THREE.DragControls(cargoGroup.children, camera, renderer.domElement);
-            
-            dragControls.addEventListener('dragstart', function (event) {
-                controls.enabled = false;
-                dragStartPos.copy(event.object.position); 
-                document.querySelectorAll('.inv-item').forEach(el => el.classList.remove('selected'));
-                const card = document.getElementById(`card_${event.object.userData.id}`);
-                if (card) { card.classList.add('selected'); card.scrollIntoView({behavior: "smooth", block: "center"}); }
-            });
-            
-            dragControls.addEventListener('drag', function (event) {
-                let labelObj = labels.find(l => l.element.innerText === event.object.userData.id);
-                if (labelObj) labelObj.pos = event.object.position;
-            });
-
+            dragControls.addEventListener('dragstart', function (event) { controls.enabled = false; dragStartPos.copy(event.object.position); document.querySelectorAll('.inv-item').forEach(el => el.classList.remove('selected')); const card = document.getElementById(`card_${event.object.userData.id}`); if (card) { card.classList.add('selected'); card.scrollIntoView({behavior: "smooth", block: "center"}); } });
+            dragControls.addEventListener('drag', function (event) { let labelObj = labels.find(l => l.element.innerText === event.object.userData.id); if (labelObj) labelObj.pos = event.object.position; });
             dragControls.addEventListener('dragend', function (event) {
-                controls.enabled = true;
-                let origin = event.object.position.clone();
-                origin.y = 1000; 
-                raycaster.set(origin, new THREE.Vector3(0, -1, 0));
-                
-                let others = cargoGroup.children.filter(c => c !== event.object);
-                let hits = raycaster.intersectObjects(others);
-                
-                if (hits.length > 0) {
-                    let hitBox = hits[0].object;
-                    let topY = hitBox.position.y + (hitBox.userData.h / 2);
-                    event.object.position.y = topY + (event.object.userData.h / 2);
-                } else {
-                    event.object.position.y = event.object.userData.h / 2; 
-                }
-
+                controls.enabled = true; let origin = event.object.position.clone(); origin.y = 1000; raycaster.set(origin, new THREE.Vector3(0, -1, 0));
+                let others = cargoGroup.children.filter(c => c !== event.object); let hits = raycaster.intersectObjects(others);
+                if (hits.length > 0) { let hitBox = hits[0].object; let topY = hitBox.position.y + (hitBox.userData.h / 2); event.object.position.y = topY + (event.object.userData.h / 2); } else { event.object.position.y = event.object.userData.h / 2; }
                 event.object.updateMatrixWorld();
                 
-                // Only do N^2 collision bounce if under limit, otherwise let user place it freely
                 if(cargoGroup.children.length <= 100) {
-                    let myBox = new THREE.Box3().setFromObject(event.object);
-                    myBox.expandByScalar(-1.5); 
-
-                    let collisionDetected = false;
-                    for (let i=0; i<others.length; i++) {
-                        let otherBox3 = new THREE.Box3().setFromObject(others[i]);
-                        otherBox3.expandByScalar(-1.5);
-                        if (myBox.intersectsBox(otherBox3)) { collisionDetected = true; break; }
-                    }
-
+                    let myBox = new THREE.Box3().setFromObject(event.object); myBox.expandByScalar(-1.5); let collisionDetected = false;
+                    for (let i=0; i<others.length; i++) { let otherBox3 = new THREE.Box3().setFromObject(others[i]); otherBox3.expandByScalar(-1.5); if (myBox.intersectsBox(otherBox3)) { collisionDetected = true; break; } }
                     if (collisionDetected) {
-                        event.object.position.copy(dragStartPos);
-                        let labelObj = labels.find(l => l.element.innerText === event.object.userData.id);
-                        if (labelObj) labelObj.pos = event.object.position;
-                        
-                        const warning = document.getElementById('collisionWarning');
-                        warning.style.display = 'block';
-                        setTimeout(() => { warning.style.display = 'none'; }, 2500);
+                        event.object.position.copy(dragStartPos); let labelObj = labels.find(l => l.element.innerText === event.object.userData.id); if (labelObj) labelObj.pos = event.object.position;
+                        const warning = document.getElementById('collisionWarning'); warning.style.display = 'block'; setTimeout(() => { warning.style.display = 'none'; }, 2500);
                     }
                 }
                 
                 let breachStatus = checkEnvelopeIntersection(event.object);
-                if (breachStatus) {
-                    event.object.material.color.setHex(0xdc2626);
-                    event.object.userData.isBreaching = true;
-                } else {
-                    const originalColor = event.object.userData.isOverflowing ? 0xff0000 : (event.object.userData.stackable === false ? 0xdc2626 : 0xffaa00);
-                    event.object.material.color.setHex(originalColor);
-                    event.object.userData.isBreaching = false;
-                }
-                
-                event.object.userData.isOverflowing = false;
-                runWeightAudit();
+                if (breachStatus) { event.object.material.color.setHex(0xdc2626); event.object.userData.isBreaching = true; } 
+                else { const originalColor = event.object.userData.isOverflowing ? 0xff0000 : (event.object.userData.stackable === false ? 0xdc2626 : 0xffaa00); event.object.material.color.setHex(originalColor); event.object.userData.isBreaching = false; }
+                event.object.userData.isOverflowing = false; runWeightAudit();
             });
         }
     </script>
