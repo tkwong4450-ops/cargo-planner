@@ -111,7 +111,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.2.0</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.2.1</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -140,7 +140,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
                 <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
                     <label>💡 Tesseract OCR: Paste text OR a Screenshot (Ctrl+V)</label>
-                    <textarea id="emailInput" rows="9" placeholder="Paste quote text OR image here...&#13;e.g.&#13;Dim: 100x80x82/22&#13;OR&#13;112.0 cmX175.0 cmX81.0 cmX1X90.0 kgXUP"></textarea>
+                    <textarea id="emailInput" rows="9" placeholder="Paste quote text OR image here...&#13;e.g.&#13;73*53*20cm x 3&#13;OR&#13;Dim: 100x80x82/22&#13;OR&#13;112.0 cmX175.0 cmX81.0 cmX1X90.0 kgXUP"></textarea>
                     <button class="btn btn-secondary" style="width: 100%; margin-top: 5px;" onclick="parseEmail()">⚡ Auto-Extract & Convert</button>
                     <div id="parseWarnings" style="color: #dc2626; font-size: 11px; font-weight: bold; margin-top: 10px;"></div>
                 </div>
@@ -352,38 +352,20 @@
             
             baseSelect.innerHTML = ''; contourSelect.innerHTML = ''; quickSelect.innerHTML = '';
             
-            Object.keys(ULDS).forEach(k => {
-                baseSelect.innerHTML += `<option value="${k}">${ULDS[k].name}</option>`;
-            });
-            Object.keys(CONTOURS).forEach(k => {
-                contourSelect.innerHTML += `<option value="${k}">${CONTOURS[k].name}</option>`;
-            });
+            Object.keys(ULDS).forEach(k => { baseSelect.innerHTML += `<option value="${k}">${ULDS[k].name}</option>`; });
+            Object.keys(CONTOURS).forEach(k => { contourSelect.innerHTML += `<option value="${k}">${CONTOURS[k].name}</option>`; });
 
-            // Populate Quick Add with all sensible combinations
             Object.keys(ULDS).forEach(bKey => {
-                if (ULDS[bKey].lock) {
-                    quickSelect.innerHTML += `<option value="${bKey}|${ULDS[bKey].lock}">${ULDS[bKey].name} + ${CONTOURS[ULDS[bKey].lock].name}</option>`;
-                } else {
-                    Object.keys(CONTOURS).forEach(cKey => {
-                        if (cKey.includes("Lower") || cKey.includes("J")) {
-                            quickSelect.innerHTML += `<option value="${bKey}|${cKey}">${ULDS[bKey].name} + ${CONTOURS[cKey].name}</option>`;
-                        }
-                    });
-                }
+                if (ULDS[bKey].lock) { quickSelect.innerHTML += `<option value="${bKey}|${ULDS[bKey].lock}">${ULDS[bKey].name} + ${CONTOURS[ULDS[bKey].lock].name}</option>`; } 
+                else { Object.keys(CONTOURS).forEach(cKey => { if (cKey.includes("Lower") || cKey.includes("J")) { quickSelect.innerHTML += `<option value="${bKey}|${cKey}">${ULDS[bKey].name} + ${CONTOURS[cKey].name}</option>`; } }); }
             });
         }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
-            if (tabId === 'items') {
-                document.getElementById('tabItemsBtn').classList.add('active');
-                document.getElementById('tabItems').classList.add('active');
-            } else {
-                document.getElementById('tabFleetBtn').classList.add('active');
-                document.getElementById('tabFleet').classList.add('active');
-            }
+            if (tabId === 'items') { document.getElementById('tabItemsBtn').classList.add('active'); document.getElementById('tabItems').classList.add('active'); } 
+            else { document.getElementById('tabFleetBtn').classList.add('active'); document.getElementById('tabFleet').classList.add('active'); }
         }
 
         function setupOCR() {
@@ -414,13 +396,6 @@
             });
         }
 
-        function convertToCM(value, unit) {
-            let val = parseFloat(value); if (isNaN(val)) return 0;
-            if (!unit) return val; unit = unit.toLowerCase();
-            if (unit === 'm') return val * 100; if (unit === 'mm') return val / 10; if (unit === 'in') return val * 2.54;
-            return val; 
-        }
-
         function addRow(qty, l, w, h, wgt, stackable) {
             const container = document.getElementById('cargoRows');
             const id = 'row_' + Date.now() + Math.floor(Math.random() * 1000);
@@ -436,8 +411,7 @@
                     <button class="btn btn-danger" onclick="document.getElementById('${id}').remove(); ensureCargoRow(); updateManifestSummary();">×</button>
                 </div>
             `;
-            container.insertAdjacentHTML('beforeend', html); updateManifestSummary();
-            return id;
+            container.insertAdjacentHTML('beforeend', html); updateManifestSummary(); return id;
         }
 
         function ensureCargoRow() { if (document.querySelectorAll('#cargoRows .row-grid').length === 0) { addRow('', '', '', '', '', true); } }
@@ -445,113 +419,136 @@
 
         function evaluateMathField(input) {
             let val = input.value; if (!val || val.trim() === '') return;
-            try {
-                let cleanVal = val.replace(/,/g, '');
-                let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, '');
-                if(sanitized) { let result = Function('"use strict";return (' + sanitized + ')')(); input.value = Math.round(result); updateManifestSummary(); }
-            } catch(e) { } 
+            try { let cleanVal = val.replace(/,/g, ''); let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, ''); if(sanitized) { let result = Function('"use strict";return (' + sanitized + ')')(); input.value = Math.round(result); updateManifestSummary(); } } catch(e) { } 
         }
 
         function updateManifestSummary() {
             let pcs = 0, calcWeight = 0, totalVolCBM = 0;
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
-                const q = parseInt(r.querySelector('.qty').value) || 0;
-                const w = parseFloat(r.querySelector('.weight').value) || 0;
-                const len = parseFloat(r.querySelector('.length').value) || 0;
-                const wid = parseFloat(r.querySelector('.width').value) || 0;
-                const hei = parseFloat(r.querySelector('.height').value) || 0;
+                const q = parseInt(r.querySelector('.qty').value) || 0; const w = parseFloat(r.querySelector('.weight').value) || 0;
+                const len = parseFloat(r.querySelector('.length').value) || 0; const wid = parseFloat(r.querySelector('.width').value) || 0; const hei = parseFloat(r.querySelector('.height').value) || 0;
                 pcs += q; calcWeight += (q * w); totalVolCBM += ((len * wid * hei) / 1000000) * q;
             });
             
             let overrideInput = 0; const weightRaw = document.getElementById('totalShipmentWeight').value;
-            if (weightRaw && weightRaw.trim() !== '') {
-                try {
-                    let cleanVal = weightRaw.replace(/,/g, ''); let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, '');
-                    if(sanitized) overrideInput = Function('"use strict";return (' + sanitized + ')')();
-                } catch(e) {} 
-            }
+            if (weightRaw && weightRaw.trim() !== '') { try { let cleanVal = weightRaw.replace(/,/g, ''); let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, ''); if(sanitized) overrideInput = Function('"use strict";return (' + sanitized + ')')(); } catch(e) {} }
             
             const isOverride = overrideInput > 0; const finalWeight = isOverride ? overrideInput : calcWeight;
-            const label = document.getElementById('manifestSummaryLabel');
-            label.innerText = isOverride ? "Manifest Totals (WEIGHT OVERRIDDEN)" : "Manifest Totals"; label.style.color = isOverride ? "#ef4444" : "var(--lh-yellow)";
+            const label = document.getElementById('manifestSummaryLabel'); label.innerText = isOverride ? "Manifest Totals (WEIGHT OVERRIDDEN)" : "Manifest Totals"; label.style.color = isOverride ? "#ef4444" : "var(--lh-yellow)";
 
             const safeWeight = finalWeight || 0; const safeCbm = totalVolCBM || 0;
             document.getElementById('manifestSummary').innerText = `${pcs} Pcs | ${safeWeight.toFixed(1)} kg | ${safeCbm.toFixed(3)} CBM`;
-            
             if (document.getElementById('stage2').classList.contains('active')) runWeightAudit();
             return { pcs: pcs || 0, weight: safeWeight, cbm: safeCbm };
         }
 
+        // --- V 2.2.1 UNIVERSAL WATERFALL PARSER ---
         function parseEmail() {
             try {
-                const rawText = document.getElementById('emailInput').value;
+                let rawText = document.getElementById('emailInput').value;
                 if (!rawText.trim()) return alert("Please paste text or an image into the box.");
-                document.getElementById('cargoRows').innerHTML = ''; document.getElementById('parseWarnings').innerText = '';
                 
-                const cleanForWeights = rawText.replace(/,/g, '');
+                document.getElementById('cargoRows').innerHTML = ''; 
+                document.getElementById('parseWarnings').innerText = '';
+                
+                // Pre-clean: remove commas, standardize multiply signs
+                let cleanText = rawText.replace(/,/g, '').toLowerCase().replace(/×/g, 'x');
                 let rowsAddedCount = 0;
+                let processed = false;
 
-                // Priority 1: XUP Format Check (112.0 cmX175.0 cmX81.0 cmX1X90.0 kgXUP)
-                const xupRegex = /(\d+(?:\.\d+)?)\s*cmX(\d+(?:\.\d+)?)\s*cmX(\d+(?:\.\d+)?)\s*cmX(\d+)X(\d+(?:\.\d+)?)\s*kgXUP/gi;
-                let xupMatch; let xupMatched = false;
-                while ((xupMatch = xupRegex.exec(cleanForWeights)) !== null) {
-                    xupMatched = true;
+                const isNonStackable = /non-stackable|non stackable|no stack/i.test(cleanText);
+
+                // ==========================================
+                // STAGE 1: XUP TABLE SCANNER
+                // ==========================================
+                // Highly tolerant regex to catch: 72.0 cmX57.0 cmX19.0 cmX10X0.0 kgXUP (even with weird OCR spaces)
+                const xupRegex = /(\d+(?:\.\d+)?)\s*[a-z]*x\s*(\d+(?:\.\d+)?)\s*[a-z]*x\s*(\d+(?:\.\d+)?)\s*[a-z]*x\s*(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*[a-z]*xup/gi;
+                let xupMatch;
+                let xupFound = false;
+
+                while ((xupMatch = xupRegex.exec(cleanText)) !== null) {
+                    xupFound = true;
                     let l = xupMatch[1], w = xupMatch[2], h = xupMatch[3], qty = parseInt(xupMatch[4]), totalWgt = parseFloat(xupMatch[5]);
-                    addRow(qty, l, w, h, (totalWgt / qty).toFixed(1), true); rowsAddedCount++;
+                    let wgtEa = qty > 0 && totalWgt > 0 ? (totalWgt / qty).toFixed(1) : '';
+                    addRow(qty, l, w, h, wgtEa, !isNonStackable);
+                    rowsAddedCount++;
                 }
-                if (xupMatched) { updateManifestSummary(); return; }
 
-                // Priority 2: Dim Format Check (Dim: 100x80x82/22)
-                const dimFormatRegex = /dim[^\d]*(\d+(?:\.\d+)?)\s*(?:x|\*|×)\s*(\d+(?:\.\d+)?)\s*(?:x|\*|×)\s*(\d+(?:\.\d+)?)(?:\s*(?:\/|\\|@|qty)\s*(\d+))?/gi;
-                let dimMatch; let dimMatched = false;
-                while ((dimMatch = dimFormatRegex.exec(cleanForWeights)) !== null) {
-                    dimMatched = true;
-                    let l = dimMatch[1], w = dimMatch[2], h = dimMatch[3], qty = dimMatch[4] ? parseInt(dimMatch[4]) : 1;
-                    addRow(qty, l, w, h, '', true); rowsAddedCount++;
+                // If we found XUP strings, STOP HERE. Do not parse the rest of the text, 
+                // because OCR tables contain stray numbers (like net weights) that will cause ghost rows.
+                if (xupFound) {
+                    updateManifestSummary();
+                    return; 
                 }
-                if (dimMatched) { 
-                    // Attempt to snag total weight if available nearby
-                    const wgtMatch = cleanForWeights.match(/(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilo)/i);
+
+                // ==========================================
+                // STAGE 2: TRAILING QTY (73*53*20cm x 3)
+                // ==========================================
+                // Matches L * W * H [unit] x Qty
+                const trailRegex = /(?:dim[^\d]*)?(\d+(?:\.\d+)?)\s*(?:x|\*)\s*(\d+(?:\.\d+)?)\s*(?:x|\*)\s*(\d+(?:\.\d+)?)\s*(?:cm|mm|m|in)?\s*(?:x|\*|\/|@|\\)\s*(\d+)/gi;
+                let trailMatch;
+                let trailFound = false;
+
+                while ((trailMatch = trailRegex.exec(cleanText)) !== null) {
+                    trailFound = true;
+                    addRow(parseInt(trailMatch[4]), trailMatch[1], trailMatch[2], trailMatch[3], '', !isNonStackable);
+                    rowsAddedCount++;
+                }
+                
+                if (trailFound) {
+                    // Try to grab weight if it exists outside the dimension string
+                    const wgtMatch = cleanText.match(/(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilo)/i);
                     if (wgtMatch) { 
-                        document.getElementById('totalShipmentWeight').value = wgtMatch[1]; evaluateMathField(document.getElementById('totalShipmentWeight'));
+                        document.getElementById('totalShipmentWeight').value = wgtMatch[1]; 
+                        evaluateMathField(document.getElementById('totalShipmentWeight')); 
                     }
-                    updateManifestSummary(); return; 
+                    updateManifestSummary();
+                    return;
                 }
 
-                // Priority 3: Fallback standard parser
-                const wgtMatch = cleanForWeights.match(/(?:weight|wgt|vw|g\.w|gross\s*weight)[^\d]*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilo)/i);
-                if (wgtMatch) { document.getElementById('totalShipmentWeight').value = wgtMatch[1] || wgtMatch[2] || ""; evaluateMathField(document.getElementById('totalShipmentWeight')); }
-
-                const isNonStackable = /non-stackable|non stackable|no stack/i.test(rawText.replace(/\n/g, ' '));
+                // ==========================================
+                // STAGE 3: LEADING QTY & STANDARD FALLBACK
+                // ==========================================
+                // Matches Qty x L x W x H
                 let globalUnit = "cm"; 
-                const unitMatch = rawText.match(/(?:dimension|dim|size)(?:s)?\s*[=:]?\s*\(?(mm|cm|m|in)\)?/i);
-                if (unitMatch) { globalUnit = unitMatch[1].toLowerCase(); document.getElementById('parseWarnings').innerText = `💡 Detected global base unit: ${globalUnit.toUpperCase()}`; }
+                const unitMatch = cleanText.match(/(?:dimension|dim|size)(?:s)?\s*[=:]?\s*\(?(mm|cm|m|in)\)?/i);
+                if (unitMatch) { globalUnit = unitMatch[1]; }
 
-                const lines = rawText.split('\n'); let firstRowId = null;
+                const lines = cleanText.split('\n');
+                let firstRowId = null;
+
                 lines.forEach(line => {
-                    let cleanLine = line.replace(/\s+/g, '').toLowerCase();
-                    const stdDimRegex = /(?:(\d+)(?:x|\*|pcs|plt|plts|ctn|ctns|@))?(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*|×)(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*|×)[a-z]*(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:(?:\/|\\|@)(\d+)(?:pcs|plt|plts|ctn|ctns)?)?/g;
+                    let cleanLine = line.replace(/\s+/g, '');
+                    const stdDimRegex = /(?:(\d+)(?:x|\*|pcs|plt|plts|ctn|ctns|@))?(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*)(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*)[a-z]*(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:(?:\/|\\|@)(\d+)(?:pcs|plt|plts|ctn|ctns)?)?/g;
                     let match;
+                    
                     while ((match = stdDimRegex.exec(cleanLine)) !== null) {
                         let qty = match[1] ? parseInt(match[1]) : (match[8] ? parseInt(match[8]) : 1);
-                        let lRaw = match[2], lUnit = match[3] || globalUnit; 
-                        let wRaw = match[4], wUnit = match[5] || globalUnit; 
-                        let hRaw = match[6], hUnit = match[7] || globalUnit; 
-                        let rowId = addRow( qty, convertToCM(lRaw, lUnit).toFixed(1), convertToCM(wRaw, wUnit).toFixed(1), convertToCM(hRaw, hUnit).toFixed(1), '', !isNonStackable );
-                        rowsAddedCount++; if (!firstRowId) firstRowId = rowId;
+                        let lRaw = match[2], wRaw = match[4], hRaw = match[6];
+                        let rowId = addRow( qty, lRaw, wRaw, hRaw, '', !isNonStackable );
+                        rowsAddedCount++; 
+                        if (!firstRowId) firstRowId = rowId;
                     }
                 });
 
-                const globalQtyMatch = cleanForWeights.match(/(\d+)\s*(?:pallets|plts|skids|pcs|ctns|cartons|boxes)/i);
+                // Global fallback for quantities if only one row was found without a specific qty attached
+                const globalQtyMatch = cleanText.match(/(\d+)\s*(?:pallets|plts|skids|pcs|ctns|cartons|boxes)/i);
                 if (globalQtyMatch && rowsAddedCount === 1) {
                     let fallbackQty = parseInt(globalQtyMatch[1]);
                     if (fallbackQty > 1) { let firstRow = document.getElementById(firstRowId); if (firstRow) firstRow.querySelector('.qty').value = fallbackQty; }
                 }
 
+                const wgtMatch = cleanText.match(/(?:weight|wgt|vw|g\.w|gross\s*weight)[^\d]*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilo)/i);
+                if (wgtMatch) { document.getElementById('totalShipmentWeight').value = wgtMatch[1] || wgtMatch[2] || ""; evaluateMathField(document.getElementById('totalShipmentWeight')); }
+
                 if (rowsAddedCount === 0) { addRow('', '', '', '', '', true); }
                 updateManifestSummary();
-            } catch (error) { alert("The parser encountered an unusual format. A blank row was added."); addRow('', '', '', '', '', true); }
+            } catch (error) { 
+                alert("The parser encountered an unusual format. A blank row was added."); 
+                addRow('', '', '', '', '', true); 
+            }
         }
+        // --- END PARSER ---
 
         function autoSelectContour() {
             const baseKey = document.getElementById('baseSelect').value;
@@ -661,7 +658,6 @@
             } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; }
         }
 
-        // Returns false if valid, returns string reason if breaching
         function checkEnvelopeIntersection(mesh) {
             let box = new THREE.Box3().setFromObject(mesh);
             let centerVec = new THREE.Vector3(); box.getCenter(centerVec);
@@ -684,10 +680,7 @@
                     let ratio = (yMax - startH) / (c.maxHeight - startH);
                     let allowedMinZ = -hW + (ratio * effOffset);
                     if (zMin < allowedMinZ) return "Penetrates Left Slope."; 
-                    if (activeUld.isLateral || activeUld.isCenter) {
-                        let allowedMaxZ = hW - (ratio * effOffset);
-                        if (zMax > allowedMaxZ) return "Penetrates Right Slope.";
-                    }
+                    if (activeUld.isLateral || activeUld.isCenter) { let allowedMaxZ = hW - (ratio * effOffset); if (zMax > allowedMaxZ) return "Penetrates Right Slope."; }
                 } else { if (zMin < -hW) return "Overhangs Base."; }
                 if (zMax > hW) return "Overhangs Right Base."; 
             } else if (c.type === "symmetric-belly") {
@@ -695,10 +688,7 @@
                 if (yMin < bellyH) {
                     let ratio = yMin / bellyH; let allowedZ = hW + (ratio * offset);
                     if (zMax > allowedZ || zMin < -allowedZ) return "Penetrates Lower curve.";
-                } else {
-                    let allowedZ = hW + offset;
-                    if (zMax > allowedZ || zMin < -allowedZ) return "Exceeds Belly Width.";
-                }
+                } else { let allowedZ = hW + offset; if (zMax > allowedZ || zMin < -allowedZ) return "Exceeds Belly Width."; }
             } else if (c.type === "half-belly") {
                 let overhang = c.overhang || 45; let bellyH = c.bellyHeight || 60;
                 if (yMin < bellyH) {
@@ -706,10 +696,7 @@
                     if (zMax > allowedZ) return "Penetrates Slope.";
                 } else { if (zMax > hW + overhang) return "Exceeds Center width."; }
                 if (zMin < -hW) return "Overhangs Outboard edge.";
-            } else { 
-                if (zMax > hW || zMin < -hW) return "Overhangs side edges.";
-            }
-
+            } else { if (zMax > hW || zMin < -hW) return "Overhangs side edges."; }
             if (yMax > c.maxHeight) return `Exceeds max height (${c.maxHeight}cm).`;
             return false;
         }
@@ -810,13 +797,11 @@
                     let placed = false;
                     let globalX, globalZ;
 
-                    // V2.2.0 Contour-Hugging Loop
                     while (!placed && uldIdx < drawnUlds.length) {
                         activeUld = drawnUlds[uldIdx];
                         let maxL = activeUld.base.length; let maxW = activeUld.base.width;
                         let maxH = CONTOURS[activeUld.contourKey].maxHeight;
                         
-                        // Auto-Rotate for best fit logic
                         let normalFit = Math.floor(maxL / it.l) * Math.floor(maxW / it.w);
                         let rotatedFit = Math.floor(maxL / it.w) * Math.floor(maxW / it.l);
                         if (rotatedFit > normalFit) { let temp = it.l; it.l = it.w; it.w = temp; }
@@ -830,11 +815,9 @@
                             continue; 
                         }
 
-                        // Predictive Contour Test (The "Hugging" Fix)
                         globalX = activeUld.centerX + cx + (it.l/2);
                         globalZ = cz + (it.w/2);
                         
-                        // Create a dummy mesh for testing bounds before committing
                         let dummyGeo = new THREE.BoxGeometry(it.l, it.h, it.w);
                         let dummyMesh = new THREE.Mesh(dummyGeo, new THREE.MeshBasicMaterial());
                         dummyMesh.position.set(globalX, currentY + (it.h/2), globalZ);
@@ -845,17 +828,13 @@
                         dummyGeo.dispose();
 
                         if (breachTest) {
-                            // Hit a slanted wall. Push inward toward centerline or forward
-                            cz += 15; // move inward by 15cm steps
+                            cz += 15; 
                             if (cz + it.w > maxW/2) {
-                                // If pushed off the pallet laterally, reset Z and push forward X
-                                cz = -maxW/2; 
-                                cx += it.l + 5; 
-                                if (cx + it.l > maxL/2) { cx = -maxL/2; currentY += (it.h + 2); } // Forced up a layer
+                                cz = -maxW/2; cx += it.l + 5; 
+                                if (cx + it.l > maxL/2) { cx = -maxL/2; currentY += (it.h + 2); } 
                             }
-                            continue; // re-evaluate while loop
+                            continue; 
                         }
-
                         placed = true;
                     }
 
@@ -863,13 +842,11 @@
                         it.isOverflowing = true;
                         if (!warns.includes(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity.`)) warns.push(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity.`);
                         if (overflowZOffset + it.w > 500) { overflowZOffset = 0; overflowXOffset += 150; }
-                        globalX = OVERFLOW_START_X + overflowXOffset + (it.l/2);
-                        globalZ = -250 + overflowZOffset + (it.w/2);
+                        globalX = OVERFLOW_START_X + overflowXOffset + (it.l/2); globalZ = -250 + overflowZOffset + (it.w/2);
                         currentY = 0; overflowZOffset += it.w + 10;
                     } else {
-                        if (it.w > rowMaxW) rowMaxW = it.w;
-                        if (it.h > layerMaxHeight) layerMaxHeight = it.h;
-                        cx += it.l + 2; // Advance cursor for next box
+                        if (it.w > rowMaxW) rowMaxW = it.w; if (it.h > layerMaxHeight) layerMaxHeight = it.h;
+                        cx += it.l + 2; 
                     }
 
                     let geoKey = `${it.l}_${it.h}_${it.w}`;
@@ -879,16 +856,13 @@
                     let color = it.isOverflowing ? 0xff0000 : (it.stackable ? 0xffaa00 : 0xdc2626);
                     const mat = new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: it.isOverflowing ? 0.8 : 0.95 });
                     
-                    const mesh = new THREE.Mesh(geo, mat);
-                    mesh.position.set(globalX, currentY + (it.h/2), globalZ);
+                    const mesh = new THREE.Mesh(geo, mat); mesh.position.set(globalX, currentY + (it.h/2), globalZ);
                     if (enableEdges) { mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.6 }))); }
                     
                     mesh.userData = { id: it.id, h: it.h, dims: { l: it.l, w: it.w, h: it.h }, isOverflowing: it.isOverflowing, stackable: it.stackable, indexRef: items.indexOf(it) };
-                    cargoGroup.add(mesh);
-                    labels.push(createLabel(it.id, mesh.position));
+                    cargoGroup.add(mesh); labels.push(createLabel(it.id, mesh.position));
                 });
 
-                // Post-placement verification
                 cargoGroup.children.forEach(m => { 
                     let breachStatus = checkEnvelopeIntersection(m);
                     if (breachStatus) { m.material.color.setHex(0xdc2626); m.userData.isBreaching = true; if(!warns.includes(`🚨 Contour Breaches detected.`)) warns.push(`🚨 Contour Breaches detected.`); } 
