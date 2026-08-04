@@ -44,8 +44,6 @@
         .btn-outline:hover { border-color: var(--lh-yellow); background: #fffdf5; }
         .btn-danger { background: #fee2e2; color: #dc2626; padding: 8px; margin-left: 5px; }
         .btn-danger:hover { background: #fca5a5; }
-        .btn-action { background: #10b981; color: white; width: 100%; margin-top: 5px; }
-        .btn-action:hover { background: #059669; }
         
         .row-grid { display: grid; grid-template-columns: 60px 1fr 1fr 1fr 1.2fr 60px 40px; gap: 8px; margin-bottom: 8px; align-items: center; }
         .row-header { font-size: 10px; font-weight: 900; color: #6b7280; text-transform: uppercase; text-align: center; }
@@ -99,7 +97,7 @@
         .modal-content { background: white; width: 90%; max-width: 900px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); overflow: hidden; display: flex; flex-direction: column; }
         .modal-header { background: var(--lh-navy); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid var(--lh-yellow); }
         .modal-header h2 { margin: 0; font-size: 16px; text-transform: uppercase; }
-        .modal-body { padding: 20px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; align-items: center; }
+        .modal-body { padding: 20px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; align-items: stretch; }
         .modal-footer { padding: 15px 20px; background: #f9fafb; border-top: 1px solid var(--lh-border); display: flex; justify-content: flex-end; gap: 10px; }
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
@@ -119,7 +117,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.3.0</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.3.1</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -280,18 +278,26 @@
                 <button onclick="toggleModal('reformatterModal', false)" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">&times;</button>
             </div>
             <div class="modal-body">
-                <div style="display:flex; flex-direction:column; gap:5px;">
-                    <label style="color:var(--lh-navy);">1. Paste Messy Table / Text</label>
-                    <textarea id="rawScrubInput" rows="12" placeholder="Paste noisy data here...&#13;&#13;E.g.,&#13;731-28585 Pallet 1 65 40 65 1450" style="font-family:monospace; font-size:12px; margin-bottom:0;"></textarea>
+                <div style="display:flex; flex-direction:column; gap:5px; height: 100%;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                        <label style="color:var(--lh-navy); margin-bottom:0;">1. Paste Messy Table / Text</label>
+                        <select id="scrubUnit" style="width:auto; padding:4px 8px; font-size:10px; margin-bottom:0;">
+                            <option value="auto">Auto-Detect Unit (cm/mm)</option>
+                            <option value="cm">Force Centimeters (cm)</option>
+                            <option value="mm">Force Millimeters (to cm)</option>
+                            <option value="in">Force Inches (to cm)</option>
+                        </select>
+                    </div>
+                    <textarea id="rawScrubInput" placeholder="Paste noisy data here...&#13;&#13;E.g.,&#13;1300*1100*1300 *22PLTS, 120kg/PLT" style="font-family:monospace; font-size:12px; margin-bottom:0; flex:1; min-height: 200px;"></textarea>
                 </div>
                 
-                <div style="display:flex; flex-direction:column; gap:10px; padding:0 10px;">
+                <div style="display:flex; flex-direction:column; justify-content:center; gap:10px; padding:0 10px;">
                     <button class="btn btn-secondary" onclick="scrubData()">Scrub &rarr;</button>
                 </div>
 
-                <div style="display:flex; flex-direction:column; gap:5px;">
-                    <label style="color:#059669;">2. Clean Standard Format</label>
-                    <textarea id="cleanScrubOutput" rows="12" placeholder="[Qty] x [L] x [W] x [H] x [Wgt]&#13;&#13;Review and edit results here..." style="font-family:monospace; font-size:12px; border-color:#10b981; background:#ecfdf5; margin-bottom:0;"></textarea>
+                <div style="display:flex; flex-direction:column; gap:5px; height: 100%;">
+                    <label style="color:#059669; margin-bottom:0;">2. Clean Standard Format Output</label>
+                    <textarea id="cleanScrubOutput" placeholder="[Qty] x [L] x [W] x [H] x [Wgt]&#13;&#13;Review and edit results here..." style="font-family:monospace; font-size:12px; border-color:#10b981; background:#ecfdf5; margin-bottom:0; flex:1; min-height: 200px;"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
@@ -346,41 +352,76 @@
         let fleetConfig = [];
         let drawnUlds = [];
 
-        window.onload = () => {
-            populateSelects(); addRow('', '', '', '', '', true); autoSelectContour(); renderFleetList(); setupOCR();
-        }
+        window.onload = () => { populateSelects(); addRow('', '', '', '', '', true); autoSelectContour(); renderFleetList(); setupOCR(); }
 
-        // --- MODAL & REFORMATTER LOGIC ---
-        function toggleModal(id, show) {
-            document.getElementById(id).classList.toggle('active', show);
-        }
+        // --- V 2.3.1 MODAL NLP REFORMATTER ---
+        function toggleModal(id, show) { document.getElementById(id).classList.toggle('active', show); }
 
         function scrubData() {
             const raw = document.getElementById('rawScrubInput').value;
+            const sourceUnit = document.getElementById('scrubUnit').value;
             const lines = raw.split('\n');
             let cleanText = "";
 
             lines.forEach(line => {
-                // Find all standalone numeric blocks on a line
-                const numRegex = /(?:^|\s)(\d+(?:\.\d+)?)(?=\s|$)/g;
-                let matches = [];
-                let match;
-                while ((match = numRegex.exec(line)) !== null) {
-                    matches.push(parseFloat(match[1]));
+                let cleanLine = line.toLowerCase().replace(/,/g, '');
+                
+                // 1. ASTRIX DIMENSIONAL HUNTER: e.g., 1300*1100*1300 *22PLTS, 120kg/PLT
+                let dimMatch = cleanLine.match(/(\d+(?:\.\d+)?)\s*(?:\*|x|times)\s*(\d+(?:\.\d+)?)\s*(?:\*|x|times)\s*(\d+(?:\.\d+)?)(?:\s*(?:\*|x|@|\/)\s*(\d+))?(?:.*?(\d+(?:\.\d+)?)\s*(?:kg|kgs|lb|lbs))?/);
+                
+                if (dimMatch) {
+                    let l_raw = parseFloat(dimMatch[1]);
+                    let w_raw = parseFloat(dimMatch[2]);
+                    
+                    let conv = 1;
+                    if (sourceUnit === "mm") conv = 0.1;
+                    else if (sourceUnit === "in") conv = 2.54;
+                    else if (sourceUnit === "auto") {
+                        if (/mm/i.test(line)) conv = 0.1;
+                        else if (/in/i.test(line)) conv = 2.54;
+                        else if (l_raw > 400 || w_raw > 400) conv = 0.1; // Safety trigger for mm
+                    }
+
+                    let l = (l_raw * conv).toFixed(1);
+                    let w = (w_raw * conv).toFixed(1);
+                    let h = (parseFloat(dimMatch[3]) * conv).toFixed(1);
+                    let qty = dimMatch[4] ? parseInt(dimMatch[4]) : 1;
+                    let wgt = dimMatch[5] ? parseFloat(dimMatch[5]) : '';
+                    
+                    if (wgt !== '') cleanText += `${qty} x ${l} x ${w} x ${h} x ${wgt}\n`;
+                    else cleanText += `${qty} x ${l} x ${w} x ${h}\n`;
+                    return; 
                 }
 
-                // If a line has at least 4 numbers, assume it's dimensional data
-                if (matches.length >= 4) {
-                    // Extract the last 4 or 5 numbers (Qty, L, W, H, [Wgt])
-                    let nums = matches.slice(matches.length >= 5 ? -5 : -4);
-                    let qty = 1, l = 0, w = 0, h = 0, wgt = '';
+                // 2. TABLE DATA FALLBACK: (Look for 4-5 loose numbers, ignoring part numbers)
+                let tokens = cleanLine.split(/[^0-9.]+/).filter(t => t.trim() !== '' && t !== '.');
+                if (tokens.length >= 4) {
+                    let nums = tokens.slice(tokens.length >= 5 ? -5 : -4).map(Number);
+                    let qty = 1, l_raw = 0, w_raw = 0, h_raw = 0, wgt = '';
                     
                     if (nums.length === 5) {
-                        qty = nums[0]; l = nums[1]; w = nums[2]; h = nums[3]; wgt = nums[4];
+                        if (nums[0] > 100 && nums[3] < 50) { l_raw = nums[0]; w_raw = nums[1]; h_raw = nums[2]; qty = nums[3]; wgt = nums[4]; } 
+                        else { qty = nums[0]; l_raw = nums[1]; w_raw = nums[2]; h_raw = nums[3]; wgt = nums[4]; }
                     } else if (nums.length === 4) {
-                        qty = nums[0]; l = nums[1]; w = nums[2]; h = nums[3];
+                        if (nums[0] > 100 && nums[3] < 50) { l_raw = nums[0]; w_raw = nums[1]; h_raw = nums[2]; qty = nums[3]; } 
+                        else { qty = nums[0]; l_raw = nums[1]; w_raw = nums[2]; h_raw = nums[3]; }
                     }
-                    cleanText += `${qty} x ${l} x ${w} x ${h} x ${wgt}\n`;
+
+                    let conv = 1;
+                    if (sourceUnit === "mm") conv = 0.1;
+                    else if (sourceUnit === "in") conv = 2.54;
+                    else if (sourceUnit === "auto") {
+                        if (/mm/i.test(line)) conv = 0.1;
+                        else if (/in/i.test(line)) conv = 2.54;
+                        else if (l_raw > 400 || w_raw > 400) conv = 0.1; 
+                    }
+
+                    let l = (l_raw * conv).toFixed(1);
+                    let w = (w_raw * conv).toFixed(1);
+                    let h = (h_raw * conv).toFixed(1);
+
+                    if (wgt !== '') cleanText += `${qty} x ${l} x ${w} x ${h} x ${wgt}\n`;
+                    else cleanText += `${qty} x ${l} x ${w} x ${h}\n`;
                 }
             });
             document.getElementById('cleanScrubOutput').value = cleanText.trim();
@@ -389,9 +430,7 @@
         function injectCleanData() {
             const cleanData = document.getElementById('cleanScrubOutput').value;
             if(!cleanData) return alert("Please scrub some data first.");
-            document.getElementById('emailInput').value = cleanData;
-            toggleModal('reformatterModal', false);
-            parseEmail();
+            document.getElementById('emailInput').value = cleanData; toggleModal('reformatterModal', false); parseEmail();
         }
         // --- END REFORMATTER LOGIC ---
 
@@ -472,7 +511,7 @@
             if (document.getElementById('stage2').classList.contains('active')) runWeightAudit(); return { pcs: pcs || 0, weight: safeWeight, cbm: safeCbm };
         }
 
-        // --- V 2.3.0 UNIVERSAL WATERFALL PARSER ---
+        // --- V 2.3.1 PARSER ---
         function parseEmail() {
             try {
                 let rawText = document.getElementById('emailInput').value;
@@ -502,8 +541,7 @@
                 const xupRegex = /(\d+(?:\.\d+)?)\s*[a-z]*x\s*(\d+(?:\.\d+)?)\s*[a-z]*x\s*(\d+(?:\.\d+)?)\s*[a-z]*x\s*(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*[a-z]*xup/gi;
                 let xupMatch; let xupFound = false;
                 while ((xupMatch = xupRegex.exec(cleanText)) !== null) {
-                    xupFound = true;
-                    let l = xupMatch[1], w = xupMatch[2], h = xupMatch[3], qty = parseInt(xupMatch[4]), totalWgt = parseFloat(xupMatch[5]);
+                    xupFound = true; let l = xupMatch[1], w = xupMatch[2], h = xupMatch[3], qty = parseInt(xupMatch[4]), totalWgt = parseFloat(xupMatch[5]);
                     addRow(qty, l, w, h, qty > 0 && totalWgt > 0 ? (totalWgt / qty).toFixed(1) : '', !isNonStackable); rowsAddedCount++;
                 }
                 if (xupFound) { updateManifestSummary(); return; }
