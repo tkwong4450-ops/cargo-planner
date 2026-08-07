@@ -119,7 +119,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.4.5</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.4.6</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -281,7 +281,7 @@
         </div>
     </main>
 
-    <!-- DATA REFORMATTER MODAL V2.4.5 (ROBUST QTY/DIM PARSER) -->
+    <!-- DATA REFORMATTER MODAL -->
     <div class="modal-overlay" id="reformatterModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -362,7 +362,6 @@
 
         window.onload = () => { populateSelects(); addRow('', '', '', '', '', true); autoSelectContour(); renderFleetList(); setupOCR(); }
 
-        // --- V 2.4.5 FIXED REFORMATTER ENGINE ---
         function toggleModal(id, show) { document.getElementById(id).classList.toggle('active', show); }
 
         function scrubData() {
@@ -378,10 +377,8 @@
                 let cleanLine = line.toLowerCase().replace(/,/g, '').trim();
                 if(!cleanLine || cleanLine.startsWith('[')) return;
 
-                // Extract all numbers or dimension sets
                 let dimMatches = [...cleanLine.matchAll(/(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)/g)];
                 if (dimMatches.length > 0) {
-                    // Take the first true dimension triplet in the row (e.g. 110*110*79)
                     let targetDim = dimMatches[0];
                     let l_raw = parseFloat(targetDim[1]);
                     let w_raw = parseFloat(targetDim[2]);
@@ -389,22 +386,18 @@
 
                     let qty = 1; let wgt = '';
                     
-                    // Look for weights (e.g., 58.00 kgs)
                     let wgtMatch = cleanLine.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|lb|lbs)/);
                     if(wgtMatch) wgt = parseFloat(wgtMatch[1]);
 
-                    // Look for trailing quantity (e.g. at the end of table row like '... 1')
                     let tokens = cleanLine.split(/\s+/);
                     let lastToken = tokens[tokens.length - 1];
                     let leadingToken = tokens[0];
 
                     if (tokens.length >= 4) {
-                        // Check if last token is a standalone small integer quantity
                         let parsedLast = parseInt(lastToken);
                         if (!isNaN(parsedLast) && parsedLast < 100 && parsedLast !== h_raw) {
                             qty = parsedLast;
                         } else {
-                            // Check leading token if it's quantity
                             let parsedLead = parseInt(leadingToken);
                             if (!isNaN(parsedLead) && parsedLead < 100 && parsedLead !== l_raw) {
                                 qty = parsedLead;
@@ -584,10 +577,18 @@
         function switchTab(tabId) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); if (tabId === 'items') { document.getElementById('tabItemsBtn').classList.add('active'); document.getElementById('tabItems').classList.add('active'); } else { document.getElementById('tabFleetBtn').classList.add('active'); document.getElementById('tabFleet').classList.add('active'); } }
         function autoSelectContour() { const baseKey = document.getElementById('baseSelect').value; const contourSelect = document.getElementById('contourSelect'); const orientationSelect = document.getElementById('orientationSelect'); contourSelect.disabled = false; orientationSelect.disabled = true; orientationSelect.style.backgroundColor = '#e5e7eb'; if (baseKey === 'PLA') { contourSelect.value = 'Contour_PLA_Belly'; contourSelect.style.backgroundColor = '#fef08a'; contourSelect.disabled = true; orientationSelect.value = 'lateral'; orientationSelect.style.backgroundColor = '#fef08a'; orientationSelect.disabled = true; } else { orientationSelect.value = 'longitudinal'; if (baseKey === 'PMC' || baseKey === 'PAJ' || baseKey === 'PZA' || baseKey === 'PGE') { orientationSelect.disabled = false; orientationSelect.style.backgroundColor = '#f9fafb'; } if (ULDS[baseKey] && ULDS[baseKey].lock) { contourSelect.value = ULDS[baseKey].lock; contourSelect.style.backgroundColor = '#fef08a'; } else { contourSelect.style.backgroundColor = '#f9fafb'; } } setTimeout(() => { if (!contourSelect.disabled) contourSelect.style.backgroundColor = '#f9fafb'; }, 1000); }
         
+        // --- FIXED SMART RECOMMENDATION ENGINE ---
         function applySmartRecommendation() {
             const manifest = updateManifestSummary();
             const totalCbm = manifest.cbm;
+            
+            if (totalCbm <= 0) {
+                alert("Please add items to your manifest in Step 1 first.");
+                return;
+            }
+            
             clearFleet();
+            
             if (totalCbm <= 4.5) {
                 fleetConfig.push({ id: Date.now(), baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 2, orientation: 'longitudinal' });
             } else if (totalCbm <= 15) {
@@ -597,8 +598,9 @@
                 fleetConfig.push({ id: Date.now(), baseKey: 'PMC', contourKey: 'Contour_J4', qty: 2, orientation: 'longitudinal' });
                 fleetConfig.push({ id: Date.now()+1, baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 1, orientation: 'longitudinal' });
             }
+            
             renderFleetList();
-            alert("✨ Smart recommendation applied based on manifest volume!");
+            alert(`✨ Smart recommendation applied based on ${totalCbm.toFixed(2)} CBM!`);
         }
 
         function addToFleet() { const baseKey = document.getElementById('baseSelect').value; const contourKey = document.getElementById('contourSelect').value; const qty = parseInt(document.getElementById('uldQtyInput').value) || 1; const orientation = document.getElementById('orientationSelect').value; fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty, orientation }); renderFleetList(); }
