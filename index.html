@@ -89,7 +89,7 @@
         .overflow-badge { background: #ea580c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; animation: pulse 1.5s infinite; }
         .overlap-badge { background: #d946ef; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; }
         
-        /* Restored Disclaimers & Branding Footers */
+        /* Disclaimers & Branding Footers */
         .lh-footer { position: fixed; bottom: 12px; left: 20px; font-size: 10px; color: #6b7280; z-index: 9999; pointer-events: none; }
         .lh-branding { position: fixed; bottom: 12px; right: 20px; font-size: 10px; font-weight: 900; color: var(--lh-navy); opacity: 0.8; z-index: 9999; text-transform: uppercase; letter-spacing: 1px; pointer-events: none; }
 
@@ -119,7 +119,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.4.3</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.4.4</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -182,10 +182,20 @@
             </div>
         </div>
 
-        <!-- STAGE 2 -->
+        <!-- STAGE 2 (REINSTATED RECOMMENDATIONS & BUILDER) -->
         <div class="panel" id="stage2">
-            <h2 class="section-title">✈️ Step 2: Modular Fleet Builder</h2>
-            <p class="section-desc">Combine multiple ULDs, orientations, and contours into a custom fleet profile.</p>
+            <h2 class="section-title">✈️ Step 2: Modular Fleet Builder & Recommendations</h2>
+            <p class="section-desc">Combine multiple ULDs, orientations, and contours into a custom fleet profile, or use smart recommendations based on manifest volume.</p>
+            
+            <!-- REINSTATED RECOMMENDATION PANEL -->
+            <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin:0 0 4px 0; font-size:13px; color:#b45309; text-transform:uppercase;">💡 Smart Fleet Recommendation Engine</h3>
+                    <p style="margin:0; font-size:12px; color:#78350f;" id="recommendationText">Analyze manifest volume to generate an optimal equipment mix.</p>
+                </div>
+                <button class="btn btn-primary" style="background:#f59e0b; color:white; padding:10px 16px; font-size:11px;" onclick="applySmartRecommendation()">✨ Auto-Recommend Fleet</button>
+            </div>
+
             <div class="grid-2">
                 <div style="background: #eff6ff; padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe;">
                     <h3 style="margin-top:0; font-size:14px; color:#1e3a8a; text-transform:uppercase;">➕ Manual Equipment Entry</h3>
@@ -272,7 +282,7 @@
         </div>
     </main>
 
-    <!-- DATA REFORMATTER MODAL V2.4.3 -->
+    <!-- DATA REFORMATTER MODAL V2.4.4 (FIXED 110x110x79 REGEX) -->
     <div class="modal-overlay" id="reformatterModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -353,7 +363,7 @@
 
         window.onload = () => { populateSelects(); addRow('', '', '', '', '', true); autoSelectContour(); renderFleetList(); setupOCR(); }
 
-        // --- V 2.4.3 MODAL NLP REFORMATTER ---
+        // --- V 2.4.4 REFORMATTER FIX (CORRECTED DIMENSION PARSING) ---
         function toggleModal(id, show) { document.getElementById(id).classList.toggle('active', show); }
 
         function scrubData() {
@@ -367,22 +377,28 @@
 
             lines.forEach(line => {
                 let cleanLine = line.toLowerCase().replace(/,/g, '');
-                let dimMatches = cleanLine.match(/(\d+(?:\.\d+)?)\s*(?:\*|x|times)\s*(\d+(?:\.\d+)?)\s*(?:\*|x|times)\s*(\d+(?:\.\d+)?)/g);
+                // Improved regex to extract valid dimension triplets (e.g. 110*110*79 or 110 x 110 x 79) safely avoiding trailing qty/codes
+                let dimMatches = [...cleanLine.matchAll(/(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)/g)];
                 
-                if (dimMatches && dimMatches.length > 0) {
-                    let lastDimStr = dimMatches[dimMatches.length - 1];
-                    let exactDims = lastDimStr.match(/(\d+(?:\.\d+)?)\s*(?:\*|x|times)\s*(\d+(?:\.\d+)?)\s*(?:\*|x|times)\s*(\d+(?:\.\d+)?)/);
-                    
-                    let l_raw = parseFloat(exactDims[1]);
-                    let w_raw = parseFloat(exactDims[2]);
-                    let h_raw = parseFloat(exactDims[3]);
+                if (dimMatches.length > 0) {
+                    // Pick the best match (usually the actual dimension triplet, skipping leading/trailing stray numbers)
+                    let bestMatch = dimMatches[dimMatches.length - 1];
+                    let l_raw = parseFloat(bestMatch[1]);
+                    let w_raw = parseFloat(bestMatch[2]);
+                    let h_raw = parseFloat(bestMatch[3]);
                     
                     let qty = 1; let wgt = '';
                     let wgtMatch = cleanLine.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|lb|lbs)/);
                     if(wgtMatch) wgt = parseFloat(wgtMatch[1]);
 
-                    let trailingNum = cleanLine.match(/(\d+)\s*$/);
-                    if(trailingNum && parseInt(trailingNum[1]) < 1000) { qty = parseInt(trailingNum[1]); }
+                    // Check leading or trailing quantity
+                    let leadingNum = cleanLine.match(/^(\d+)\s*(?:x|\*|\s)/);
+                    if(leadingNum && parseInt(leadingNum[1]) < 1000 && parseInt(leadingNum[1]) !== l_raw) {
+                        qty = parseInt(leadingNum[1]);
+                    } else {
+                        let trailingNum = cleanLine.match(/(\d+)\s*$/);
+                        if(trailingNum && parseInt(trailingNum[1]) < 1000) { qty = parseInt(trailingNum[1]); }
+                    }
 
                     let conv = 1;
                     if (sourceUnit === "mm") conv = 0.1;
@@ -555,15 +571,34 @@
         }
         function switchTab(tabId) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); if (tabId === 'items') { document.getElementById('tabItemsBtn').classList.add('active'); document.getElementById('tabItems').classList.add('active'); } else { document.getElementById('tabFleetBtn').classList.add('active'); document.getElementById('tabFleet').classList.add('active'); } }
         function autoSelectContour() { const baseKey = document.getElementById('baseSelect').value; const contourSelect = document.getElementById('contourSelect'); const orientationSelect = document.getElementById('orientationSelect'); contourSelect.disabled = false; orientationSelect.disabled = true; orientationSelect.style.backgroundColor = '#e5e7eb'; if (baseKey === 'PLA') { contourSelect.value = 'Contour_PLA_Belly'; contourSelect.style.backgroundColor = '#fef08a'; contourSelect.disabled = true; orientationSelect.value = 'lateral'; orientationSelect.style.backgroundColor = '#fef08a'; orientationSelect.disabled = true; } else { orientationSelect.value = 'longitudinal'; if (baseKey === 'PMC' || baseKey === 'PAJ' || baseKey === 'PZA' || baseKey === 'PGE') { orientationSelect.disabled = false; orientationSelect.style.backgroundColor = '#f9fafb'; } if (ULDS[baseKey] && ULDS[baseKey].lock) { contourSelect.value = ULDS[baseKey].lock; contourSelect.style.backgroundColor = '#fef08a'; } else { contourSelect.style.backgroundColor = '#f9fafb'; } } setTimeout(() => { if (!contourSelect.disabled) contourSelect.style.backgroundColor = '#f9fafb'; }, 1000); }
+        
+        // --- SMART RECOMMENDATION ENGINE ---
+        function applySmartRecommendation() {
+            const manifest = updateManifestSummary();
+            const totalCbm = manifest.cbm;
+            clearFleet();
+            if (totalCbm <= 4.5) {
+                fleetConfig.push({ id: Date.now(), baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 2, orientation: 'longitudinal' });
+            } else if (totalCbm <= 15) {
+                fleetConfig.push({ id: Date.now(), baseKey: 'PMC', contourKey: 'Contour_J4', qty: 1, orientation: 'longitudinal' });
+                fleetConfig.push({ id: Date.now()+1, baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 1, orientation: 'longitudinal' });
+            } else {
+                fleetConfig.push({ id: Date.now(), baseKey: 'PMC', contourKey: 'Contour_J4', qty: 2, orientation: 'longitudinal' });
+                fleetConfig.push({ id: Date.now()+1, baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 1, orientation: 'longitudinal' });
+            }
+            renderFleetList();
+            alert("✨ Smart recommendation applied based on manifest volume!");
+        }
+
         function addToFleet() { const baseKey = document.getElementById('baseSelect').value; const contourKey = document.getElementById('contourSelect').value; const qty = parseInt(document.getElementById('uldQtyInput').value) || 1; const orientation = document.getElementById('orientationSelect').value; fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty, orientation }); renderFleetList(); }
         function addQuickUld() { const val = document.getElementById('quickUldType').value; if(!val) return; const parts = val.split('|'); let baseKey = parts[0]; let contourKey = parts[1]; let orientation = (baseKey === 'PZA' || baseKey === 'PGE') ? 'lateral' : 'longitudinal'; fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty: 1, orientation }); renderFleetList(); buildScene(); }
         function changeFleetQty(id, delta) { let item = fleetConfig.find(f => f.id === id); if (item) { item.qty += delta; if (item.qty < 1) item.qty = 1; renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); } }
         function removeFromFleet(id) { fleetConfig = fleetConfig.filter(f => f.id !== id); renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
         function clearFleet() { fleetConfig = []; renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
-        function renderFleetList() { const containers = [document.getElementById('fleetListStage2'), document.getElementById('fleetListStage3')]; let html = ''; if (fleetConfig.length === 0) { html = '<div style="text-align:center; padding: 30px; color:#9ca3af; font-size: 12px; font-weight:bold;">No ULDs added yet.</div>'; } else { fleetConfig.forEach(f => { const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey]; const posCount = (b.positions || 1) * f.qty; let posBadge = b.positions > 1 ? `<span style="color:#ef4444; font-size:10px; margin-left:5px;">(Locks ${posCount} Pos)</span>` : ''; let oriBadge = f.orientation !== 'longitudinal' ? `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">${f.orientation.toUpperCase()}</span>` : ''; html += `<div class="fleet-item"><div class="qty-stepper"><div class="qty-btn" onclick="changeFleetQty(${f.id}, -1)">-</div><div>${f.qty}x</div><div class="qty-btn" onclick="changeFleetQty(${f.id}, 1)">+</div></div><div>${b.name} ${posBadge} ${oriBadge}</div><div style="color:#6b7280; font-size:11px;">${c.name}</div><button class="btn-danger" style="margin:0; width:100%;" onclick="removeFromFleet(${f.id})">×</button></div>`; }); } containers.forEach(c => { if(c) c.innerHTML = html; }); runWeightAudit(); }
+        function renderFleetList() { const containers = [document.getElementById('fleetListStage2'), document.getElementById('fleetListStage3')]; let html = ''; if (fleetConfig.length === 0) { html = '<div style="text-align:center; padding: 30px; color:#9ca3af; font-size: 12px; font-weight:bold;">No ULDs added yet. Use recommendations above or manual entry.</div>'; } else { fleetConfig.forEach(f => { const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey]; const posCount = (b.positions || 1) * f.qty; let posBadge = b.positions > 1 ? `<span style="color:#ef4444; font-size:10px; margin-left:5px;">(Locks ${posCount} Pos)</span>` : ''; let oriBadge = f.orientation !== 'longitudinal' ? `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">${f.orientation.toUpperCase()}</span>` : ''; html += `<div class="fleet-item"><div class="qty-stepper"><div class="qty-btn" onclick="changeFleetQty(${f.id}, -1)">-</div><div>${f.qty}x</div><div class="qty-btn" onclick="changeFleetQty(${f.id}, 1)">+</div></div><div>${b.name} ${posBadge} ${oriBadge}</div><div style="color:#6b7280; font-size:11px;">${c.name}</div><button class="btn-danger" style="margin:0; width:100%;" onclick="removeFromFleet(${f.id})">×</button></div>`; }); } containers.forEach(c => { if(c) c.innerHTML = html; }); runWeightAudit(); }
         function runWeightAudit() { const manifest = updateManifestSummary(); let maxFleetWeight = 0; let maxFleetVol = 0; let totalPositions = 0; fleetConfig.forEach(f => { const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey]; maxFleetWeight += (b.maxWeight * f.qty); totalPositions += (b.positions || 1) * f.qty; let volCBM = (b.length * b.width * c.maxHeight) / 1000000; if (c.type !== "flat") volCBM *= 0.85; maxFleetVol += (volCBM * f.qty); }); document.getElementById('weightText').innerText = `Total: ${manifest.weight.toFixed(1)} kg / Fleet Max: ${maxFleetWeight} kg`; document.getElementById('volumeText').innerText = `Aircraft Footprint: ${totalPositions} Positions | Fleet Vol: ${maxFleetVol.toFixed(1)} CBM`; const badge = document.getElementById('weightBadge'); if (fleetConfig.length === 0) { badge.className = "status-badge badge-warn"; badge.innerText = "EMPTY FLEET"; return; } let breach = false; if (document.getElementById('stage3').classList.contains('active') && cargoGroup.children.length > 0 && drawnUlds.length > 0) { cargoGroup.children.forEach(m => { if (checkEnvelopeIntersection(m)) breach = true; }); } if (breach) { badge.className = "status-badge badge-fail"; badge.innerText = "ENVELOPE BREACH"; } else if (manifest.weight > maxFleetWeight) { badge.className = "status-badge badge-warn"; badge.innerText = "OVERWEIGHT"; } else if (manifest.cbm > maxFleetVol) { badge.className = "status-badge badge-warn"; badge.innerText = "OVER VOLUME"; } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; } }
         function checkEnvelopeIntersection(mesh) { let box = new THREE.Box3().setFromObject(mesh); let centerVec = new THREE.Vector3(); box.getCenter(centerVec); if (mesh.userData.isOverflowing) return false; let activeUld = null; for (let u of drawnUlds) { if (centerVec.x >= u.startX - 25 && centerVec.x <= u.endX + 25) { activeUld = u; break; } } if (!activeUld) return "Outside Fleet Bounds."; const b = activeUld.base; const c = CONTOURS[activeUld.contourKey]; let zMax = box.max.z; let zMin = box.min.z; let yMax = box.max.y; let yMin = box.min.y; let hW = b.width / 2; let hL = b.length / 2; let localXMax = box.max.x - activeUld.centerX; let localXMin = box.min.x - activeUld.centerX; if (localXMax > hL || localXMin < -hL) return "Overhangs ULD Front/Back edge."; if (c.type === "main-deck-asymmetric") { let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60; let effOffset = Math.min(offset, hW - 5); if (yMax > startH) { let ratio = (yMax - startH) / (c.maxHeight - startH); let allowedMinZ = -hW + (ratio * effOffset); if (zMin < allowedMinZ) return "Penetrates Left Slope."; if (activeUld.isLateral || activeUld.isCenter) { let allowedMaxZ = hW - (ratio * effOffset); if (zMax > allowedMaxZ) return "Penetrates Right Slope."; } } else { if (zMin < -hW) return "Overhangs Base."; } if (zMax > hW) return "Overhangs Right Base."; } else if (c.type === "symmetric-belly") { let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 60; if (yMin < bellyH) { let ratio = yMin / bellyH; let allowedZ = hW + (ratio * offset); if (zMax > allowedZ || zMin < -allowedZ) return "Penetrates Lower curve."; } else { let allowedZ = hW + offset; if (zMax > allowedZ || zMin < -allowedZ) return "Exceeds Belly Width."; } } else if (c.type === "half-belly") { let overhang = c.overhang || 45; let bellyH = c.bellyHeight || 60; if (yMin < bellyH) { let ratio = yMin / bellyH; let allowedZ = hW + (ratio * overhang); if (zMax > allowedZ) return "Penetrates Slope."; } else { if (zMax > hW + overhang) return "Exceeds Center width."; } if (zMin < -hW) return "Overhangs Outboard edge."; } else { if (zMax > hW || zMin < -hW) return "Overhangs side edges."; } if (yMax > c.maxHeight) return `Exceeds max height (${c.maxHeight}cm).`; return false; }
-        function goToStage(num) { if (num === 3 && fleetConfig.length === 0) return alert("Please add at least one ULD to your fleet."); document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); document.getElementById('stage' + num).classList.add('active'); document.querySelectorAll('.step').forEach(s => s.classList.remove('active')); document.getElementById('badge' + num).classList.add('active'); if (num === 2) runWeightAudit(); if (num === 3) { if (!is3DReady) { setTimeout(init3D, 50); } else { buildScene(); } } }
+        function goToStage(num) { if (num === 3 && fleetConfig.length === 0) return alert("Please add at least one ULD to your fleet."); document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); document.getElementById('stage' + num).classList.add('active'); document.querySelectorAll('.step').forEach(s => s.classList.remove('active')); document.getElementById('badge' + num).classList.add('active'); if (num === 2) { runWeightAudit(); } if (num === 3) { if (!is3DReady) { setTimeout(init3D, 50); } else { buildScene(); } } }
 
         function buildScene() {
             if (!scene) return; while (cargoGroup.children.length > 0) { cargoGroup.remove(cargoGroup.children[0]); } if (contourMeshes.length > 0) { contourMeshes.forEach(w => scene.remove(w)); contourMeshes = []; } clearLabels(); drawnUlds = []; let currentX = 0; const gap = 60; 
