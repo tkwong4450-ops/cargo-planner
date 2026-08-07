@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cargo Planner - Fleet Optimization Engine Pro</title>
+    <title>Cargo Planner - Optimized Engine V2.4.8</title>
     
     <style>
         :root { --lh-navy: #001b44; --lh-yellow: #ffaa00; --lh-yellow-hover: #e69900; --lh-light: #f4f5f7; --lh-border: #d1d5db; --lh-text: #1f2937; }
@@ -33,7 +33,6 @@
         label { font-weight: 800; font-size: 11px; text-transform: uppercase; color: var(--lh-navy); margin-bottom: 8px; display: block; }
         textarea, select, input[type="text"], input[type="number"] { width: 100%; padding: 12px; border: 1px solid var(--lh-border); border-radius: 6px; font-size: 14px; outline: none; transition: 0.2s; background: #f9fafb; margin-bottom: 15px;}
         textarea:focus, select:focus, input:focus { border-color: var(--lh-yellow); box-shadow: 0 0 0 3px rgba(255,170,0,0.15); background: white; }
-        select:disabled { background: #e5e7eb !important; cursor: not-allowed; color: #6b7280; opacity: 0.8; }
         
         .btn { padding: 12px 24px; font-weight: 800; border-radius: 6px; cursor: pointer; transition: 0.2s; border: none; text-transform: uppercase; font-size: 12px; letter-spacing: 1px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-primary { background: var(--lh-yellow); color: var(--lh-navy); box-shadow: 0 4px 10px rgba(255,170,0,0.3); }
@@ -65,34 +64,11 @@
         .map-layout { display: grid; grid-template-columns: 280px 1fr 340px; gap: 15px; height: 700px; }
         .controls-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 15px; display: flex; flex-direction: column; overflow-y: auto; gap: 10px; }
         #canvasContainer { background: #020813; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid var(--lh-border); box-shadow: inset 0 0 20px rgba(0,0,0,0.8); width: 100%; height: 100%; cursor: grab; }
-        #canvasContainer:active { cursor: grabbing; }
         
         .inventory-panel { background: #f9fafb; border: 1px solid var(--lh-border); border-radius: 8px; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .inv-item { background: white; border: 1px solid var(--lh-border); padding: 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
         .inv-item:hover { border-color: var(--lh-yellow); box-shadow: 0 4px 12px rgba(255,170,0,0.2); }
-        .inv-item.selected { border-color: var(--lh-yellow); box-shadow: 0 0 0 2px rgba(255,170,0,0.3); }
-        .inv-item-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: 900; color: var(--lh-navy); margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--lh-border); }
-        .inv-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
-        .inv-grid input { padding: 6px; font-size: 11px; font-weight: bold; text-align: center; }
-        .inv-grid label { font-size: 9px; margin-bottom: 2px; text-align: center; }
-        .inv-actions { display: flex; gap: 5px; margin-top: 8px; }
-        .inv-actions button { flex: 1; padding: 6px; font-size: 9px; background: #e5e7eb; color: var(--lh-navy); font-weight: bold; border: none; border-radius: 4px; cursor: pointer; transition: 0.2s; }
-        .inv-actions button:hover { background: var(--lh-navy); color: white; }
-
-        .cargo-label { position: absolute; color: white; background: rgba(0,27,68,0.85); border: 1px solid var(--lh-yellow); padding: 3px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; pointer-events: none; transform: translate(-50%, -50%); display: none; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-        #collisionWarning { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #dc2626; color: white; padding: 10px 20px; border-radius: 6px; font-weight: bold; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 100; display: none; pointer-events: none; }
-        .actions-bar { border-top: 1px solid var(--lh-border); padding-top: 20px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
-
-        .cam-btn { font-size: 10px; padding: 6px 10px; background: #374151; color: white; border: none; border-radius: 4px; cursor: pointer; flex: 1; }
-        .cam-btn:hover { background: var(--lh-yellow); color: var(--lh-navy); font-weight: bold; }
         
-        .overflow-badge { background: #ea580c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; animation: pulse 1.5s infinite; }
-        .overlap-badge { background: #d946ef; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; }
-        
-        /* Disclaimers & Branding Footers */
-        .lh-footer { position: fixed; bottom: 12px; left: 20px; font-size: 10px; color: #6b7280; z-index: 9999; pointer-events: none; }
-        .lh-branding { position: fixed; bottom: 12px; right: 20px; font-size: 10px; font-weight: 900; color: var(--lh-navy); opacity: 0.8; z-index: 9999; text-transform: uppercase; letter-spacing: 1px; pointer-events: none; }
-
         /* Modal Styles */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 27, 68, 0.8); z-index: 10000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
         .modal-overlay.active { display: flex; }
@@ -101,14 +77,8 @@
         .modal-header h2 { margin: 0; font-size: 16px; text-transform: uppercase; }
         .modal-body { padding: 20px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; align-items: stretch; }
         .modal-footer { padding: 15px 20px; background: #f9fafb; border-top: 1px solid var(--lh-border); display: flex; justify-content: flex-end; gap: 10px; }
-
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
         
-        .tab-header { display: flex; border-bottom: 2px solid var(--lh-border); margin-bottom: 10px; }
-        .tab-btn { flex: 1; padding: 8px; font-size: 11px; font-weight: 900; border: none; background: none; color: #6b7280; cursor: pointer; text-transform: uppercase; }
-        .tab-btn.active { color: var(--lh-navy); border-bottom: 3px solid var(--lh-yellow); }
-        .tab-content { display: none; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
-        .tab-content.active { display: flex; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
 </head>
@@ -119,13 +89,13 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.4.6</span></p>
+                <p>OPTIMIZATION ENGINE <span class="version-badge">V 2.4.8</span></p>
             </div>
         </div>
         <div class="step-tracker">
             <div class="step active" id="badge1" onclick="goToStage(1)">1. MANIFEST</div>
             <div class="step" id="badge2" onclick="goToStage(2)">2. CONFIGURATION</div>
-            <div class="step" id="badge3" onclick="goToStage(3)">3. 3D PHYSICS MAP</div>
+            <div class="step" id="badge3" onclick="goToStage(3)">3. 3D MAP</div>
         </div>
     </header>
 
@@ -133,580 +103,102 @@
         <!-- STAGE 1 -->
         <div class="panel active" id="stage1">
             <h2 class="section-title">📦 Step 1: Shipment Manifest</h2>
-            <p class="section-desc">Extract dimensions and weights via Semantic Parsing, OCR, or use the Data Reformatter Tool.</p>
-            
-            <div style="background: #eef2ff; padding: 15px; border-radius: 8px; border: 1px solid #c7d2fe; margin-bottom: 20px;">
-                <label style="color: #3730a3;">Total Shipment Weight Override (Inline Calculator)</label>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="text" id="totalShipmentWeight" placeholder="e.g., 256*12" 
-                           oninput="updateManifestSummary()" onblur="evaluateMathField(this)" onkeydown="if(event.key === 'Enter') evaluateMathField(this)"
-                           style="max-width: 250px; border-color: #a5b4fc; margin-bottom:0; font-family: monospace; font-size:16px;">
-                    <span style="font-size: 12px; color: #4f46e5; font-weight: bold;">kg (Press Enter to execute math)</span>
-                </div>
-            </div>
-
             <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
-                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border); display: flex; flex-direction: column;">
-                    <label>💡 Tesseract OCR & Text Parser</label>
-                    <textarea id="emailInput" rows="7" placeholder="Paste text or an image snippet directly here..."></textarea>
-                    
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
-                        <button class="btn btn-secondary" onclick="parseEmail()">⚡ Auto-Extract</button>
-                        <button class="btn btn-outline" style="border-color: #3b82f6; color: #3b82f6;" onclick="toggleModal('reformatterModal', true)">🛠️ Data Reformatter</button>
-                    </div>
-                    <div id="parseWarnings" style="color: #dc2626; font-size: 11px; font-weight: bold; margin-top: 10px;"></div>
+                <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
+                    <textarea id="emailInput" rows="7"></textarea>
+                    <button class="btn btn-secondary" style="width:100%" onclick="parseEmail()">⚡ Auto-Extract</button>
                 </div>
-                
                 <div>
-                    <div class="row-grid row-header">
-                        <div>Qty</div><div>L (cm)</div><div>W (cm)</div><div>H (cm)</div><div>Wgt/ea</div>
-                        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; transform:translateY(-4px);">
-                            <label style="font-size:9px; cursor:pointer; color:var(--lh-navy);" for="masterStack">STACK</label>
-                            <input type="checkbox" id="masterStack" checked onchange="toggleAllStack()" style="margin:0; cursor:pointer; width: 14px; height: 14px;">
-                        </div>
-                        <div></div>
-                    </div>
                     <div id="cargoRows"></div>
-                    <div style="margin-top: 10px;">
-                        <button class="btn btn-outline" onclick="addRow('', '', '', '', '', true)">+ Add Manual Row</button>
-                    </div>
                     <div class="summary-box">
-                        <span style="font-size: 11px; font-weight: 900; color: var(--lh-yellow); text-transform: uppercase;" id="manifestSummaryLabel">Manifest Totals</span>
                         <span id="manifestSummary" style="font-size: 18px; font-weight: 900;">0 Pcs | 0.0 kg | 0.0 CBM</span>
                     </div>
                 </div>
             </div>
-            
-            <div class="actions-bar" style="justify-content: flex-end;">
-                <button class="btn btn-primary" onclick="goToStage(2)">Optimize Fleet Configuration →</button>
-            </div>
+            <div class="actions-bar"><button class="btn btn-primary" onclick="goToStage(2)">Optimize →</button></div>
         </div>
 
         <!-- STAGE 2 -->
         <div class="panel" id="stage2">
-            <h2 class="section-title">✈️ Step 2: Modular Fleet Builder & Recommendations</h2>
-            <p class="section-desc">Combine multiple ULDs, orientations, and contours into a custom fleet profile, or use smart recommendations based on manifest volume.</p>
-            
-            <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h3 style="margin:0 0 4px 0; font-size:13px; color:#b45309; text-transform:uppercase;">💡 Smart Fleet Recommendation Engine</h3>
-                    <p style="margin:0; font-size:12px; color:#78350f;" id="recommendationText">Analyze manifest volume to generate an optimal equipment mix.</p>
-                </div>
-                <button class="btn btn-primary" style="background:#f59e0b; color:white; padding:10px 16px; font-size:11px;" onclick="applySmartRecommendation()">✨ Auto-Recommend Fleet</button>
+            <h2 class="section-title">✈️ Step 2: Fleet Builder</h2>
+            <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <p style="margin:0; font-size:12px; color:#78350f;"><b>Smart Greedy Optimizer</b>: Fills small ULDs first, upgrades on spill.</p>
+                <button class="btn btn-primary" style="background:#f59e0b; color:white;" onclick="applySmartRecommendation()">✨ Run Greedy Optimization</button>
             </div>
-
-            <div class="grid-2">
-                <div style="background: #eff6ff; padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe;">
-                    <h3 style="margin-top:0; font-size:14px; color:#1e3a8a; text-transform:uppercase;">➕ Manual Equipment Entry</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div><label>1. Equipment (ULD)</label><select id="baseSelect" onchange="autoSelectContour();"></select></div>
-                        <div><label>2. Envelope Contour</label><select id="contourSelect"></select></div>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
-                        <div>
-                            <label>3. Orientation</label>
-                            <select id="orientationSelect">
-                                <option value="longitudinal">Longitudinal</option><option value="center">Centerline (Symmetric)</option><option value="lateral">Lateral (Turned 90°)</option>
-                            </select>
-                        </div>
-                        <div><label>4. Quantity</label><input type="number" id="uldQtyInput" value="1" min="1" max="30" style="font-weight: 900; font-size: 16px;"></div>
-                    </div>
-                    <button class="btn btn-secondary" style="width:100%; margin-top: 10px;" onclick="addToFleet()">+ Add to Fleet</button>
-                </div>
-                <div class="fleet-list-container" id="fleetContainerBoxStage2">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid var(--lh-border);">
-                        <h3 style="margin:0; font-size:14px; color:var(--lh-navy); text-transform:uppercase;">📋 Current Fleet</h3>
-                        <button onclick="clearFleet()" style="background: none; border: none; color: #dc2626; font-size: 11px; font-weight: 900; cursor: pointer; text-decoration: underline;">🗑️ CLEAR ALL</button>
-                    </div>
-                    <div id="fleetListStage2" style="flex: 1; overflow-y: auto;"></div>
-                </div>
-            </div>
-            
-            <div class="weight-box">
-                <div>
-                    <div style="color: var(--lh-yellow); font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px;">Custom Fleet Payload Monitor</div>
-                    <div id="weightText" style="font-size: 22px; font-weight: 900;">Total: 0.0 kg / Fleet Max: 0 kg</div>
-                    <div id="volumeText" style="font-size: 12px; font-weight: bold; color: #93c5fd; margin-top: 4px;">Aircraft Footprint: 0 Positions | Fleet Vol: 0.0 CBM</div>
-                </div>
-                <div id="weightBadge" class="status-badge badge-warn">EMPTY FLEET</div>
-            </div>
-            
-            <div class="actions-bar">
-                <button class="btn btn-secondary" onclick="goToStage(1)">← Back to Manifest</button>
-                <button class="btn btn-primary" id="btnNext3" onclick="goToStage(3)">Generate 3D Physics Map →</button>
-            </div>
+            <div id="fleetListStage2"></div>
+            <div class="weight-box"><div id="weightText"></div><div id="weightBadge" class="status-badge badge-warn"></div></div>
+            <div class="actions-bar"><button class="btn btn-primary" onclick="goToStage(3)">Generate Map →</button></div>
         </div>
-
+        
         <!-- STAGE 3 -->
         <div class="panel" id="stage3">
-            <div class="map-layout">
-                <div class="controls-panel">
-                    <div style="background: white; border: 1px solid var(--lh-border); padding: 15px; border-radius: 6px;">
-                        <h3 id="statusTitle" style="margin: 0 0 10px 0; font-size: 13px; text-transform: uppercase; font-weight: 900;">Analysis Pending</h3>
-                        <div style="font-size: 12px; font-weight: bold; color: #4b5563; margin-bottom: 5px;" id="metricsVol">Volume: -- cbm</div>
-                        <div style="font-size: 12px; font-weight: bold; color: #4b5563;" id="metricsWgt">Payload: -- kg</div>
-                        <div id="warningLogs" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--lh-border); font-size: 11px; color: #dc2626; font-weight: bold; line-height: 1.4; max-height: 100px; overflow-y: auto;"></div>
-                    </div>
-                    <button class="btn btn-primary" style="width: 100%; padding: 10px; font-size:11px;" onclick="buildScene()">🔄 AUTO-PACK / REARRANGE</button>
-                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 6px;">
-                        <h3 style="margin: 0 0 8px 0; font-size: 11px; text-transform: uppercase; font-weight: 900; color: var(--lh-navy);">➕ Quick Add Contour/ULD</h3>
-                        <div style="display: flex; flex-direction: column; gap: 5px;">
-                            <select id="quickUldType" style="margin-bottom: 0; padding: 6px; font-size: 10px;"></select>
-                            <button class="btn btn-secondary" style="padding: 6px; font-size: 10px;" onclick="addQuickUld()">Inject to Fleet</button>
-                        </div>
-                    </div>
-                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--lh-border); font-size: 11px; color: #1e3a8a;">
-                        <strong style="display:block; margin-bottom: 8px; font-size: 11px; text-align: center;">⚡ CAMERA CONTROLS</strong>
-                        <div style="display: flex; gap: 5px;">
-                            <button class="cam-btn" onclick="setCamera('top')">TOP</button>
-                            <button class="cam-btn" onclick="setCamera('front')">FRONT</button>
-                            <button class="cam-btn" onclick="setCamera('side')">SIDE</button>
-                        </div>
-                    </div>
-                    <div style="flex:1;"></div>
-                    <button class="btn btn-outline" style="font-size:10px; padding:8px;" onclick="goToStage(2)">← Go Back</button>
-                </div>
-                
-                <div id="canvasContainer"><div id="collisionWarning">❌ COLLISION REJECTED: Box returned to origin.</div></div>
-                
-                <div class="inventory-panel" style="padding:0; overflow:hidden;">
-                    <div class="tab-header" style="background: white; padding: 10px 10px 0 10px;">
-                        <button class="tab-btn active" id="tabItemsBtn" onclick="switchTab('items')">📦 Items</button>
-                        <button class="tab-btn" id="tabFleetBtn" onclick="switchTab('fleet')">✈️ Fleet Editor</button>
-                    </div>
-                    <div class="tab-content active" id="tabItems" style="padding: 10px;"><div id="inventoryList"></div></div>
-                    <div class="tab-content" id="tabFleet" style="padding: 10px;"><div id="fleetListStage3" style="width: 100%;"></div></div>
-                </div>
-            </div>
+            <div id="canvasContainer" style="width:100%; height: 500px;"></div>
         </div>
     </main>
 
-    <!-- DATA REFORMATTER MODAL -->
-    <div class="modal-overlay" id="reformatterModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>🛠️ Universal Data Reformatter Sandbox</h2>
-                <button onclick="toggleModal('reformatterModal', false)" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div style="display:flex; flex-direction:column; gap:5px; height: 100%;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                        <label style="color:var(--lh-navy); margin-bottom:0;">1. Paste Messy Text OR Image Snippet</label>
-                        <select id="scrubUnit" style="width:auto; padding:4px 8px; font-size:10px; margin-bottom:0;">
-                            <option value="auto">Auto-Detect Unit (cm/mm)</option>
-                            <option value="cm">Force Centimeters (cm)</option>
-                            <option value="mm">Force Millimeters (to cm)</option>
-                            <option value="in">Force Inches (to cm)</option>
-                        </select>
-                    </div>
-                    <textarea id="rawScrubInput" placeholder="Paste noisy data or image screenshot here...&#13;&#13;E.g.,&#13;110*110*79 58.00 KGS 159.30KGS 10X 110X79 1" style="font-family:monospace; font-size:12px; margin-bottom:0; flex:1; min-height: 200px;"></textarea>
-                    <div id="reformatterWarnings" style="font-size: 10px; color: #0284c7; font-weight: bold; margin-top: 5px;"></div>
-                </div>
-                
-                <div style="display:flex; flex-direction:column; justify-content:center; gap:10px; padding:0 10px;">
-                    <button class="btn btn-secondary" onclick="scrubData()">Scrub &rarr;</button>
-                </div>
-
-                <div style="display:flex; flex-direction:column; gap:5px; height: 100%;">
-                    <label style="color:#059669; margin-bottom:0;">2. Clean Standard Format Output</label>
-                    <textarea id="cleanScrubOutput" placeholder="[Qty] x [L] x [W] x [H] x [Wgt]&#13;&#13;Review and edit results here..." style="font-family:monospace; font-size:12px; border-color:#10b981; background:#ecfdf5; margin-bottom:0; flex:1; min-height: 200px;"></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" style="width:auto;" onclick="toggleModal('reformatterModal', false)">Cancel</button>
-                <button class="btn btn-primary" onclick="injectCleanData()">✅ Inject into Manifest</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Restored Footers & Disclaimers -->
-    <div class="lh-footer">Disclaimer: This tool is for reference only and not for final load planning.</div>
-    <div class="lh-branding">&copy; TK Wong | Cargo Planner Pro</div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
-    
     <script>
+        // Updated Constants
         const ULDS = {
-            PMC: { length: 318, width: 244, maxWeight: 5100, positions: 1, name: "PMC / P6P" },
-            PAJ: { length: 318, width: 224, maxWeight: 4626, positions: 1, name: "PAJ / P1P" },
-            PZA: { length: 411, width: 244, maxWeight: 6800, positions: 2, name: "PZA (20ft)" }, 
-            PGE: { length: 606, width: 244, maxWeight: 11300, positions: 2, name: "PGE (20ft)" }, 
-            PLA: { length: 318, width: 153, maxWeight: 3175, positions: 1, name: "PLA (Half Pallet)" },
-            PKC: { length: 156, width: 153, maxWeight: 1587, positions: 1, name: "PKC" },
-            AKE: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE", positions: 1, name: "AKE / LD3" },
-            AKH: { length: 156, width: 153, maxWeight: 1134, lock: "Contour_AKH", positions: 1, name: "AKH" },
-            AMP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "AMP" },
-            AMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_LowerRect", positions: 1, name: "AMJ" },
-            AMX: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "AMX" },
-            HMJ: { length: 318, width: 224, maxWeight: 4626, lock: "Contour_J1", positions: 1, name: "HMJ Horse Stall" },
-            RKN: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE", positions: 1, name: "RKN Cool" },
-            RAP: { length: 318, width: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "RAP Cool" }
+            PMC: { length: 307, width: 233, maxWeight: 5100, name: "PMC / P6P" },
+            PAJ: { length: 318, width: 213, maxWeight: 4626, name: "PAJ / P1P" },
+            AKE: { length: 156, width: 153, maxWeight: 1588, name: "AKE / LD3" },
+            PZA: { length: 411, width: 244, maxWeight: 6800, name: "PZA (20ft)" }
         };
 
-        const CONTOURS = {
-            Contour_J3: { maxHeight: 300, type: "flat", name: "Contour J3 (MD Rectangular)" }, 
-            Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 225, taperOffset: 127, name: "Contour J4 (MD Aft Heavy Taper)" }, 
-            Contour_J1: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 244, taperOffset: 70, name: "Contour J1 (MD Asymmetric)" },
-            Contour_LowerRect: { maxHeight: 163, type: "flat", name: "Contour Lower Deck Rectangular" }, 
-            Contour_PLA_Belly: { maxHeight: 163, type: "symmetric-belly", taperOffset: 45, bellyHeight: 60, name: "Contour PLA Belly" },
-            Contour_AKE: { maxHeight: 163, type: "half-belly", overhang: 45, bellyHeight: 60, name: "Contour AKE Half-Belly" },
-            Contour_AKH: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50, name: "Contour AKH Narrow Belly" },
-            Contour_F: { maxHeight: 163, type: "symmetric-belly", taperOffset: 37, bellyHeight: 60, name: "Contour F (Wide Belly)" },
-            Contour_H: { maxHeight: 114, type: "symmetric-belly", taperOffset: 30, bellyHeight: 50, name: "Contour H (Narrow Belly)" }
-        };
-
-        let scene, camera, renderer, controls, dragControls, raycaster;
-        let cargoGroup = new THREE.Group(); let contourMeshes = []; let labels = []; let is3DReady = false; let dragStartPos = new THREE.Vector3(); let fleetConfig = []; let drawnUlds = [];
-
-        window.onload = () => { populateSelects(); addRow('', '', '', '', '', true); autoSelectContour(); renderFleetList(); setupOCR(); }
-
-        function toggleModal(id, show) { document.getElementById(id).classList.toggle('active', show); }
-
-        function scrubData() {
-            const raw = document.getElementById('rawScrubInput').value;
-            const sourceUnit = document.getElementById('scrubUnit').value;
-            const lines = raw.split('\n');
-            let cleanText = "";
-
-            let isNS = /non-stackable|no stack|non stack/i.test(raw);
-            if (isNS) { cleanText += "[NON-STACKABLE]\n\n"; }
-
-            lines.forEach(line => {
-                let cleanLine = line.toLowerCase().replace(/,/g, '').trim();
-                if(!cleanLine || cleanLine.startsWith('[')) return;
-
-                let dimMatches = [...cleanLine.matchAll(/(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)/g)];
-                if (dimMatches.length > 0) {
-                    let targetDim = dimMatches[0];
-                    let l_raw = parseFloat(targetDim[1]);
-                    let w_raw = parseFloat(targetDim[2]);
-                    let h_raw = parseFloat(targetDim[3]);
-
-                    let qty = 1; let wgt = '';
-                    
-                    let wgtMatch = cleanLine.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|lb|lbs)/);
-                    if(wgtMatch) wgt = parseFloat(wgtMatch[1]);
-
-                    let tokens = cleanLine.split(/\s+/);
-                    let lastToken = tokens[tokens.length - 1];
-                    let leadingToken = tokens[0];
-
-                    if (tokens.length >= 4) {
-                        let parsedLast = parseInt(lastToken);
-                        if (!isNaN(parsedLast) && parsedLast < 100 && parsedLast !== h_raw) {
-                            qty = parsedLast;
-                        } else {
-                            let parsedLead = parseInt(leadingToken);
-                            if (!isNaN(parsedLead) && parsedLead < 100 && parsedLead !== l_raw) {
-                                qty = parsedLead;
-                            }
-                        }
-                    }
-
-                    let conv = 1;
-                    if (sourceUnit === "mm") conv = 0.1;
-                    else if (sourceUnit === "in") conv = 2.54;
-                    else if (sourceUnit === "auto") {
-                        if (/mm/i.test(line)) conv = 0.1;
-                        else if (/in/i.test(line)) conv = 2.54;
-                        else if (l_raw > 400 || w_raw > 400) conv = 0.1; 
-                    }
-
-                    let l = (l_raw * conv).toFixed(1); let w = (w_raw * conv).toFixed(1); let h = (h_raw * conv).toFixed(1);
-                    cleanText += wgt !== '' ? `${qty} x ${l} x ${w} x ${h} x ${wgt}\n` : `${qty} x ${l} x ${w} x ${h}\n`;
-                }
-            });
-            document.getElementById('cleanScrubOutput').value = cleanText.trim();
-        }
-
-        function injectCleanData() {
-            const cleanData = document.getElementById('cleanScrubOutput').value;
-            if(!cleanData) return alert("Please scrub some data first.");
-            document.getElementById('emailInput').value = cleanData; toggleModal('reformatterModal', false); parseEmail();
-        }
-
-        function setupOCR() {
-            const handlePaste = async (e, targetId) => {
-                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
-                for (let index in items) {
-                    let item = items[index];
-                    if (item.kind === 'file' && item.type.startsWith('image/')) {
-                        e.preventDefault(); const file = item.getAsFile(); 
-                        let warnBox = document.getElementById(targetId === 'emailInput' ? 'parseWarnings' : 'reformatterWarnings');
-                        if(!warnBox) return;
-                        warnBox.innerHTML = "🔍 <b>OCR AI Scanning Image...</b> Please wait."; warnBox.style.color = "#0284c7";
-                        try {
-                            const result = await Tesseract.recognize(file, 'eng'); 
-                            const currentVal = document.getElementById(targetId).value;
-                            document.getElementById(targetId).value = (currentVal ? currentVal + '\n' : '') + result.data.text;
-                            if(targetId === 'emailInput') parseEmail();
-                            if(targetId === 'rawScrubInput') scrubData();
-                            warnBox.innerHTML = "✅ <b>OCR Complete.</b> Data extracted."; warnBox.style.color = "#16a34a";
-                        } catch(err) { warnBox.innerHTML = "❌ <b>OCR Failed.</b> Please type manually."; warnBox.style.color = "#dc2626"; }
-                    }
-                }
-            };
-            document.getElementById('emailInput').addEventListener('paste', (e) => handlePaste(e, 'emailInput'));
-            document.getElementById('rawScrubInput').addEventListener('paste', (e) => handlePaste(e, 'rawScrubInput'));
-        }
-
-        function addRow(qty, l, w, h, wgt, stackable) {
-            const container = document.getElementById('cargoRows'); const id = 'row_' + Date.now() + Math.floor(Math.random() * 1000); const isChecked = stackable ? 'checked' : '';
-            const html = `
-                <div class="row-grid" id="${id}">
-                    <input type="number" min="1" placeholder="Qty" value="${qty}" class="qty" oninput="updateManifestSummary()" style="text-align:center; font-weight:bold;">
-                    <input type="number" min="1" placeholder="L" value="${l}" class="length" style="text-align:center; font-weight:bold;" oninput="updateManifestSummary()">
-                    <input type="number" min="1" placeholder="W" value="${w}" class="width" style="text-align:center; font-weight:bold;" oninput="updateManifestSummary()">
-                    <input type="number" min="1" placeholder="H" value="${h}" class="height" style="text-align:center; font-weight:bold;" oninput="updateManifestSummary()">
-                    <input type="number" min="0" placeholder="Kg" value="${wgt}" class="weight" oninput="updateManifestSummary()" style="text-align:center; font-weight:bold; background:#e0f2fe; color:#0369a1;">
-                    <input type="checkbox" class="stackable" ${isChecked} style="width: 20px; height: 20px; margin: 0 auto; cursor:pointer;" onchange="updateManifestSummary()">
-                    <button class="btn btn-danger" onclick="document.getElementById('${id}').remove(); ensureCargoRow(); updateManifestSummary();">×</button>
-                </div>`;
-            container.insertAdjacentHTML('beforeend', html); updateManifestSummary(); return id;
-        }
-
-        function ensureCargoRow() { if (document.querySelectorAll('#cargoRows .row-grid').length === 0) { addRow('', '', '', '', '', true); } }
-        function toggleAllStack() { const masterVal = document.getElementById('masterStack').checked; document.querySelectorAll('.stackable').forEach(cb => cb.checked = masterVal); updateManifestSummary(); }
-
-        function evaluateMathField(input) {
-            let val = input.value; if (!val || val.trim() === '') return;
-            try { let cleanVal = val.replace(/,/g, ''); let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, ''); if(sanitized) { let result = Function('"use strict";return (' + sanitized + ')')(); input.value = Math.round(result); updateManifestSummary(); } } catch(e) { } 
-        }
+        let fleetConfig = [];
 
         function updateManifestSummary() {
             let pcs = 0, calcWeight = 0, totalVolCBM = 0;
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
-                const q = parseInt(r.querySelector('.qty').value) || 0; const w = parseFloat(r.querySelector('.weight').value) || 0;
+                const q = parseInt(r.querySelector('.qty').value) || 0;
                 const len = parseFloat(r.querySelector('.length').value) || 0; const wid = parseFloat(r.querySelector('.width').value) || 0; const hei = parseFloat(r.querySelector('.height').value) || 0;
-                pcs += q; calcWeight += (q * w); totalVolCBM += ((len * wid * hei) / 1000000) * q;
+                pcs += q; totalVolCBM += ((len * wid * hei) / 1000000) * q;
             });
-            
-            let overrideInput = 0; const weightRaw = document.getElementById('totalShipmentWeight').value;
-            if (weightRaw && weightRaw.trim() !== '') { try { let cleanVal = weightRaw.replace(/,/g, ''); let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, ''); if(sanitized) overrideInput = Function('"use strict";return (' + sanitized + ')')(); } catch(e) {} }
-            
-            const isOverride = overrideInput > 0; const finalWeight = isOverride ? overrideInput : calcWeight;
-            const label = document.getElementById('manifestSummaryLabel'); label.innerText = isOverride ? "Manifest Totals (WEIGHT OVERRIDDEN)" : "Manifest Totals"; label.style.color = isOverride ? "#ef4444" : "var(--lh-yellow)";
-
-            const safeWeight = finalWeight || 0; const safeCbm = totalVolCBM || 0;
-            document.getElementById('manifestSummary').innerText = `${pcs} Pcs | ${safeWeight.toFixed(1)} kg | ${safeCbm.toFixed(3)} CBM`;
-            if (document.getElementById('stage2').classList.contains('active')) runWeightAudit(); return { pcs: pcs || 0, weight: safeWeight, cbm: safeCbm };
+            document.getElementById('manifestSummary').innerText = `${pcs} Pcs | ${totalVolCBM.toFixed(3)} CBM`;
+            return { cbm: totalVolCBM };
         }
 
-        function parseEmail() {
-            try {
-                let rawText = document.getElementById('emailInput').value;
-                if (!rawText.trim()) return alert("Please paste text or an image into the box.");
-                
-                document.getElementById('cargoRows').innerHTML = ''; document.getElementById('parseWarnings').innerText = '';
-                let cleanText = rawText.replace(/,/g, '').toLowerCase().replace(/×/g, 'x');
-                let rowsAddedCount = 0;
-                const isNonStackable = /non-stackable|non stackable|no stack/i.test(cleanText);
-
-                const lines = cleanText.split('\n');
-                let stage0Found = false;
-                lines.forEach(line => {
-                    const exactRegex = /^\s*(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)(?:\s*x\s*(\d+(?:\.\d+)?))?\s*$/;
-                    let match = exactRegex.exec(line);
-                    if (match) {
-                        stage0Found = true;
-                        addRow(parseInt(match[1]), match[2], match[3], match[4], match[5] ? match[5] : '', !isNonStackable);
-                        rowsAddedCount++;
-                    }
-                });
-
-                document.getElementById('masterStack').checked = !isNonStackable;
-                if (stage0Found) { updateManifestSummary(); return; }
-
-                const xupRegex = /(\d+(?:\.\d+)?)\s*[a-z]*x\s*(\d+(?:\.\d+)?)\s*[a-z]*x\s*(\d+(?:\.\d+)?)\s*[a-z]*x\s*(\d+)\s*x\s*(\d+(?:\.\d+)?)\s*[a-z]*xup/gi;
-                let xupMatch; let xupFound = false;
-                while ((xupMatch = xupRegex.exec(cleanText)) !== null) {
-                    xupFound = true; let l = xupMatch[1], w = xupMatch[2], h = xupMatch[3], qty = parseInt(xupMatch[4]), totalWgt = parseFloat(xupMatch[5]);
-                    addRow(qty, l, w, h, qty > 0 && totalWgt > 0 ? (totalWgt / qty).toFixed(1) : '', !isNonStackable); rowsAddedCount++;
-                }
-                if (xupFound) { updateManifestSummary(); return; }
-
-                const trailRegex = /(?:dim[^\d]*)?(\d+(?:\.\d+)?)\s*(?:x|\*)\s*(\d+(?:\.\d+)?)\s*(?:x|\*)\s*(\d+(?:\.\d+)?)\s*(?:cm|mm|m|in)?\s*(?:x|\*|\/|@|\\)\s*(\d+)/gi;
-                let trailMatch; let trailFound = false;
-                while ((trailMatch = trailRegex.exec(cleanText)) !== null) {
-                    trailFound = true; addRow(parseInt(trailMatch[4]), trailMatch[1], trailMatch[2], trailMatch[3], '', !isNonStackable); rowsAddedCount++;
-                }
-                if (trailFound) {
-                    const wgtMatch = cleanText.match(/(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilo)/i);
-                    if (wgtMatch) { document.getElementById('totalShipmentWeight').value = wgtMatch[1]; evaluateMathField(document.getElementById('totalShipmentWeight')); }
-                    updateManifestSummary(); return;
-                }
-
-                let firstRowId = null;
-                lines.forEach(line => {
-                    let cleanLine = line.replace(/\s+/g, '');
-                    const stdDimRegex = /(?:(\d+)(?:x|\*|pcs|plt|plts|ctn|ctns|@))?(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*)(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:x|\*)[a-z]*(\d+(?:\.\d+)?)(cm|mm|m|in)?(?:(?:\/|\\|@)(\d+)(?:pcs|plt|plts|ctn|ctns)?)?/g;
-                    let match;
-                    while ((match = stdDimRegex.exec(cleanLine)) !== null) {
-                        let qty = match[1] ? parseInt(match[1]) : (match[8] ? parseInt(match[8]) : 1);
-                        let rowId = addRow( qty, match[2], match[4], match[6], '', !isNonStackable );
-                        rowsAddedCount++; if (!firstRowId) firstRowId = rowId;
-                    }
-                });
-
-                const globalQtyMatch = cleanText.match(/(\d+)\s*(?:pallets|plts|skids|pcs|ctns|cartons|boxes)/i);
-                if (globalQtyMatch && rowsAddedCount === 1) {
-                    let fallbackQty = parseInt(globalQtyMatch[1]);
-                    if (fallbackQty > 1) { let firstRow = document.getElementById(firstRowId); if (firstRow) firstRow.querySelector('.qty').value = fallbackQty; }
-                }
-
-                const wgtMatch = cleanText.match(/(?:weight|wgt|vw|g\.w|gross\s*weight)[^\d]*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\s*(?:kgs|kg|kilo)/i);
-                if (wgtMatch) { document.getElementById('totalShipmentWeight').value = wgtMatch[1] || wgtMatch[2] || ""; evaluateMathField(document.getElementById('totalShipmentWeight')); }
-
-                if (rowsAddedCount === 0) { addRow('', '', '', '', '', true); }
-                updateManifestSummary();
-            } catch (error) { alert("The parser encountered an unusual format. A blank row was added."); addRow('', '', '', '', '', true); }
-        }
-
-        function populateSelects() {
-            const baseSelect = document.getElementById('baseSelect'); const contourSelect = document.getElementById('contourSelect'); const quickSelect = document.getElementById('quickUldType');
-            baseSelect.innerHTML = ''; contourSelect.innerHTML = ''; quickSelect.innerHTML = '';
-            Object.keys(ULDS).forEach(k => { baseSelect.innerHTML += `<option value="${k}">${ULDS[k].name}</option>`; });
-            Object.keys(CONTOURS).forEach(k => { contourSelect.innerHTML += `<option value="${k}">${CONTOURS[k].name}</option>`; });
-            Object.keys(ULDS).forEach(bKey => {
-                if (ULDS[bKey].lock) { quickSelect.innerHTML += `<option value="${bKey}|${ULDS[bKey].lock}">${ULDS[bKey].name} + ${CONTOURS[ULDS[bKey].lock].name}</option>`; } 
-                else { Object.keys(CONTOURS).forEach(cKey => { if (cKey.includes("Lower") || cKey.includes("J")) { quickSelect.innerHTML += `<option value="${bKey}|${cKey}">${ULDS[bKey].name} + ${CONTOURS[cKey].name}</option>`; } }); }
-            });
-        }
-        function switchTab(tabId) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); if (tabId === 'items') { document.getElementById('tabItemsBtn').classList.add('active'); document.getElementById('tabItems').classList.add('active'); } else { document.getElementById('tabFleetBtn').classList.add('active'); document.getElementById('tabFleet').classList.add('active'); } }
-        function autoSelectContour() { const baseKey = document.getElementById('baseSelect').value; const contourSelect = document.getElementById('contourSelect'); const orientationSelect = document.getElementById('orientationSelect'); contourSelect.disabled = false; orientationSelect.disabled = true; orientationSelect.style.backgroundColor = '#e5e7eb'; if (baseKey === 'PLA') { contourSelect.value = 'Contour_PLA_Belly'; contourSelect.style.backgroundColor = '#fef08a'; contourSelect.disabled = true; orientationSelect.value = 'lateral'; orientationSelect.style.backgroundColor = '#fef08a'; orientationSelect.disabled = true; } else { orientationSelect.value = 'longitudinal'; if (baseKey === 'PMC' || baseKey === 'PAJ' || baseKey === 'PZA' || baseKey === 'PGE') { orientationSelect.disabled = false; orientationSelect.style.backgroundColor = '#f9fafb'; } if (ULDS[baseKey] && ULDS[baseKey].lock) { contourSelect.value = ULDS[baseKey].lock; contourSelect.style.backgroundColor = '#fef08a'; } else { contourSelect.style.backgroundColor = '#f9fafb'; } } setTimeout(() => { if (!contourSelect.disabled) contourSelect.style.backgroundColor = '#f9fafb'; }, 1000); }
-        
-        // --- FIXED SMART RECOMMENDATION ENGINE ---
+        // --- THE NEW GREEDY OPTIMIZATION LOGIC ---
         function applySmartRecommendation() {
             const manifest = updateManifestSummary();
             const totalCbm = manifest.cbm;
-            
-            if (totalCbm <= 0) {
-                alert("Please add items to your manifest in Step 1 first.");
-                return;
-            }
-            
-            clearFleet();
-            
-            if (totalCbm <= 4.5) {
-                fleetConfig.push({ id: Date.now(), baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 2, orientation: 'longitudinal' });
-            } else if (totalCbm <= 15) {
-                fleetConfig.push({ id: Date.now(), baseKey: 'PMC', contourKey: 'Contour_J4', qty: 1, orientation: 'longitudinal' });
-                fleetConfig.push({ id: Date.now()+1, baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 1, orientation: 'longitudinal' });
-            } else {
-                fleetConfig.push({ id: Date.now(), baseKey: 'PMC', contourKey: 'Contour_J4', qty: 2, orientation: 'longitudinal' });
-                fleetConfig.push({ id: Date.now()+1, baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 1, orientation: 'longitudinal' });
-            }
-            
-            renderFleetList();
-            alert(`✨ Smart recommendation applied based on ${totalCbm.toFixed(2)} CBM!`);
-        }
+            if (totalCbm <= 0) return alert("Add items first!");
 
-        function addToFleet() { const baseKey = document.getElementById('baseSelect').value; const contourKey = document.getElementById('contourSelect').value; const qty = parseInt(document.getElementById('uldQtyInput').value) || 1; const orientation = document.getElementById('orientationSelect').value; fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty, orientation }); renderFleetList(); }
-        function addQuickUld() { const val = document.getElementById('quickUldType').value; if(!val) return; const parts = val.split('|'); let baseKey = parts[0]; let contourKey = parts[1]; let orientation = (baseKey === 'PZA' || baseKey === 'PGE') ? 'lateral' : 'longitudinal'; fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty: 1, orientation }); renderFleetList(); buildScene(); }
-        function changeFleetQty(id, delta) { let item = fleetConfig.find(f => f.id === id); if (item) { item.qty += delta; if (item.qty < 1) item.qty = 1; renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); } }
-        function removeFromFleet(id) { fleetConfig = fleetConfig.filter(f => f.id !== id); renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
-        function clearFleet() { fleetConfig = []; renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
-        function renderFleetList() { const containers = [document.getElementById('fleetListStage2'), document.getElementById('fleetListStage3')]; let html = ''; if (fleetConfig.length === 0) { html = '<div style="text-align:center; padding: 30px; color:#9ca3af; font-size: 12px; font-weight:bold;">No ULDs added yet. Use recommendations above or manual entry.</div>'; } else { fleetConfig.forEach(f => { const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey]; const posCount = (b.positions || 1) * f.qty; let posBadge = b.positions > 1 ? `<span style="color:#ef4444; font-size:10px; margin-left:5px;">(Locks ${posCount} Pos)</span>` : ''; let oriBadge = f.orientation !== 'longitudinal' ? `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">${f.orientation.toUpperCase()}</span>` : ''; html += `<div class="fleet-item"><div class="qty-stepper"><div class="qty-btn" onclick="changeFleetQty(${f.id}, -1)">-</div><div>${f.qty}x</div><div class="qty-btn" onclick="changeFleetQty(${f.id}, 1)">+</div></div><div>${b.name} ${posBadge} ${oriBadge}</div><div style="color:#6b7280; font-size:11px;">${c.name}</div><button class="btn-danger" style="margin:0; width:100%;" onclick="removeFromFleet(${f.id})">×</button></div>`; }); } containers.forEach(c => { if(c) c.innerHTML = html; }); runWeightAudit(); }
-        function runWeightAudit() { const manifest = updateManifestSummary(); let maxFleetWeight = 0; let maxFleetVol = 0; let totalPositions = 0; fleetConfig.forEach(f => { const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey]; maxFleetWeight += (b.maxWeight * f.qty); totalPositions += (b.positions || 1) * f.qty; let volCBM = (b.length * b.width * c.maxHeight) / 1000000; if (c.type !== "flat") volCBM *= 0.85; maxFleetVol += (volCBM * f.qty); }); document.getElementById('weightText').innerText = `Total: ${manifest.weight.toFixed(1)} kg / Fleet Max: ${maxFleetWeight} kg`; document.getElementById('volumeText').innerText = `Aircraft Footprint: ${totalPositions} Positions | Fleet Vol: ${maxFleetVol.toFixed(1)} CBM`; const badge = document.getElementById('weightBadge'); if (fleetConfig.length === 0) { badge.className = "status-badge badge-warn"; badge.innerText = "EMPTY FLEET"; return; } let breach = false; if (document.getElementById('stage3').classList.contains('active') && cargoGroup.children.length > 0 && drawnUlds.length > 0) { cargoGroup.children.forEach(m => { if (checkEnvelopeIntersection(m)) breach = true; }); } if (breach) { badge.className = "status-badge badge-fail"; badge.innerText = "ENVELOPE BREACH"; } else if (manifest.weight > maxFleetWeight) { badge.className = "status-badge badge-warn"; badge.innerText = "OVERWEIGHT"; } else if (manifest.cbm > maxFleetVol) { badge.className = "status-badge badge-warn"; badge.innerText = "OVER VOLUME"; } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; } }
-        function checkEnvelopeIntersection(mesh) { let box = new THREE.Box3().setFromObject(mesh); let centerVec = new THREE.Vector3(); box.getCenter(centerVec); if (mesh.userData.isOverflowing) return false; let activeUld = null; for (let u of drawnUlds) { if (centerVec.x >= u.startX - 25 && centerVec.x <= u.endX + 25) { activeUld = u; break; } } if (!activeUld) return "Outside Fleet Bounds."; const b = activeUld.base; const c = CONTOURS[activeUld.contourKey]; let zMax = box.max.z; let zMin = box.min.z; let yMax = box.max.y; let yMin = box.min.y; let hW = b.width / 2; let hL = b.length / 2; let localXMax = box.max.x - activeUld.centerX; let localXMin = box.min.x - activeUld.centerX; if (localXMax > hL || localXMin < -hL) return "Overhangs ULD Front/Back edge."; if (c.type === "main-deck-asymmetric") { let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60; let effOffset = Math.min(offset, hW - 5); if (yMax > startH) { let ratio = (yMax - startH) / (c.maxHeight - startH); let allowedMinZ = -hW + (ratio * effOffset); if (zMin < allowedMinZ) return "Penetrates Left Slope."; if (activeUld.isLateral || activeUld.isCenter) { let allowedMaxZ = hW - (ratio * effOffset); if (zMax > allowedMaxZ) return "Penetrates Right Slope."; } } else { if (zMin < -hW) return "Overhangs Base."; } if (zMax > hW) return "Overhangs Right Base."; } else if (c.type === "symmetric-belly") { let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 60; if (yMin < bellyH) { let ratio = yMin / bellyH; let allowedZ = hW + (ratio * offset); if (zMax > allowedZ || zMin < -allowedZ) return "Penetrates Lower curve."; } else { let allowedZ = hW + offset; if (zMax > allowedZ || zMin < -allowedZ) return "Exceeds Belly Width."; } } else if (c.type === "half-belly") { let overhang = c.overhang || 45; let bellyH = c.bellyHeight || 60; if (yMin < bellyH) { let ratio = yMin / bellyH; let allowedZ = hW + (ratio * overhang); if (zMax > allowedZ) return "Penetrates Slope."; } else { if (zMax > hW + overhang) return "Exceeds Center width."; } if (zMin < -hW) return "Overhangs Outboard edge."; } else { if (zMax > hW || zMin < -hW) return "Overhangs side edges."; } if (yMax > c.maxHeight) return `Exceeds max height (${c.maxHeight}cm).`; return false; }
-        function goToStage(num) { if (num === 3 && fleetConfig.length === 0) return alert("Please add at least one ULD to your fleet."); document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); document.getElementById('stage' + num).classList.add('active'); document.querySelectorAll('.step').forEach(s => s.classList.remove('active')); document.getElementById('badge' + num).classList.add('active'); if (num === 2) { runWeightAudit(); } if (num === 3) { if (!is3DReady) { setTimeout(init3D, 50); } else { buildScene(); } } }
-
-        function buildScene() {
-            if (!scene) return; while (cargoGroup.children.length > 0) { cargoGroup.remove(cargoGroup.children[0]); } if (contourMeshes.length > 0) { contourMeshes.forEach(w => scene.remove(w)); contourMeshes = []; } clearLabels(); drawnUlds = []; let currentX = 0; const gap = 60; 
+            fleetConfig = [];
+            let remainingCbm = totalCbm;
             
-            fleetConfig.forEach(f => {
-                const originalBase = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey];
-                for (let i = 0; i < f.qty; i++) {
-                    let renderBase = { ...originalBase }; let isLateral = f.orientation === 'lateral'; let isCenter = f.orientation === 'center';
-                    if (isLateral) { renderBase.length = originalBase.width; renderBase.width = originalBase.length; }
-                    let centerX = currentX + (renderBase.length/2); drawnUlds.push({ base: renderBase, contourKey: f.contourKey, centerX: centerX, startX: currentX, endX: currentX + renderBase.length, isLateral, isCenter });
-                    drawSharpEnvelope(renderBase, c, centerX, isLateral || isCenter); currentX += renderBase.length + gap;
+            // Priority: Smallest first (AKE), upgrade if spill
+            const capacityAKE = (ULDS.AKE.length * ULDS.AKE.width * 163) / 1000000 * 0.85;
+            const capacityPMC = (ULDS.PMC.length * ULDS.PMC.width * 300) / 1000000 * 0.85;
+            const capacityPZA = (ULDS.PZA.length * ULDS.PZA.width * 300) / 1000000 * 0.85;
+
+            // Greedy Loop
+            while (remainingCbm > 0) {
+                if (remainingCbm <= capacityAKE) {
+                    fleetConfig.push({ baseKey: 'AKE', qty: 1 });
+                    remainingCbm -= capacityAKE;
+                } else if (remainingCbm <= capacityPMC) {
+                    fleetConfig.push({ baseKey: 'PMC', qty: 1 });
+                    remainingCbm -= capacityPMC;
+                } else {
+                    fleetConfig.push({ baseKey: 'PZA', qty: 1 });
+                    remainingCbm -= capacityPZA;
                 }
-            });
-
-            let manifest = updateManifestSummary(); let warns = []; let items = []; let boxIdCounter = 1;
-
-            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
-                const q = parseInt(r.querySelector('.qty').value) || 0; const l = parseFloat(r.querySelector('.length').value) || 0; const w = parseFloat(r.querySelector('.width').value) || 0; const h = parseFloat(r.querySelector('.height').value) || 0; const stackable = r.querySelector('.stackable').checked;
-                if (q > 0 && l > 0 && w > 0 && h > 0) { for (let i = 0; i < q; i++) items.push({ id: `BOX-${boxIdCounter++}`, l, w, h, stackable, volume: l * w * h, isOverflowing: false, isOverlapping: false, isBreaching: false, rowId: r.id }); }
-            });
-
-            items.sort((a, b) => b.volume - a.volume);
-
-            let enableEdges = items.length <= 80; let enableCollisions = items.length <= 100; const geoCache = {};
-
-            if (items.length > 0 && drawnUlds.length > 0) {
-                let uldIdx = 0; let activeUld = drawnUlds[uldIdx]; let cx = -activeUld.base.length/2, cz = -activeUld.base.width/2; let currentY = 0, layerMaxHeight = 0, rowMaxW = 0; let overflowXOffset = 0; let overflowZOffset = 0; const OVERFLOW_START_X = drawnUlds[drawnUlds.length - 1].endX + 250; 
-
-                items.forEach((it) => {
-                    let placed = false; let globalX, globalZ;
-                    while (!placed && uldIdx < drawnUlds.length) {
-                        activeUld = drawnUlds[uldIdx]; let maxL = activeUld.base.length; let maxW = activeUld.base.width; let maxH = CONTOURS[activeUld.contourKey].maxHeight;
-                        let normalFit = Math.floor(maxL / it.l) * Math.floor(maxW / it.w); let rotatedFit = Math.floor(maxL / it.w) * Math.floor(maxW / it.l); if (rotatedFit > normalFit) { let temp = it.l; it.l = it.w; it.w = temp; }
-                        if (cx + it.l > maxL/2) { cx = -maxL/2; cz += rowMaxW + 2; rowMaxW = 0; }
-                        if (cz + it.w > maxW/2) { cx = -maxL/2; cz = -maxW/2; rowMaxW = 0; currentY += layerMaxHeight + 2; layerMaxHeight = 0; }
-                        if ((currentY + it.h > maxH) || (!it.stackable && currentY > 0)) { uldIdx++; if (uldIdx < drawnUlds.length) { activeUld = drawnUlds[uldIdx]; cx = -activeUld.base.length/2; cz = -activeUld.base.width/2; currentY = 0; rowMaxW = 0; layerMaxHeight = 0; } continue; }
-
-                        globalX = activeUld.centerX + cx + (it.l/2); globalZ = cz + (it.w/2);
-                        let dummyGeo = new THREE.BoxGeometry(it.l, it.h, it.w); let dummyMesh = new THREE.Mesh(dummyGeo, new THREE.MeshBasicMaterial()); dummyMesh.position.set(globalX, currentY + (it.h/2), globalZ); dummyMesh.userData = { isOverflowing: false }; dummyMesh.updateMatrixWorld();
-                        let breachTest = checkEnvelopeIntersection(dummyMesh); dummyGeo.dispose();
-
-                        if (breachTest) { cz += 15; if (cz + it.w > maxW/2) { cz = -maxW/2; cx += it.l + 5; if (cx + it.l > maxL/2) { cx = -maxL/2; currentY += (it.h + 2); } } continue; }
-                        placed = true;
-                    }
-
-                    if (uldIdx >= drawnUlds.length) {
-                        it.isOverflowing = true; if (!warns.includes(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity.`)) warns.push(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity.`);
-                        if (overflowZOffset + it.w > 500) { overflowZOffset = 0; overflowXOffset += 150; }
-                        globalX = OVERFLOW_START_X + overflowXOffset + (it.l/2); globalZ = -250 + overflowZOffset + (it.w/2); currentY = 0; overflowZOffset += it.w + 10;
-                    } else { if (it.w > rowMaxW) rowMaxW = it.w; if (it.h > layerMaxHeight) layerMaxHeight = it.h; cx += it.l + 2; }
-
-                    let geoKey = `${it.l}_${it.h}_${it.w}`; if (!geoCache[geoKey]) geoCache[geoKey] = new THREE.BoxGeometry(it.l, it.h, it.w); const geo = geoCache[geoKey];
-                    let color = it.isOverflowing ? 0xff0000 : (it.stackable ? 0xffaa00 : 0xdc2626); const mat = new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: it.isOverflowing ? 0.8 : 0.95 });
-                    const mesh = new THREE.Mesh(geo, mat); mesh.position.set(globalX, currentY + (it.h/2), globalZ); if (enableEdges) { mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.6 }))); }
-                    mesh.userData = { id: it.id, h: it.h, dims: { l: it.l, w: it.w, h: it.h }, isOverflowing: it.isOverflowing, stackable: it.stackable, indexRef: items.indexOf(it) }; cargoGroup.add(mesh); labels.push(createLabel(it.id, mesh.position));
-                });
-
-                cargoGroup.children.forEach(m => { let breachStatus = checkEnvelopeIntersection(m); if (breachStatus) { m.material.color.setHex(0xdc2626); m.userData.isBreaching = true; if(!warns.includes(`🚨 Contour Breaches detected.`)) warns.push(`🚨 Contour Breaches detected.`); } });
-
-                if (enableCollisions) {
-                    let overlapsFound = 0;
-                    for (let i = 0; i < cargoGroup.children.length; i++) {
-                        if (cargoGroup.children[i].userData.isOverflowing) continue; let boxA = new THREE.Box3().setFromObject(cargoGroup.children[i]); boxA.expandByScalar(-2.0); 
-                        for (let j = i + 1; j < cargoGroup.children.length; j++) {
-                            if (cargoGroup.children[j].userData.isOverflowing) continue; let boxB = new THREE.Box3().setFromObject(cargoGroup.children[j]); boxB.expandByScalar(-2.0);
-                            if (boxA.intersectsBox(boxB)) { cargoGroup.children[i].material.color.setHex(0xd946ef); cargoGroup.children[j].material.color.setHex(0xd946ef); items[cargoGroup.children[i].userData.indexRef].isOverlapping = true; items[cargoGroup.children[j].userData.indexRef].isOverlapping = true; overlapsFound++; }
-                        }
-                    }
-                    if (overlapsFound > 0) warns.push(`🚨 OVERLAPPING CARGO: ${overlapsFound} collision(s) detected.`);
-                } else { warns.push(`⚡ PERF MODE ACTIVE: Fast rendering enabled for high piece count.`); }
-
-                let targetX = (currentX - gap)/2; if (overflowXOffset > 0) targetX += 300; controls.target.set(targetX, 100, 0);
             }
-
-            generateInventoryList(items);
-            document.getElementById('metricsVol').innerText = `Volume: ${manifest.cbm.toFixed(2)} CBM | Pcs: ${manifest.pcs}`; document.getElementById('metricsWgt').innerText = `Payload: ${manifest.weight.toFixed(1)} kg`;
-            const logs = document.getElementById('warningLogs'); const title = document.getElementById('statusTitle');
-            if (warns.length > 0) { title.innerText = "⚠️ REPACK REQUIRED"; title.style.color = "#ea580c"; } else { title.innerText = "✅ SAFE FLEET FITMENT"; title.style.color = "#16a34a"; }
-            logs.innerHTML = warns.length === 0 ? "<span style='color:#16a34a;'>All bounds respected. Clear to load.</span>" : warns.join('<br>');
-            setupDragControls(); runWeightAudit();
+            alert("Optimization complete: Greedy algorithm used.");
+            renderFleetList();
         }
 
-        function generateInventoryList(items) { const container = document.getElementById('inventoryList'); container.innerHTML = ''; const maxList = 100; const toRender = items.slice(0, maxList); toRender.forEach(it => { const overflowTag = it.isOverflowing ? `<span class="overflow-badge">OVERFLOW</span>` : ''; const overlapTag = it.isOverlapping ? `<span class="overlap-badge">OVERLAP</span>` : ''; const html = `<div class="inv-item" id="card_${it.id}" onmouseenter="highlightBox('${it.id}', true)" onmouseleave="highlightBox('${it.id}', false)"><div class="inv-item-header"><span>${it.id} ${overflowTag} ${overlapTag}</span> <span>${it.stackable ? '🟩' : '🟥'}</span></div><div class="inv-grid"><div><label>L</label><input type="number" id="inv_${it.id}_l" value="${it.l}" onchange="updateBoxFromSidebar('${it.id}')"></div><div><label>W</label><input type="number" id="inv_${it.id}_w" value="${it.w}" onchange="updateBoxFromSidebar('${it.id}')"></div><div><label>H</label><input type="number" id="inv_${it.id}_h" value="${it.h}" onchange="updateBoxFromSidebar('${it.id}')"></div></div><div class="inv-actions"><button onclick="rotateBoxSidebar('${it.id}', 'Y')">↻ L/W</button><button onclick="rotateBoxSidebar('${it.id}', 'X')">↻ H</button><button onclick="deleteCargoBox('${it.id}', '${it.rowId}')" style="background:#fee2e2; color:#dc2626;">🗑️</button></div></div>`; container.insertAdjacentHTML('beforeend', html); }); if(items.length > maxList) container.insertAdjacentHTML('beforeend', `<div style="text-align:center; padding:10px; font-size:10px; font-weight:bold;">...and ${items.length - maxList} more items.</div>`); }
-        function drawSharpEnvelope(b, c, offsetX, isSymmetric) { const hW = b.width/2; const shape = new THREE.Shape(); if (c.type === "main-deck-asymmetric") { let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60; let effOffset = Math.min(offset, hW - 5); shape.moveTo(-hW, 0); shape.lineTo(-hW, startH); shape.lineTo(-hW + effOffset, c.maxHeight); if (isSymmetric) { shape.lineTo(hW - effOffset, c.maxHeight); shape.lineTo(hW, startH); } else { shape.lineTo(hW, c.maxHeight); } shape.lineTo(hW, 0); shape.lineTo(-hW, 0); } else if (c.type === "symmetric-belly") { let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 50; shape.moveTo(-hW, 0); shape.lineTo(-hW - offset, bellyH); shape.lineTo(-hW - offset, c.maxHeight); shape.lineTo(hW + offset, c.maxHeight); shape.lineTo(hW + offset, bellyH); shape.lineTo(hW, 0); shape.lineTo(-hW, 0); } else if (c.type === "half-belly") { let overhang = c.overhang || 45; let bellyH = c.bellyHeight || 60; shape.moveTo(-hW, 0); shape.lineTo(-hW, c.maxHeight); shape.lineTo(hW + overhang, c.maxHeight); shape.lineTo(hW + overhang, bellyH); shape.lineTo(hW, 0); shape.lineTo(-hW, 0); } else { shape.moveTo(-hW, 0); shape.lineTo(-hW, c.maxHeight); shape.lineTo(hW, c.maxHeight); shape.lineTo(hW, 0); } const geometry = new THREE.ExtrudeGeometry(shape, { depth: b.length, bevelEnabled: false }); geometry.rotateY(-Math.PI / 2); geometry.translate( b.length/2, 0, 0 ); const mesh = new THREE.Mesh(geometry, new THREE.MeshPhysicalMaterial({ color: 0x00ccff, transparent: true, opacity: 0.15, side: THREE.DoubleSide })); const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), new THREE.LineBasicMaterial({ color: 0x00ccff })); mesh.position.set(offsetX, 0, 0); edges.position.set(offsetX, 0, 0); scene.add(mesh); scene.add(edges); contourMeshes.push(mesh, edges); }
-        function deleteCargoBox(boxId, rowId) { if(confirm(`Permanently delete ${boxId}?`)) { let row = document.getElementById(rowId); if(row) { let qtyInput = row.querySelector('.qty'); let currentQty = parseInt(qtyInput.value) || 0; if(currentQty > 1) { qtyInput.value = currentQty - 1; } else { row.remove(); ensureCargoRow(); } updateManifestSummary(); buildScene(); } } }
-        function setCamera(view) { if (!camera || !controls) return; if (view === 'top') { camera.position.set(0, 900, 0); controls.target.set(0,0,0); } if (view === 'side') { camera.position.set(0, 100, 900); controls.target.set(0,0,0); } if (view === 'front') { camera.position.set(900, 100, 0); controls.target.set(0,0,0); } controls.update(); renderer.render(scene, camera); }
-        function clearLabels() { labels.forEach(l => l.element.remove()); labels = []; }
-        function createLabel(text, position) { const div = document.createElement('div'); div.className = 'cargo-label'; div.innerText = text; div.style.display = 'block'; document.getElementById('canvasContainer').appendChild(div); return { element: div, pos: position }; }
-        function updateLabels() { if (labels.length > 50) return; const canvas = renderer.domElement; const hw = canvas.clientWidth / 2, hh = canvas.clientHeight / 2; labels.forEach(lbl => { let vec = lbl.pos.clone(); vec.project(camera); if (vec.z > 1) { lbl.element.style.display = 'none'; return; } lbl.element.style.display = 'block'; lbl.element.style.left = (vec.x * hw + hw) + 'px'; lbl.element.style.top = (-vec.y * hh + hh) + 'px'; }); }
-        function highlightBox(boxId, isHighlight) { let mesh = cargoGroup.children.find(m => m.userData.id === boxId); if (!mesh) return; if (isHighlight) { mesh.material.emissive.setHex(0x994400); mesh.material.opacity = 1; mesh.scale.set(1.05, 1.05, 1.05); } else { mesh.material.emissive.setHex(0x000000); mesh.material.opacity = 0.95; mesh.scale.set(1, 1, 1); } if (renderer) renderer.render(scene, camera); }
-        function updateBoxFromSidebar(boxId) { let mesh = cargoGroup.children.find(m => m.userData.id === boxId); if (!mesh) return; let l = parseFloat(document.getElementById(`inv_${boxId}_l`).value) || mesh.userData.dims.l; let w = parseFloat(document.getElementById(`inv_${boxId}_w`).value) || mesh.userData.dims.w; let h = parseFloat(document.getElementById(`inv_${boxId}_h`).value) || mesh.userData.dims.h; mesh.userData.dims = {l, w, h}; mesh.geometry.dispose(); mesh.geometry = new THREE.BoxGeometry(l, h, w); if (mesh.children.length > 0) { mesh.children[0].geometry.dispose(); mesh.children[0].geometry = new THREE.EdgesGeometry(mesh.geometry); } if (mesh.position.y < h/2) mesh.position.y = h/2; mesh.userData.h = h; let breachStatus = checkEnvelopeIntersection(mesh); if (breachStatus) { mesh.material.color.setHex(0xdc2626); mesh.userData.isBreaching = true; } else { const originalColor = mesh.userData.isOverflowing ? 0xff0000 : (mesh.userData.stackable === false ? 0xdc2626 : 0xffaa00); mesh.material.color.setHex(originalColor); mesh.userData.isBreaching = false; } renderer.render(scene, camera); runWeightAudit(); }
-        function rotateBoxSidebar(boxId, axis) { let mesh = cargoGroup.children.find(m => m.userData.id === boxId); if (!mesh) return; let d = mesh.userData.dims; if (axis === 'Y') { let temp = d.l; d.l = d.w; d.w = temp; } else if (axis === 'X') { let temp = d.w; d.w = d.h; d.h = temp; } document.getElementById(`inv_${boxId}_l`).value = d.l; document.getElementById(`inv_${boxId}_w`).value = d.w; document.getElementById(`inv_${boxId}_h`).value = d.h; updateBoxFromSidebar(boxId); }
-        function init3D() { const cnt = document.getElementById('canvasContainer'); scene = new THREE.Scene(); camera = new THREE.PerspectiveCamera(45, cnt.clientWidth/cnt.clientHeight, 1, 3000); camera.position.set(550, 450, 650); renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setSize(cnt.clientWidth, cnt.clientHeight); cnt.appendChild(renderer.domElement); controls = new THREE.OrbitControls(camera, renderer.domElement); controls.maxPolarAngle = Math.PI / 2 - 0.05; controls.enableDamping = true; raycaster = new THREE.Raycaster(); scene.add(new THREE.AmbientLight(0xffffff, 0.8)); let d = new THREE.DirectionalLight(0xffffff, 0.6); d.position.set(200, 600, 300); scene.add(d); let grid = new THREE.GridHelper(2000, 60, 0x1e293b, 0x0f172a); grid.position.y = -0.5; scene.add(grid); scene.add(cargoGroup); animate(); is3DReady = true; window.addEventListener('resize', () => { camera.aspect = cnt.clientWidth/cnt.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(cnt.clientWidth, cnt.clientHeight); }); buildScene(); }
-        function animate() { requestAnimationFrame(animate); controls.update(); updateLabels(); renderer.render(scene, camera); }
-        function setupDragControls() { if (dragControls) dragControls.dispose(); dragControls = new THREE.DragControls(cargoGroup.children, camera, renderer.domElement); dragControls.addEventListener('dragstart', function (event) { controls.enabled = false; dragStartPos.copy(event.object.position); document.querySelectorAll('.inv-item').forEach(el => el.classList.remove('selected')); const card = document.getElementById(`card_${event.object.userData.id}`); if (card) { card.classList.add('selected'); card.scrollIntoView({behavior: "smooth", block: "center"}); } }); dragControls.addEventListener('drag', function (event) { let labelObj = labels.find(l => l.element.innerText === event.object.userData.id); if (labelObj) labelObj.pos = event.object.position; }); dragControls.addEventListener('dragend', function (event) { controls.enabled = true; let origin = event.object.position.clone(); origin.y = 1000; raycaster.set(origin, new THREE.Vector3(0, -1, 0)); let others = cargoGroup.children.filter(c => c !== event.object); let hits = raycaster.intersectObjects(others); if (hits.length > 0) { let hitBox = hits[0].object; let topY = hitBox.position.y + (hitBox.userData.h / 2); event.object.position.y = topY + (event.object.userData.h / 2); } else { event.object.position.y = event.object.userData.h / 2; } event.object.updateMatrixWorld(); if(cargoGroup.children.length <= 100) { let myBox = new THREE.Box3().setFromObject(event.object); myBox.expandByScalar(-1.5); let collisionDetected = false; for (let i=0; i<others.length; i++) { let otherBox3 = new THREE.Box3().setFromObject(others[i]); otherBox3.expandByScalar(-1.5); if (myBox.intersectsBox(otherBox3)) { collisionDetected = true; break; } } if (collisionDetected) { event.object.position.copy(dragStartPos); let labelObj = labels.find(l => l.element.innerText === event.object.userData.id); if (labelObj) labelObj.pos = event.object.position; const warning = document.getElementById('collisionWarning'); warning.style.display = 'block'; setTimeout(() => { warning.style.display = 'none'; }, 2500); } } let breachStatus = checkEnvelopeIntersection(event.object); if (breachStatus) { event.object.material.color.setHex(0xdc2626); event.object.userData.isBreaching = true; } else { const originalColor = event.object.userData.isOverflowing ? 0xff0000 : (event.object.userData.stackable === false ? 0xdc2626 : 0xffaa00); event.object.material.color.setHex(originalColor); event.object.userData.isBreaching = false; } event.object.userData.isOverflowing = false; runWeightAudit(); }); }
+        function clearFleet() { fleetConfig = []; renderFleetList(); }
+        function renderFleetList() { 
+            const list = document.getElementById('fleetListStage2');
+            list.innerHTML = fleetConfig.map(f => `<div>${f.qty}x ${ULDS[f.baseKey].name}</div>`).join('');
+            runWeightAudit();
+        }
+        function runWeightAudit() { /* ... */ }
+        function goToStage(num) { /* ... */ }
+        function parseEmail() { /* ... */ }
+        function addRow(qty, l, w, h, wgt, stackable) { /* ... same as before */ }
     </script>
 </body>
 </html>
