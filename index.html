@@ -89,7 +89,9 @@
         .overflow-badge { background: #ea580c; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; animation: pulse 1.5s infinite; }
         .overlap-badge { background: #d946ef; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px; }
         
-        .lh-footer { position: fixed; bottom: 12px; right: 20px; font-size: 11px; font-weight: 900; color: var(--lh-navy); opacity: 0.6; pointer-events: none; z-index: 9999; text-transform: uppercase; letter-spacing: 1px; }
+        /* Restored Disclaimers & Branding Footers */
+        .lh-footer { position: fixed; bottom: 12px; left: 20px; font-size: 10px; color: #6b7280; z-index: 9999; pointer-events: none; }
+        .lh-branding { position: fixed; bottom: 12px; right: 20px; font-size: 10px; font-weight: 900; color: var(--lh-navy); opacity: 0.8; z-index: 9999; text-transform: uppercase; letter-spacing: 1px; pointer-events: none; }
 
         /* Modal Styles */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 27, 68, 0.8); z-index: 10000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
@@ -117,7 +119,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.4.1</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.4.3</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -270,7 +272,7 @@
         </div>
     </main>
 
-    <!-- DATA REFORMATTER MODAL V2.4.1 -->
+    <!-- DATA REFORMATTER MODAL V2.4.3 -->
     <div class="modal-overlay" id="reformatterModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -308,7 +310,9 @@
         </div>
     </div>
 
-    <div class="lh-footer">Cargo Planner Pro @ TK Wong</div>
+    <!-- Restored Footers & Disclaimers -->
+    <div class="lh-footer">Disclaimer: This tool is for reference only and not for final load planning.</div>
+    <div class="lh-branding">&copy; TK Wong | Cargo Planner Pro</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -349,7 +353,7 @@
 
         window.onload = () => { populateSelects(); addRow('', '', '', '', '', true); autoSelectContour(); renderFleetList(); setupOCR(); }
 
-        // --- V 2.4.1 MODAL NLP REFORMATTER ---
+        // --- V 2.4.3 MODAL NLP REFORMATTER ---
         function toggleModal(id, show) { document.getElementById(id).classList.toggle('active', show); }
 
         function scrubData() {
@@ -581,7 +585,7 @@
                 if (q > 0 && l > 0 && w > 0 && h > 0) { for (let i = 0; i < q; i++) items.push({ id: `BOX-${boxIdCounter++}`, l, w, h, stackable, volume: l * w * h, isOverflowing: false, isOverlapping: false, isBreaching: false, rowId: r.id }); }
             });
 
-            // V 2.4.1 FIX: SORT ITEMS BY VOLUME DESCENDING (LARGEST FIRST) TO PREVENT SEQUENCE BIAS
+            // LARGEST-FIRST VOLUME SORTING (FIXES SEQUENCE BIAS BUG)
             items.sort((a, b) => b.volume - a.volume);
 
             let enableEdges = items.length <= 80; let enableCollisions = items.length <= 100; const geoCache = {};
