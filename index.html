@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cargo Planner - Fleet Optimization Engine Pro V2.7.0</title>
+    <title>Cargo Planner - Fleet Optimization Engine Pro V2.7.1</title>
     
     <style>
         :root { --lh-navy: #001b44; --lh-yellow: #ffaa00; --lh-yellow-hover: #e69900; --lh-light: #f4f5f7; --lh-border: #d1d5db; --lh-text: #1f2937; }
@@ -117,7 +117,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.7.0</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.7.1</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -318,7 +318,7 @@
     </div>
 
     <div class="lh-footer">Disclaimer: This tool is for reference only and not for final load planning.</div>
-    <div class="lh-branding">&copy; TK Wong | Cargo Planner Pro</div>
+    <div class="lh-branding">&copy; 2026 TK Wong. All Rights Reserved. | Cargo Planner Pro</div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
@@ -471,7 +471,8 @@
             try { let cleanVal = val.replace(/,/g, ''); let sanitized = cleanVal.replace(/[^0-9\.\*\/\+\-\(\)]/g, ''); if(sanitized) { let result = Function('"use strict";return (' + sanitized + ')')(); input.value = Math.round(result); updateManifestSummary(); } } catch(e) { } 
         }
 
-        function updateManifestSummary() {
+        // Added `skipAudit` to prevent infinite recursion when called from `runWeightAudit` or `applySmartRecommendation`
+        function updateManifestSummary(skipAudit = false) {
             let pcs = 0, calcWeight = 0, totalVolCBM = 0;
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
                 const q = parseInt(r.querySelector('.qty').value) || 0; const w = parseFloat(r.querySelector('.weight').value) || 0;
@@ -487,7 +488,9 @@
 
             const safeWeight = finalWeight || 0; const safeCbm = totalVolCBM || 0;
             document.getElementById('manifestSummary').innerText = `${pcs} Pcs | ${safeWeight.toFixed(1)} kg | ${safeCbm.toFixed(3)} CBM`;
-            if (document.getElementById('stage2').classList.contains('active')) runWeightAudit(); return { pcs: pcs || 0, weight: safeWeight, cbm: safeCbm };
+            
+            if (!skipAudit && document.getElementById('stage2').classList.contains('active')) runWeightAudit(); 
+            return { pcs: pcs || 0, weight: safeWeight, cbm: safeCbm };
         }
 
         function parseEmail() {
@@ -547,7 +550,8 @@
         
         // --- SMART RECOMMENDATION ENGINE (Greedy Fill-Then-Patch) ---
         function applySmartRecommendation() {
-            const manifest = updateManifestSummary();
+            // Pass true to skip audit during recommendation build to prevent loop collision
+            const manifest = updateManifestSummary(true);
             if (manifest.pcs === 0) return alert("Please extract or input cargo into the manifest first.");
             
             clearFleet();
@@ -598,7 +602,7 @@
         function removeFromFleet(id) { fleetConfig = fleetConfig.filter(f => f.id !== id); renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
         function clearFleet() { fleetConfig = []; renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
         function renderFleetList() { const containers = [document.getElementById('fleetListStage2'), document.getElementById('fleetListStage3')]; let html = ''; if (fleetConfig.length === 0) { html = '<div style="text-align:center; padding: 30px; color:#9ca3af; font-size: 12px; font-weight:bold;">No ULDs added yet. Use recommendations above or manual entry.</div>'; } else { fleetConfig.forEach(f => { const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey]; const posCount = (b.positions || 1) * f.qty; let posBadge = b.positions > 1 ? `<span style="color:#ef4444; font-size:10px; margin-left:5px;">(Locks ${posCount} Pos)</span>` : ''; let oriBadge = f.orientation !== 'longitudinal' ? `<span style="background:#3b82f6; color:white; padding:2px 4px; border-radius:3px; font-size:9px; margin-left:5px;">${f.orientation.toUpperCase()}</span>` : ''; html += `<div class="fleet-item"><div class="qty-stepper"><div class="qty-btn" onclick="changeFleetQty(${f.id}, -1)">-</div><div>${f.qty}x</div><div class="qty-btn" onclick="changeFleetQty(${f.id}, 1)">+</div></div><div>${b.name} ${posBadge} ${oriBadge}</div><div style="color:#6b7280; font-size:11px;">${c.name}</div><button class="btn-danger" style="margin:0; width:100%;" onclick="removeFromFleet(${f.id})">×</button></div>`; }); } containers.forEach(c => { if(c) c.innerHTML = html; }); runWeightAudit(); }
-        function runWeightAudit() { const manifest = updateManifestSummary(); let maxFleetWeight = 0; let maxFleetVol = 0; let totalPositions = 0; fleetConfig.forEach(f => { const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey]; maxFleetWeight += (b.maxWeight * f.qty); totalPositions += (b.positions || 1) * f.qty; let volCBM = (b.length * b.width * c.maxHeight) / 1000000; if (c.type !== "flat") volCBM *= 0.85; maxFleetVol += (volCBM * f.qty); }); document.getElementById('weightText').innerText = `Total: ${manifest.weight.toFixed(1)} kg / Fleet Max: ${maxFleetWeight} kg`; document.getElementById('volumeText').innerText = `Aircraft Footprint: ${totalPositions} Positions | Fleet Vol: ${maxFleetVol.toFixed(1)} CBM`; const badge = document.getElementById('weightBadge'); if (fleetConfig.length === 0) { badge.className = "status-badge badge-warn"; badge.innerText = "EMPTY FLEET"; return; } let breach = false; if (document.getElementById('stage3').classList.contains('active') && cargoGroup.children.length > 0 && drawnUlds.length > 0) { cargoGroup.children.forEach(m => { if (checkEnvelopeIntersection(m)) breach = true; }); } if (breach) { badge.className = "status-badge badge-fail"; badge.innerText = "ENVELOPE BREACH"; } else if (manifest.weight > maxFleetWeight) { badge.className = "status-badge badge-warn"; badge.innerText = "OVERWEIGHT"; } else if (manifest.cbm > maxFleetVol) { badge.className = "status-badge badge-warn"; badge.innerText = "OVER VOLUME"; } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; } }
+        function runWeightAudit() { const manifest = updateManifestSummary(true); let maxFleetWeight = 0; let maxFleetVol = 0; let totalPositions = 0; fleetConfig.forEach(f => { const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey]; maxFleetWeight += (b.maxWeight * f.qty); totalPositions += (b.positions || 1) * f.qty; let volCBM = (b.length * b.width * c.maxHeight) / 1000000; if (c.type !== "flat") volCBM *= 0.85; maxFleetVol += (volCBM * f.qty); }); document.getElementById('weightText').innerText = `Total: ${manifest.weight.toFixed(1)} kg / Fleet Max: ${maxFleetWeight} kg`; document.getElementById('volumeText').innerText = `Aircraft Footprint: ${totalPositions} Positions | Fleet Vol: ${maxFleetVol.toFixed(1)} CBM`; const badge = document.getElementById('weightBadge'); if (fleetConfig.length === 0) { badge.className = "status-badge badge-warn"; badge.innerText = "EMPTY FLEET"; return; } let breach = false; if (document.getElementById('stage3').classList.contains('active') && cargoGroup.children.length > 0 && drawnUlds.length > 0) { cargoGroup.children.forEach(m => { if (checkEnvelopeIntersection(m)) breach = true; }); } if (breach) { badge.className = "status-badge badge-fail"; badge.innerText = "ENVELOPE BREACH"; } else if (manifest.weight > maxFleetWeight) { badge.className = "status-badge badge-warn"; badge.innerText = "OVERWEIGHT"; } else if (manifest.cbm > maxFleetVol) { badge.className = "status-badge badge-warn"; badge.innerText = "OVER VOLUME"; } else { badge.className = "status-badge badge-ok"; badge.innerText = "CAPACITY OK"; } }
         function checkEnvelopeIntersection(mesh) { let box = new THREE.Box3().setFromObject(mesh); let centerVec = new THREE.Vector3(); box.getCenter(centerVec); if (mesh.userData.isOverflowing) return false; let activeUld = null; for (let u of drawnUlds) { if (centerVec.x >= u.startX - 25 && centerVec.x <= u.endX + 25) { activeUld = u; break; } } if (!activeUld) return "Outside Fleet Bounds."; const b = activeUld.base; const c = CONTOURS[activeUld.contourKey]; let zMax = box.max.z; let zMin = box.min.z; let yMax = box.max.y; let yMin = box.min.y; let hW = b.width / 2; let hL = b.length / 2; let localXMax = box.max.x - activeUld.centerX; let localXMin = box.min.x - activeUld.centerX; if (localXMax > hL || localXMin < -hL) return "Overhangs ULD Front/Back edge."; if (c.type === "main-deck-asymmetric") { let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60; let effOffset = Math.min(offset, hW - 5); if (yMax > startH) { let ratio = (yMax - startH) / (c.maxHeight - startH); let allowedMinZ = -hW + (ratio * effOffset); if (zMin < allowedMinZ) return "Penetrates Left Slope."; if (activeUld.isLateral || activeUld.isCenter) { let allowedMaxZ = hW - (ratio * effOffset); if (zMax > allowedMaxZ) return "Penetrates Right Slope."; } } else { if (zMin < -hW) return "Overhangs Base."; } if (zMax > hW) return "Overhangs Right Base."; } else if (c.type === "symmetric-belly") { let offset = c.taperOffset || 30; let bellyH = c.bellyHeight || 60; if (yMin < bellyH) { let ratio = yMin / bellyH; let allowedZ = hW + (ratio * offset); if (zMax > allowedZ || zMin < -allowedZ) return "Penetrates Lower curve."; } else { let allowedZ = hW + offset; if (zMax > allowedZ || zMin < -allowedZ) return "Exceeds Belly Width."; } } else if (c.type === "half-belly") { let overhang = c.overhang || 45; let bellyH = c.bellyHeight || 60; if (yMin < bellyH) { let ratio = yMin / bellyH; let allowedZ = hW + (ratio * overhang); if (zMax > allowedZ) return "Penetrates Slope."; } else { if (zMax > hW + overhang) return "Exceeds Center width."; } if (zMin < -hW) return "Overhangs Outboard edge."; } else { if (zMax > hW || zMin < -hW) return "Overhangs side edges."; } if (yMax > c.maxHeight) return `Exceeds max height (${c.maxHeight}cm).`; return false; }
         function goToStage(num) { if (num === 3 && fleetConfig.length === 0) return alert("Please add at least one ULD to your fleet."); document.querySelectorAll('.panel').forEach(p => p.classList.remove('active')); document.getElementById('stage' + num).classList.add('active'); document.querySelectorAll('.step').forEach(s => s.classList.remove('active')); document.getElementById('badge' + num).classList.add('active'); if (num === 2) { runWeightAudit(); } if (num === 3) { if (!is3DReady) { setTimeout(init3D, 50); } else { buildScene(); } } }
 
