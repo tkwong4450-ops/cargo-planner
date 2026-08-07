@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cargo Planner - Fleet Optimization Engine Pro V2.4.6</title>
+    <title>Cargo Planner - Fleet Optimization Engine Pro V2.6.1</title>
     
     <style>
         :root { --lh-navy: #001b44; --lh-yellow: #ffaa00; --lh-yellow-hover: #e69900; --lh-light: #f4f5f7; --lh-border: #d1d5db; --lh-text: #1f2937; }
@@ -117,7 +117,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.4.6</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.6.1</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -325,22 +325,22 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/DragControls.js"></script>
     
     <script>
-        // Updated PMC (307x233) and PAJ (307x213) bases with untouched contour definitions
+        // Updated ULD Specifications: 3D safety limits applied for PMC (307x233) and PAJ (307x213)
         const ULDS = {
-            PMC: { length: 307, width: 233, maxWeight: 5100, positions: 1, name: "PMC / P6P" },
-            PAJ: { length: 307, width: 213, maxWeight: 4626, positions: 1, name: "PAJ / P1P" },
+            PMC: { length: 307, width: 233, actualLength: 318, actualWidth: 244, maxWeight: 5100, positions: 1, name: "PMC / P6P" },
+            PAJ: { length: 307, width: 213, actualLength: 318, actualWidth: 224, maxWeight: 4626, positions: 1, name: "PAJ / P1P" },
             PZA: { length: 411, width: 244, maxWeight: 6800, positions: 2, name: "PZA (20ft)" }, 
             PGE: { length: 606, width: 244, maxWeight: 11300, positions: 2, name: "PGE (20ft)" }, 
             PLA: { length: 318, width: 153, maxWeight: 3175, positions: 1, name: "PLA (Half Pallet)" },
             PKC: { length: 156, width: 153, maxWeight: 1587, positions: 1, name: "PKC" },
             AKE: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE", positions: 1, name: "AKE / LD3" },
             AKH: { length: 156, width: 153, maxWeight: 1134, lock: "Contour_AKH", positions: 1, name: "AKH" },
-            AMP: { length: 307, width: 233, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "AMP" },
-            AMJ: { length: 307, width: 213, maxWeight: 4626, lock: "Contour_LowerRect", positions: 1, name: "AMJ" },
-            AMX: { length: 307, width: 233, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "AMX" },
-            HMJ: { length: 307, width: 213, maxWeight: 4626, lock: "Contour_J1", positions: 1, name: "HMJ Horse Stall" },
+            AMP: { length: 307, width: 233, actualLength: 318, actualWidth: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "AMP" },
+            AMJ: { length: 307, width: 213, actualLength: 318, actualWidth: 224, maxWeight: 4626, lock: "Contour_LowerRect", positions: 1, name: "AMJ" },
+            AMX: { length: 307, width: 233, actualLength: 318, actualWidth: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "AMX" },
+            HMJ: { length: 307, width: 213, actualLength: 318, actualWidth: 224, maxWeight: 4626, lock: "Contour_J1", positions: 1, name: "HMJ Horse Stall" },
             RKN: { length: 156, width: 153, maxWeight: 1588, lock: "Contour_AKE", positions: 1, name: "RKN Cool" },
-            RAP: { length: 307, width: 233, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "RAP Cool" }
+            RAP: { length: 307, width: 233, actualLength: 318, actualWidth: 244, maxWeight: 5100, lock: "Contour_LowerRect", positions: 1, name: "RAP Cool" }
         };
 
         const CONTOURS = {
