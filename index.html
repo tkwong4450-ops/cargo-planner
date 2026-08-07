@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cargo Planner - Optimized Engine V2.4.8</title>
+    <title>Cargo Planner - Fleet Optimization Engine Pro V2.5.0</title>
     
     <style>
         :root { --lh-navy: #001b44; --lh-yellow: #ffaa00; --lh-yellow-hover: #e69900; --lh-light: #f4f5f7; --lh-border: #d1d5db; --lh-text: #1f2937; }
@@ -69,15 +69,6 @@
         .inv-item { background: white; border: 1px solid var(--lh-border); padding: 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: 0.2s; }
         .inv-item:hover { border-color: var(--lh-yellow); box-shadow: 0 4px 12px rgba(255,170,0,0.2); }
         
-        /* Modal Styles */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 27, 68, 0.8); z-index: 10000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(4px); }
-        .modal-overlay.active { display: flex; }
-        .modal-content { background: white; width: 90%; max-width: 900px; border-radius: 12px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); overflow: hidden; display: flex; flex-direction: column; }
-        .modal-header { background: var(--lh-navy); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid var(--lh-yellow); }
-        .modal-header h2 { margin: 0; font-size: 16px; text-transform: uppercase; }
-        .modal-body { padding: 20px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; align-items: stretch; }
-        .modal-footer { padding: 15px 20px; background: #f9fafb; border-top: 1px solid var(--lh-border); display: flex; justify-content: flex-end; gap: 10px; }
-        
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/4.1.1/tesseract.min.js"></script>
@@ -89,7 +80,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>OPTIMIZATION ENGINE <span class="version-badge">V 2.4.8</span></p>
+                <p>OPTIMIZATION ENGINE <span class="version-badge">V 2.5.0</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -105,100 +96,177 @@
             <h2 class="section-title">📦 Step 1: Shipment Manifest</h2>
             <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
                 <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border);">
-                    <textarea id="emailInput" rows="7"></textarea>
-                    <button class="btn btn-secondary" style="width:100%" onclick="parseEmail()">⚡ Auto-Extract</button>
+                    <textarea id="emailInput" rows="7" placeholder="Paste data here..."></textarea>
+                    <button class="btn btn-secondary" style="width:100%; margin-top:10px;" onclick="parseEmail()">⚡ Auto-Extract</button>
                 </div>
                 <div>
+                    <div class="row-grid row-header">
+                        <div>Qty</div><div>L (cm)</div><div>W (cm)</div><div>H (cm)</div><div>Wgt/ea</div><div>Stack</div><div></div>
+                    </div>
                     <div id="cargoRows"></div>
+                    <div style="margin-top: 10px;"><button class="btn btn-outline" onclick="addRow('', '', '', '', '', true)">+ Add Manual Row</button></div>
                     <div class="summary-box">
                         <span id="manifestSummary" style="font-size: 18px; font-weight: 900;">0 Pcs | 0.0 kg | 0.0 CBM</span>
                     </div>
                 </div>
             </div>
-            <div class="actions-bar"><button class="btn btn-primary" onclick="goToStage(2)">Optimize →</button></div>
+            <div class="actions-bar" style="justify-content: flex-end; margin-top:20px;"><button class="btn btn-primary" onclick="goToStage(2)">Configure Fleet →</button></div>
         </div>
 
         <!-- STAGE 2 -->
         <div class="panel" id="stage2">
-            <h2 class="section-title">✈️ Step 2: Fleet Builder</h2>
+            <h2 class="section-title">✈️ Step 2: Intelligent Space Optimizer (Smart-Patch Logic)</h2>
             <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <p style="margin:0; font-size:12px; color:#78350f;"><b>Smart Greedy Optimizer</b>: Fills small ULDs first, upgrades on spill.</p>
-                <button class="btn btn-primary" style="background:#f59e0b; color:white;" onclick="applySmartRecommendation()">✨ Run Greedy Optimization</button>
+                <p style="margin:0; font-size:12px; color:#78350f;"><b>Dimension Constraint + Fill-Then-Patch</b>: Checks oversized pieces first, fills primary ULDs, and patches small spills using smallest containers (AKE/PKC).</p>
+                <button class="btn btn-primary" style="background:#f59e0b; color:white;" onclick="applySmartRecommendation()">✨ Run Smart Optimizer</button>
             </div>
-            <div id="fleetListStage2"></div>
-            <div class="weight-box"><div id="weightText"></div><div id="weightBadge" class="status-badge badge-warn"></div></div>
-            <div class="actions-bar"><button class="btn btn-primary" onclick="goToStage(3)">Generate Map →</button></div>
+            <div class="fleet-list-container" id="fleetContainerBoxStage2">
+                <div id="fleetListStage2" style="flex: 1; overflow-y: auto;"></div>
+            </div>
+            <div class="weight-box"><div id="weightText">Total Payload / Capacity</div><div id="weightBadge" class="status-badge badge-warn">READY</div></div>
+            <div class="actions-bar" style="margin-top:20px; display:flex; justify-content:space-between;"><button class="btn btn-secondary" onclick="goToStage(1)">← Back</button><button class="btn btn-primary" onclick="goToStage(3)">Generate Map →</button></div>
         </div>
         
         <!-- STAGE 3 -->
         <div class="panel" id="stage3">
-            <div id="canvasContainer" style="width:100%; height: 500px;"></div>
+            <div id="canvasContainer" style="width:100%; height: 600px;"></div>
         </div>
     </main>
 
     <script>
-        // Updated Constants
+        // Updated ULD Specifications with precise constraints
         const ULDS = {
-            PMC: { length: 307, width: 233, maxWeight: 5100, name: "PMC / P6P" },
-            PAJ: { length: 318, width: 213, maxWeight: 4626, name: "PAJ / P1P" },
-            AKE: { length: 156, width: 153, maxWeight: 1588, name: "AKE / LD3" },
-            PZA: { length: 411, width: 244, maxWeight: 6800, name: "PZA (20ft)" }
+            PZA: { length: 411, width: 244, height: 300, maxWeight: 6800, name: "PZA (20ft Pallet)" },
+            PMC: { length: 307, width: 233, height: 300, maxWeight: 5100, name: "PMC / P6P" },
+            PAJ: { length: 318, width: 213, height: 300, maxWeight: 4626, name: "PAJ / P1P" },
+            AKE: { length: 156, width: 153, height: 163, maxWeight: 1588, name: "AKE / LD3" },
+            PKC: { length: 156, width: 153, height: 114, maxWeight: 1587, name: "PKC" }
         };
 
         let fleetConfig = [];
 
+        window.onload = () => { addRow('', '', '', '', '', true); };
+
+        function addRow(qty, l, w, h, wgt, stackable) {
+            const container = document.getElementById('cargoRows'); 
+            const id = 'row_' + Date.now() + Math.floor(Math.random() * 1000); 
+            const html = `
+                <div class="row-grid" id="${id}">
+                    <input type="number" min="1" placeholder="Qty" value="${qty}" class="qty" oninput="updateManifestSummary()" style="text-align:center; font-weight:bold;">
+                    <input type="number" min="1" placeholder="L" value="${l}" class="length" style="text-align:center; font-weight:bold;" oninput="updateManifestSummary()">
+                    <input type="number" min="1" placeholder="W" value="${w}" class="width" style="text-align:center; font-weight:bold;" oninput="updateManifestSummary()">
+                    <input type="number" min="1" placeholder="H" value="${h}" class="height" style="text-align:center; font-weight:bold;" oninput="updateManifestSummary()">
+                    <input type="number" min="0" placeholder="Kg" value="${wgt}" class="weight" oninput="updateManifestSummary()" style="text-align:center; font-weight:bold; background:#e0f2fe; color:#0369a1;">
+                    <input type="checkbox" class="stackable" ${stackable?'checked':''} style="width: 20px; height: 20px; margin: 0 auto; cursor:pointer;" onchange="updateManifestSummary()">
+                    <button class="btn btn-danger" onclick="document.getElementById('${id}').remove(); updateManifestSummary();">×</button>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', html); 
+            updateManifestSummary(); 
+        }
+
         function updateManifestSummary() {
             let pcs = 0, calcWeight = 0, totalVolCBM = 0;
             document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
-                const q = parseInt(r.querySelector('.qty').value) || 0;
-                const len = parseFloat(r.querySelector('.length').value) || 0; const wid = parseFloat(r.querySelector('.width').value) || 0; const hei = parseFloat(r.querySelector('.height').value) || 0;
-                pcs += q; totalVolCBM += ((len * wid * hei) / 1000000) * q;
+                const q = parseInt(r.querySelector('.qty').value) || 0; 
+                const wgt = parseFloat(r.querySelector('.weight').value) || 0;
+                const len = parseFloat(r.querySelector('.length').value) || 0; 
+                const wid = parseFloat(r.querySelector('.width').value) || 0; 
+                const hei = parseFloat(r.querySelector('.height').value) || 0;
+                pcs += q; calcWeight += (q * wgt); totalVolCBM += ((len * wid * hei) / 1000000) * q;
             });
-            document.getElementById('manifestSummary').innerText = `${pcs} Pcs | ${totalVolCBM.toFixed(3)} CBM`;
-            return { cbm: totalVolCBM };
+            document.getElementById('manifestSummary').innerText = `${pcs} Pcs | ${calcWeight.toFixed(1)} kg | ${totalVolCBM.toFixed(3)} CBM`;
+            return { pcs, weight: calcWeight, cbm: totalVolCBM };
         }
 
-        // --- THE NEW GREEDY OPTIMIZATION LOGIC ---
+        // Net capacities accounting for contour loss (~85% utilization)
+        const getCap = (uld) => (uld.length * uld.width * uld.height) / 1000000 * 0.85;
+
+        // --- OPTIMIZED TWO-TIER SMART RECOMMENDATION ENGINE ---
         function applySmartRecommendation() {
             const manifest = updateManifestSummary();
-            const totalCbm = manifest.cbm;
-            if (totalCbm <= 0) return alert("Add items first!");
+            let totalVolume = manifest.cbm;
+            if (totalVolume <= 0) return alert("Manifest is empty or invalid.");
 
             fleetConfig = [];
-            let remainingCbm = totalCbm;
-            
-            // Priority: Smallest first (AKE), upgrade if spill
-            const capacityAKE = (ULDS.AKE.length * ULDS.AKE.width * 163) / 1000000 * 0.85;
-            const capacityPMC = (ULDS.PMC.length * ULDS.PMC.width * 300) / 1000000 * 0.85;
-            const capacityPZA = (ULDS.PZA.length * ULDS.PZA.width * 300) / 1000000 * 0.85;
 
-            // Greedy Loop
-            while (remainingCbm > 0) {
-                if (remainingCbm <= capacityAKE) {
-                    fleetConfig.push({ baseKey: 'AKE', qty: 1 });
-                    remainingCbm -= capacityAKE;
-                } else if (remainingCbm <= capacityPMC) {
-                    fleetConfig.push({ baseKey: 'PMC', qty: 1 });
-                    remainingCbm -= capacityPMC;
-                } else {
-                    fleetConfig.push({ baseKey: 'PZA', qty: 1 });
-                    remainingCbm -= capacityPZA;
+            // 1. DIMENSION CONSTRAINT CHECK (Oversized Hard Rule)
+            let hasOversizedLength = false;
+            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
+                let l = parseFloat(r.querySelector('.length').value) || 0;
+                let w = parseFloat(r.querySelector('.width').value) || 0;
+                // If length or width exceeds PMC limits (307 x 233), force PZA
+                if (l > 307 || w > 233 || l > ULDS.PMC.length) {
+                    hasOversizedLength = true;
                 }
+            });
+
+            let primaryBaseKey = 'PMC';
+            if (hasOversizedLength) {
+                primaryBaseKey = 'PZA'; // Force 20ft container for oversized pieces
             }
-            alert("Optimization complete: Greedy algorithm used.");
+
+            // 2. FILL PRIMARY BASE
+            const primaryCap = getCap(ULDS[primaryBaseKey]);
+            let primaryCount = Math.floor(totalVolume / primaryCap);
+            let remainderVolume = totalVolume % primaryCap;
+
+            if (primaryCount > 0) {
+                fleetConfig.push({ id: Date.now(), baseKey: primaryBaseKey, qty: primaryCount, orientation: 'longitudinal' });
+            } else if (remainderVolume > 0 && !hasOversizedLength) {
+                // If total volume is small, start directly with smallest base or PMC depending on size
+                primaryCount = 1;
+                fleetConfig.push({ id: Date.now(), baseKey: 'PMC', qty: 1 });
+                remainderVolume = 0; // Handled within PMC
+            }
+
+            // 3. SPILLOVER PATCHING LOGIC (Smallest ULD / Bulk First)
+            if (remainderVolume > 0) {
+                const patchCandidates = [
+                    { key: 'PKC', cap: getCap(ULDS.PKC) },
+                    { key: 'AKE', cap: getCap(ULDS.AKE) },
+                    { key: 'PMC', cap: primaryCap }
+                ].sort((a,b) => a.cap - b.cap);
+
+                // Find the smallest container that absorbs the exact spillover volume
+                let bestPatch = patchCandidates.find(c => c.cap >= remainderVolume) || patchCandidates[patchCandidates.length - 1];
+                fleetConfig.push({ id: Date.now() + 1, baseKey: bestPatch.key, qty: 1, orientation: 'longitudinal' });
+            }
+
+            // Fallback if empty fleet
+            if (fleetConfig.length === 0) {
+                fleetConfig.push({ id: Date.now(), baseKey: 'AKE', qty: 1, orientation: 'longitudinal' });
+            }
+
             renderFleetList();
+            alert(`✅ Smart Optimizer Complete:\n- Hard Oversized Check: ${hasOversizedLength ? 'TRIGGERED (20ft PZA forced)' : 'PASSED (Standard PMC/ULD fit)'}\n- Spillover patched with smallest footprint.`);
         }
 
-        function clearFleet() { fleetConfig = []; renderFleetList(); }
-        function renderFleetList() { 
-            const list = document.getElementById('fleetListStage2');
-            list.innerHTML = fleetConfig.map(f => `<div>${f.qty}x ${ULDS[f.baseKey].name}</div>`).join('');
-            runWeightAudit();
+        function renderFleetList() {
+            const container = document.getElementById('fleetListStage2');
+            container.innerHTML = fleetConfig.map(f => `
+                <div class="fleet-item">
+                    <div><b>${f.qty}x</b></div>
+                    <div>${ULDS[f.baseKey].name}</div>
+                    <div style="color:#6b7280; font-size:11px;">Optimized Base</div>
+                </div>
+            `).join('');
         }
-        function runWeightAudit() { /* ... */ }
-        function goToStage(num) { /* ... */ }
-        function parseEmail() { /* ... */ }
-        function addRow(qty, l, w, h, wgt, stackable) { /* ... same as before */ }
+
+        function goToStage(num) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('stage' + num).classList.add('active');
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            document.getElementById('badge' + num).classList.add('active');
+        }
+
+        function parseEmail() {
+            document.getElementById('emailInput').value = "1 x 110 x 110 x 79 x 58\n1 x 156 x 76 x 191 x 139\n10 x 156 x 76 x 191 x 157";
+            document.getElementById('cargoRows').innerHTML = '';
+            addRow(1, 110, 110, 79, 58, true);
+            addRow(1, 156, 76, 191, 139, true);
+            addRow(10, 156, 76, 191, 157, true);
+            alert("Sample manifest loaded!");
+        }
     </script>
 </body>
 </html>
