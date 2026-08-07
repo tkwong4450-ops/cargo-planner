@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cargo Planner - Fleet Optimization Engine Pro V2.6.3</title>
+    <title>Cargo Planner - Fleet Optimization Engine Pro V2.7.0</title>
     
     <style>
         :root { --lh-navy: #001b44; --lh-yellow: #ffaa00; --lh-yellow-hover: #e69900; --lh-light: #f4f5f7; --lh-border: #d1d5db; --lh-text: #1f2937; }
@@ -117,7 +117,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.6.3</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 2.7.0</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -188,7 +188,7 @@
             <div style="background: #fffbeb; border: 1px solid #fde68a; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h3 style="margin:0 0 4px 0; font-size:13px; color:#b45309; text-transform:uppercase;">💡 Smart Fleet Recommendation Engine</h3>
-                    <p style="margin:0; font-size:12px; color:#78350f;" id="recommendationText">Analyze manifest volume to generate an optimal equipment mix.</p>
+                    <p style="margin:0; font-size:12px; color:#78350f;" id="recommendationText">Analyze manifest volume using Greedy "Fill-Then-Patch" optimization.</p>
                 </div>
                 <button class="btn btn-primary" style="background:#f59e0b; color:white; padding:10px 16px; font-size:11px;" onclick="applySmartRecommendation()">✨ Auto-Recommend Fleet</button>
             </div>
@@ -545,28 +545,51 @@
         function switchTab(tabId) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); if (tabId === 'items') { document.getElementById('tabItemsBtn').classList.add('active'); document.getElementById('tabItems').classList.add('active'); } else { document.getElementById('tabFleetBtn').classList.add('active'); document.getElementById('tabFleet').classList.add('active'); } }
         function autoSelectContour() { const baseKey = document.getElementById('baseSelect').value; const contourSelect = document.getElementById('contourSelect'); const orientationSelect = document.getElementById('orientationSelect'); contourSelect.disabled = false; orientationSelect.disabled = true; orientationSelect.style.backgroundColor = '#e5e7eb'; if (baseKey === 'PLA') { contourSelect.value = 'Contour_PLA_Belly'; contourSelect.style.backgroundColor = '#fef08a'; contourSelect.disabled = true; orientationSelect.value = 'lateral'; orientationSelect.style.backgroundColor = '#fef08a'; orientationSelect.disabled = true; } else { orientationSelect.value = 'longitudinal'; if (baseKey === 'PMC' || baseKey === 'PAJ' || baseKey === 'PZA' || baseKey === 'PGE') { orientationSelect.disabled = false; orientationSelect.style.backgroundColor = '#f9fafb'; } if (ULDS[baseKey] && ULDS[baseKey].lock) { contourSelect.value = ULDS[baseKey].lock; contourSelect.style.backgroundColor = '#fef08a'; } else { contourSelect.style.backgroundColor = '#f9fafb'; } } setTimeout(() => { if (!contourSelect.disabled) contourSelect.style.backgroundColor = '#f9fafb'; }, 1000); }
         
-        // --- RESTORED WORKING RECOMMENDATION ENGINE ---
+        // --- SMART RECOMMENDATION ENGINE (Greedy Fill-Then-Patch) ---
         function applySmartRecommendation() {
             const manifest = updateManifestSummary();
-            const totalCbm = manifest.cbm;
+            if (manifest.pcs === 0) return alert("Please extract or input cargo into the manifest first.");
             
             clearFleet();
+            let totalCbm = manifest.cbm;
+            let needsPZA = false;
             
-            if (totalCbm <= 4.5) {
-                fleetConfig.push({ id: Date.now(), baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 2, orientation: 'longitudinal' });
-            } else if (totalCbm <= 15) {
-                fleetConfig.push({ id: Date.now(), baseKey: 'PMC', contourKey: 'Contour_J4', qty: 1, orientation: 'longitudinal' });
-                fleetConfig.push({ id: Date.now()+1, baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 1, orientation: 'longitudinal' });
-            } else {
-                fleetConfig.push({ id: Date.now(), baseKey: 'PMC', contourKey: 'Contour_J4', qty: 2, orientation: 'longitudinal' });
-                fleetConfig.push({ id: Date.now()+1, baseKey: 'AKE', contourKey: 'Contour_AKE', qty: 1, orientation: 'longitudinal' });
+            // Check Oversize Threshold Constraint (307cm)
+            document.querySelectorAll('#cargoRows .row-grid').forEach(r => {
+                const l = parseFloat(r.querySelector('.length').value) || 0;
+                const w = parseFloat(r.querySelector('.width').value) || 0;
+                if (l > 307 || w > 307) needsPZA = true;
+            });
+            
+            if (needsPZA) {
+                fleetConfig.push({ id: Date.now(), baseKey: 'PZA', contourKey: 'Contour_J3', qty: 1, orientation: 'lateral' });
+                totalCbm -= 25.5; // Approx CBM for PZA
             }
+            
+            // Smallest-First / Upgrade-Only-On-Spill Allocation Logic
+            let pmcQty = 0; 
+            let akeQty = 0;
+            
+            while (totalCbm > 0.1) {
+                if (totalCbm <= 4.5) { 
+                    akeQty++; 
+                    totalCbm -= 4.5; 
+                } else if (totalCbm <= 9.0) { 
+                    akeQty += 2; 
+                    totalCbm -= 9.0; 
+                } else { 
+                    pmcQty++; 
+                    totalCbm -= 15.0; // Approx standard PMC capacity
+                }
+            }
+            
+            if (pmcQty > 0) fleetConfig.push({ id: Date.now() + 1, baseKey: 'PMC', contourKey: 'Contour_J4', qty: pmcQty, orientation: 'longitudinal' });
+            if (akeQty > 0) fleetConfig.push({ id: Date.now() + 2, baseKey: 'AKE', contourKey: 'Contour_AKE', qty: akeQty, orientation: 'longitudinal' });
             
             renderFleetList();
             const badge = document.getElementById('weightBadge');
             badge.className = "status-badge badge-ok";
-            badge.innerText = "RECOMMENDATION APPLIED";
-            console.log("Applied fleet for " + totalCbm.toFixed(2) + " CBM");
+            badge.innerText = "SMART PATCHING APPLIED";
         }
 
         function addToFleet() { const baseKey = document.getElementById('baseSelect').value; const contourKey = document.getElementById('contourSelect').value; const qty = parseInt(document.getElementById('uldQtyInput').value) || 1; const orientation = document.getElementById('orientationSelect').value; fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty, orientation }); renderFleetList(); }
@@ -599,27 +622,75 @@
                 if (q > 0 && l > 0 && w > 0 && h > 0) { for (let i = 0; i < q; i++) items.push({ id: `BOX-${boxIdCounter++}`, l, w, h, stackable, volume: l * w * h, isOverflowing: false, isOverlapping: false, isBreaching: false, rowId: r.id }); }
             });
 
-            items.sort((a, b) => b.volume - a.volume);
+            // Height-Priority Sorting: Tallest cargo packed first to perfectly hug the high inboard walls
+            items.sort((a, b) => b.h - a.h || b.volume - a.volume);
 
             let enableEdges = items.length <= 80; let enableCollisions = items.length <= 100; const geoCache = {};
 
             if (items.length > 0 && drawnUlds.length > 0) {
-                let uldIdx = 0; let activeUld = drawnUlds[uldIdx]; let cx = -activeUld.base.length/2, cz = -activeUld.base.width/2; let currentY = 0, layerMaxHeight = 0, rowMaxW = 0; let overflowXOffset = 0; let overflowZOffset = 0; const OVERFLOW_START_X = drawnUlds[drawnUlds.length - 1].endX + 250; 
+                let uldIdx = 0; let activeUld = drawnUlds[uldIdx]; 
+                let zDir = (activeUld && CONTOURS[activeUld.contourKey].type === "main-deck-asymmetric") ? -1 : 1;
+                let cx = activeUld ? -activeUld.base.length/2 : 0; 
+                let cz = activeUld ? (zDir === 1 ? -activeUld.base.width/2 : activeUld.base.width/2) : 0; 
+                let currentY = 0, layerMaxHeight = 0, rowMaxW = 0; 
+                let overflowXOffset = 0; let overflowZOffset = 0; 
+                const OVERFLOW_START_X = drawnUlds.length > 0 ? drawnUlds[drawnUlds.length - 1].endX + 250 : 0; 
 
                 items.forEach((it) => {
                     let placed = false; let globalX, globalZ;
                     while (!placed && uldIdx < drawnUlds.length) {
-                        activeUld = drawnUlds[uldIdx]; let maxL = activeUld.base.length; let maxW = activeUld.base.width; let maxH = CONTOURS[activeUld.contourKey].maxHeight;
+                        activeUld = drawnUlds[uldIdx]; 
+                        let maxL = activeUld.base.length; let maxW = activeUld.base.width; let maxH = CONTOURS[activeUld.contourKey].maxHeight;
+                        zDir = (CONTOURS[activeUld.contourKey].type === "main-deck-asymmetric") ? -1 : 1;
+                        
                         let normalFit = Math.floor(maxL / it.l) * Math.floor(maxW / it.w); let rotatedFit = Math.floor(maxL / it.w) * Math.floor(maxW / it.l); if (rotatedFit > normalFit) { let temp = it.l; it.l = it.w; it.w = temp; }
-                        if (cx + it.l > maxL/2) { cx = -maxL/2; cz += rowMaxW; rowMaxW = 0; }
-                        if (cz + it.w > maxW/2) { cx = -maxL/2; cz = -maxW/2; rowMaxW = 0; currentY += layerMaxHeight; layerMaxHeight = 0; }
-                        if ((currentY + it.h > maxH) || (!it.stackable && currentY > 0)) { uldIdx++; if (uldIdx < drawnUlds.length) { activeUld = drawnUlds[uldIdx]; cx = -activeUld.base.length/2; cz = -activeUld.base.width/2; currentY = 0; rowMaxW = 0; layerMaxHeight = 0; } continue; }
+                        
+                        if (cx + it.l > maxL/2) { 
+                            cx = -maxL/2; 
+                            if (zDir === 1) cz += rowMaxW; else cz -= rowMaxW; 
+                            rowMaxW = 0; 
+                        }
+                        
+                        let wrapZ = (zDir === 1 && cz + it.w > maxW/2) || (zDir === -1 && cz - it.w < -maxW/2);
+                        if (wrapZ) { 
+                            cx = -maxL/2; 
+                            cz = (zDir === 1) ? -maxW/2 : maxW/2; 
+                            rowMaxW = 0; 
+                            currentY += layerMaxHeight; 
+                            layerMaxHeight = 0; 
+                        }
+                        
+                        if ((currentY + it.h > maxH) || (!it.stackable && currentY > 0)) { 
+                            uldIdx++; 
+                            if (uldIdx < drawnUlds.length) { 
+                                activeUld = drawnUlds[uldIdx]; 
+                                cx = -activeUld.base.length/2; 
+                                zDir = (CONTOURS[activeUld.contourKey].type === "main-deck-asymmetric") ? -1 : 1;
+                                cz = (zDir === 1) ? -activeUld.base.width/2 : activeUld.base.width/2; 
+                                currentY = 0; rowMaxW = 0; layerMaxHeight = 0; 
+                            } 
+                            continue; 
+                        }
 
-                        globalX = activeUld.centerX + cx + (it.l/2); globalZ = cz + (it.w/2);
+                        globalX = activeUld.centerX + cx + (it.l/2); 
+                        globalZ = (zDir === 1) ? (cz + it.w/2) : (cz - it.w/2);
+                        
                         let dummyGeo = new THREE.BoxGeometry(it.l, it.h, it.w); let dummyMesh = new THREE.Mesh(dummyGeo, new THREE.MeshBasicMaterial()); dummyMesh.position.set(globalX, currentY + (it.h/2), globalZ); dummyMesh.userData = { isOverflowing: false }; dummyMesh.updateMatrixWorld();
                         let breachTest = checkEnvelopeIntersection(dummyMesh); dummyGeo.dispose();
 
-                        if (breachTest) { cz += 10; if (cz + it.w > maxW/2) { cz = -maxW/2; cx += it.l; if (cx + it.l > maxL/2) { cx = -maxL/2; currentY += it.h; } } continue; }
+                        if (breachTest) { 
+                            let wrapZRetry = (zDir === 1 && cz + it.w > maxW/2) || (zDir === -1 && cz - it.w < -maxW/2);
+                            if (wrapZRetry) { 
+                                cz = (zDir === 1) ? -maxW/2 : maxW/2; 
+                                cx += it.l; 
+                                if (cx + it.l > maxL/2) { 
+                                    cx = -maxL/2; currentY += it.h; 
+                                } 
+                            } else {
+                                if (zDir === 1) cz += 10; else cz -= 10;
+                            }
+                            continue; 
+                        }
                         placed = true;
                     }
 
@@ -627,7 +698,11 @@
                         it.isOverflowing = true; if (!warns.includes(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity.`)) warns.push(`🚨 CARGO OVERFLOW: Items exceeded fleet capacity.`);
                         if (overflowZOffset + it.w > 500) { overflowZOffset = 0; overflowXOffset += 150; }
                         globalX = OVERFLOW_START_X + overflowXOffset + (it.l/2); globalZ = -250 + overflowZOffset + (it.w/2); currentY = 0; overflowZOffset += it.w + 10;
-                    } else { if (it.w > rowMaxW) rowMaxW = it.w; if (it.h > layerMaxHeight) layerMaxHeight = it.h; cx += it.l; /* True back-to-back snug packing with zero gap */ }
+                    } else { 
+                        if (it.w > rowMaxW) rowMaxW = it.w; 
+                        if (it.h > layerMaxHeight) layerMaxHeight = it.h; 
+                        cx += it.l; 
+                    }
 
                     let geoKey = `${it.l}_${it.h}_${it.w}`; if (!geoCache[geoKey]) geoCache[geoKey] = new THREE.BoxGeometry(it.l, it.h, it.w); const geo = geoCache[geoKey];
                     let color = it.isOverflowing ? 0xff0000 : (it.stackable ? 0xffaa00 : 0xdc2626); const mat = new THREE.MeshPhongMaterial({ color: color, transparent: true, opacity: it.isOverflowing ? 0.8 : 0.95 });
