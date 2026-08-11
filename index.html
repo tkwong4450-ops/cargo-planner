@@ -390,61 +390,19 @@
             let isNS = /non-stackable|no stack|non stack/i.test(raw);
             if (isNS) { cleanText += "[NON-STACKABLE]\n\n"; }
 
-            // Helper conversion multiplier
-            let conv = 1;
-            if (sourceUnit === "mm") conv = 0.1;
-            else if (sourceUnit === "in") conv = 2.54;
-
             lines.forEach(line => {
-                let cleanLine = line.trim();
+                let cleanLine = line.toLowerCase().replace(/,/g, '').trim();
                 if(!cleanLine || cleanLine.startsWith('[')) return;
-
-                // Handle comma-separated multi-dimensional segments like "108X38X37x1, 118X42X42x1, 92X33X23x3"
-                // Split by comma first to inspect each segment
-                let segments = cleanLine.split(',');
-                let lineHasDims = false;
-
-                segments.forEach(seg => {
-                    let segTrim = seg.trim();
-                    // Match pattern: L x W x H x Qty (e.g. 108X38X37x1 or 108 x 38 x 37 x 1)
-                    let multiMatch = segTrim.match(/(\d+(?:\.\d+)?)\s*(?:\*|x|X)\s*(\d+(?:\.\d+)?)\s*(?:\*|x|X)\s*(\d+(?:\.\d+)?)(?:\s*(?:\*|x|X)\s*(\d+))?/);
-                    if (multiMatch) {
-                        lineHasDims = true;
-                        let l_raw = parseFloat(multiMatch[1]);
-                        let w_raw = parseFloat(multiMatch[2]);
-                        let h_raw = parseFloat(multiMatch[3]);
-                        let qty = multiMatch[4] ? parseInt(multiMatch[4]) : 1;
-
-                        let c = conv;
-                        if (sourceUnit === "auto") {
-                            if (/mm/i.test(segTrim)) c = 0.1;
-                            else if (/in/i.test(segTrim)) c = 2.54;
-                            else if (l_raw > 400 || w_raw > 400) c = 0.1;
-                        }
-                        let l = (l_raw * c).toFixed(1);
-                        let w = (w_raw * c).toFixed(1);
-                        let h = (h_raw * c).toFixed(1);
-                        cleanText += `${qty} x ${l} x ${w} x ${h}\n`;
-                    }
-                });
-
-                if (lineHasDims) return;
-
-                // Handle standard table row format (e.g. "110*110*79   58.00 KGS   ...   1")
-                let lineNoCommas = cleanLine.replace(/,/g, '');
-                let dimMatches = [...lineNoCommas.matchAll(/(\d+(?:\.\d+)?)\s*(?:\*|x|X)\s*(\d+(?:\.\d+)?)\s*(?:\*|x|X)\s*(\d+(?:\.\d+)?)/g)];
+                let dimMatches = [...cleanLine.matchAll(/(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)/g)];
                 if (dimMatches.length > 0) {
                     let targetDim = dimMatches[0];
                     let l_raw = parseFloat(targetDim[1]);
                     let w_raw = parseFloat(targetDim[2]);
                     let h_raw = parseFloat(targetDim[3]);
-                    let qty = 1; 
-                    let wgt = '';
-
-                    let wgtMatch = lineNoCommas.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|lb|lbs)/i);
+                    let qty = 1; let wgt = '';
+                    let wgtMatch = cleanLine.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|lb|lbs)/);
                     if(wgtMatch) wgt = parseFloat(wgtMatch[1]);
-
-                    let tokens = lineNoCommas.split(/\s+/);
+                    let tokens = cleanLine.split(/\s+/);
                     let lastToken = tokens[tokens.length - 1];
                     let leadingToken = tokens[0];
                     if (tokens.length >= 4) {
@@ -455,20 +413,18 @@
                             if (!isNaN(parsedLead) && parsedLead < 100 && parsedLead !== l_raw) { qty = parsedLead; }
                         }
                     }
-
-                    let c = conv;
-                    if (sourceUnit === "auto") {
-                        if (/mm/i.test(line)) c = 0.1;
-                        else if (/in/i.test(line)) c = 2.54;
-                        else if (l_raw > 400 || w_raw > 400) c = 0.1; 
+                    let conv = 1;
+                    if (sourceUnit === "mm") conv = 0.1;
+                    else if (sourceUnit === "in") conv = 2.54;
+                    else if (sourceUnit === "auto") {
+                        if (/mm/i.test(line)) conv = 0.1;
+                        else if (/in/i.test(line)) conv = 2.54;
+                        else if (l_raw > 400 || w_raw > 400) conv = 0.1; 
                     }
-                    let l = (l_raw * c).toFixed(1); 
-                    let w = (w_raw * c).toFixed(1); 
-                    let h = (h_raw * c).toFixed(1);
+                    let l = (l_raw * conv).toFixed(1); let w = (w_raw * conv).toFixed(1); let h = (h_raw * conv).toFixed(1);
                     cleanText += wgt !== '' ? `${qty} x ${l} x ${w} x ${h} x ${wgt}\n` : `${qty} x ${l} x ${w} x ${h}\n`;
                 }
             });
-
             document.getElementById('cleanScrubOutput').value = cleanText.trim();
         }
 
