@@ -391,47 +391,61 @@
             if (isNS) { cleanText += "[NON-STACKABLE]\n\n"; }
 
             lines.forEach(line => {
-                let cleanLine = line.toLowerCase().replace(/,/g, '').trim();
+                let cleanLine = line.toLowerCase().trim();
                 if(!cleanLine || cleanLine.startsWith('[')) return;
 
-                // Match dimensions formatted with * or x
-                let dimMatch = cleanLine.match(/(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)/);
-                if (dimMatch) {
-                    let l_raw = parseFloat(dimMatch[1]);
-                    let w_raw = parseFloat(dimMatch[2]);
-                    let h_raw = parseFloat(dimMatch[3]);
-                    
-                    let qty = 1;
-                    let wgt = '';
+                // Handle both single-line comma-separated lists and standard line layouts
+                let subSegments = cleanLine.includes(',') ? cleanLine.split(',') : [cleanLine];
 
-                    // Look for weight value followed by kg/kgs/lb/lbs
-                    let wgtMatch = cleanLine.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|lb|lbs)/);
-                    if (wgtMatch) {
-                        wgt = parseFloat(wgtMatch[1]);
+                subSegments.forEach(segment => {
+                    let seg = segment.trim();
+                    if(!seg) return;
+
+                    // Match dimensions formatted with * or x
+                    let dimMatch = seg.match(/(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)/);
+                    if (dimMatch) {
+                        let l_raw = parseFloat(dimMatch[1]);
+                        let w_raw = parseFloat(dimMatch[2]);
+                        let h_raw = parseFloat(dimMatch[3]);
+                        
+                        let qty = 1;
+                        let wgt = '';
+
+                        // Check for trailing quantity attached to dimensions (e.g., ...x3)
+                        let trailingMatch = seg.match(/(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)\s*(?:\*|x)\s*(\d+(?:\.\d+)?)\s*(?:[xX\*]\s*(\d+))/);
+                        if (trailingMatch && trailingMatch[4]) {
+                            qty = parseInt(trailingMatch[4]);
+                        } else {
+                            // Look for quantity as the last token in table rows
+                            let tokens = seg.split(/\s+/);
+                            let lastToken = parseInt(tokens[tokens.length - 1]);
+                            if (!isNaN(lastToken) && lastToken < 100 && lastToken !== h_raw && lastToken !== l_raw && lastToken !== w_raw) {
+                                qty = lastToken;
+                            }
+                        }
+
+                        // Look for weight value followed by kg/kgs/lb/lbs
+                        let wgtMatch = seg.match(/(\d+(?:\.\d+)?)\s*(?:kg|kgs|lb|lbs)/);
+                        if (wgtMatch) {
+                            wgt = parseFloat(wgtMatch[1]);
+                        }
+
+                        let conv = 1;
+                        if (sourceUnit === "mm") conv = 0.1;
+                        else if (sourceUnit === "in") conv = 2.54;
+                        else if (sourceUnit === "auto") {
+                            if (/mm/i.test(seg)) conv = 0.1;
+                            else if (/in/i.test(seg)) conv = 2.54;
+                            else if (l_raw > 400 || w_raw > 400) conv = 0.1; 
+                        }
+
+                        let l = (l_raw * conv).toFixed(1); 
+                        let w = (w_raw * conv).toFixed(1); 
+                        let h = (h_raw * conv).toFixed(1);
+
+                        cleanText += wgt !== '' ? `${qty} x ${l} x ${w} x ${h} x ${wgt}\n` : `${qty} x ${l} x ${w} x ${h}\n`;
                     }
-
-                    // Look for quantity: usually the last standalone integer in table rows (e.g., '10')
-                    let tokens = cleanLine.split(/\s+/);
-                    let lastToken = parseInt(tokens[tokens.length - 1]);
-                    if (!isNaN(lastToken) && lastToken < 100 && lastToken !== h_raw && lastToken !== l_raw && lastToken !== w_raw) {
-                        qty = lastToken;
-                    }
-
-                    let conv = 1;
-                    if (sourceUnit === "mm") conv = 0.1;
-                    else if (sourceUnit === "in") conv = 2.54;
-                    else if (sourceUnit === "auto") {
-                        if (/mm/i.test(line)) conv = 0.1;
-                        else if (/in/i.test(line)) conv = 2.54;
-                        else if (l_raw > 400 || w_raw > 400) conv = 0.1; 
-                    }
-
-                    let l = (l_raw * conv).toFixed(1); 
-                    let w = (w_raw * conv).toFixed(1); 
-                    let h = (h_raw * conv).toFixed(1);
-
-                    cleanText += wgt !== '' ? `${qty} x ${l} x ${w} x ${h} x ${wgt}\n` : `${qty} x ${l} x ${w} x ${h}\n`;
-                }
+                });
             });
             document.getElementById('cleanScrubOutput').value = cleanText.trim();
         }
