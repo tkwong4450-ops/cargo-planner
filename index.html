@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cargo Planner - Fleet Optimization Engine Pro V3.0.0</title>
+    <title>Cargo Planner - Fleet Optimization Engine Pro V4.0.0</title>
     
     <style>
         :root { --lh-navy: #001b44; --lh-yellow: #ffaa00; --lh-yellow-hover: #e69900; --lh-light: #f4f5f7; --lh-border: #d1d5db; --lh-text: #1f2937; }
@@ -121,7 +121,7 @@
             <div class="lh-icon">CP</div>
             <div class="title">
                 <h1>Cargo Planner</h1>
-                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 3.0.0</span></p>
+                <p>FLEET OPTIMIZATION ENGINE PRO <span class="version-badge">V 4.0.0</span></p>
             </div>
         </div>
         <div class="step-tracker">
@@ -149,8 +149,8 @@
 
             <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;">
                 <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border: 1px solid var(--lh-border); display: flex; flex-direction: column;">
-                    <label>💡 Tesseract OCR & Text Parser</label>
-                    <textarea id="emailInput" rows="7" placeholder="Paste text or an image snippet directly here..."></textarea>
+                    <label>💡 V4 Context-Aware Text Parser (Tabular Support)</label>
+                    <textarea id="emailInput" rows="7" placeholder="Paste table data or email text directly here...&#13;&#13;e.g.&#13;156*76*191   157.00 KGS   377.40 KGS  156 X 76 X 191  10"></textarea>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
                         <button class="btn btn-secondary" onclick="parseEmail()">⚡ Auto-Extract</button>
@@ -208,7 +208,9 @@
                         <div>
                             <label>3. Orientation</label>
                             <select id="orientationSelect">
-                                <option value="longitudinal">Longitudinal</option><option value="center">Centerline (Symmetric)</option><option value="lateral">Lateral (Turned 90°)</option>
+                                <option value="longitudinal">Longitudinal</option>
+                                <option value="center">Centerline (Symmetric)</option>
+                                <option value="lateral">Lateral (Turned 90°)</option>
                             </select>
                         </div>
                         <div><label>4. Quantity</label><input type="number" id="uldQtyInput" value="1" min="1" max="30" style="font-weight: 900; font-size: 16px;"></div>
@@ -288,7 +290,7 @@
     <div class="modal-overlay" id="reformatterModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>🛠️ Universal Data Reformatter Sandbox (V3 Engine)</h2>
+                <h2>🛠️ Universal Data Reformatter Sandbox (V4 Table Engine)</h2>
                 <button onclick="toggleModal('reformatterModal', false)" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">&times;</button>
             </div>
             <div class="modal-body">
@@ -302,7 +304,7 @@
                             <option value="in">Force Inches (to cm)</option>
                         </select>
                     </div>
-                    <textarea id="rawScrubInput" placeholder="Paste noisy data or image screenshot here...&#13;&#13;E.g.,&#13;6 PKG / 125 KG / 108X38X37/1, 118X42X42/1" style="font-family:monospace; font-size:12px; margin-bottom:0; flex:1; min-height: 200px;"></textarea>
+                    <textarea id="rawScrubInput" placeholder="Paste noisy data or image screenshot here...&#13;&#13;E.g.,&#13;156*76*191 157.00 KGS 377.40 KGS 156 X 76 X 191 10" style="font-family:monospace; font-size:12px; margin-bottom:0; flex:1; min-height: 200px;"></textarea>
                     <div id="reformatterWarnings" style="font-size: 10px; color: #0284c7; font-weight: bold; margin-top: 5px;"></div>
                 </div>
                 
@@ -363,6 +365,7 @@
         };
 
         const CONTOURS = {
+            Contour_MD_Center: { maxHeight: 300, type: "flat", name: "MD Center / C/L Flat (2x J4)" }, 
             Contour_J3: { maxHeight: 300, type: "flat", name: "Contour J3 (MD Rectangular)" }, 
             Contour_J4: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 225, taperOffset: 127, name: "Contour J4 (MD Aft Heavy Taper)" }, 
             Contour_J1: { maxHeight: 300, type: "main-deck-asymmetric", slopeStartH: 244, taperOffset: 70, name: "Contour J1 (MD Asymmetric)" },
@@ -383,91 +386,68 @@
         function toggleModal(id, show) { document.getElementById(id).classList.toggle('active', show); }
 
         // ==========================================
-        // V3.0.0 CORE ENGINE: CONTEXT-AWARE TOKENIZER
+        // V4.0.0 CORE ENGINE: TABULAR ELIMINATION PARSER
         // ==========================================
-        function extractCargoData(rawText, sourceUnit = 'auto') {
-            // CRITICAL FIX: Replace commas with SPACE, not empty string, to prevent number fusing.
-            let cleanText = rawText.replace(/,/g, ' ').toLowerCase().replace(/×/g, 'x');
-            let isNonStackable = /non-stackable|non stackable|no stack/i.test(cleanText);
-            
+        function extractCargoDataV4(rawText, sourceUnit = 'auto') {
+            let lines = rawText.split('\n');
             let foundItems = [];
-            let lines = cleanText.split('\n');
-            
+            let isNonStackable = /non-stackable|non stackable|no stack/i.test(rawText);
+
             lines.forEach(line => {
-                if(!line.trim()) return;
-                
-                // 1. Scan for line-level total weight (e.g., 125 kg, 79 kgs)
-                let weightMatch = line.match(/(\d+(?:\.\d+)?)\s*(kgs|kg|lbs|lb)/);
-                let lineWeight = weightMatch ? parseFloat(weightMatch[1]) : 0;
-                
-                // 2. Map all L x W x H dimension blocks in the line
-                let coreDimRegex = /(\d+(?:\.\d+)?)\s*(?:x|\*)\s*(\d+(?:\.\d+)?)\s*(?:x|\*)\s*(\d+(?:\.\d+)?)/g;
+                let text = line.toLowerCase().replace(/,/g, ' ').trim();
+                if(!text) return;
+
+                // 1. Find Dimensions (LxWxH) using regex
+                let dimRegex = /(\d+(?:\.\d+)?)\s*(?:x|\*)\s*(\d+(?:\.\d+)?)\s*(?:x|\*)\s*(\d+(?:\.\d+)?)/g;
                 let match;
-                let dimsInLine = [];
-                
-                while ((match = coreDimRegex.exec(line)) !== null) {
-                    dimsInLine.push({
-                        l: parseFloat(match[1]),
-                        w: parseFloat(match[2]),
-                        h: parseFloat(match[3]),
-                        index: match.index,
-                        end: match.index + match[0].length
-                    });
+                let dims = [];
+                while ((match = dimRegex.exec(text)) !== null) {
+                    dims.push({ l: parseFloat(match[1]), w: parseFloat(match[2]), h: parseFloat(match[3]), raw: match[0] });
                 }
-                
-                // 3. Extract quantity per dimension block and apply conversions
-                if (dimsInLine.length > 0) {
-                    let totalQtyInLine = 0;
+
+                if (dims.length > 0) {
+                    // Always take the FIRST unique dimension found to avoid tabular duplication
+                    let d = dims[0]; 
                     
-                    dimsInLine.forEach((dim, i) => {
-                        let qty = 1; // Default
-                        
-                        let nextIndex = (i + 1 < dimsInLine.length) ? dimsInLine[i+1].index : line.length;
-                        let textAfter = line.substring(dim.end, nextIndex);
-                        
-                        // Look ahead for suffix modifiers (e.g., /1, @3, x 4)
-                        let suffixQtyMatch = textAfter.match(/^\s*(?:\/|\\|@|x|pcs|pkgs|pkg)\s*(\d+)/);
-                        if (suffixQtyMatch) {
-                            qty = parseInt(suffixQtyMatch[1]);
-                        } else {
-                            // Look behind for prefix modifiers (e.g., 6x, 2 pkgs)
-                            let prevIndex = (i === 0) ? 0 : dimsInLine[i-1].end;
-                            let textBefore = line.substring(prevIndex, dim.index);
-                            let prefixQtyMatch = textBefore.match(/(\d+)\s*(?:x|\*|pcs|pkgs|pkg|plt|plts|ctn|ctns|@)(?:\s*[\/\-\|:;,]\s*|\s*)*$/);
-                            if (prefixQtyMatch) {
-                                qty = parseInt(prefixQtyMatch[1]);
-                            }
-                        }
-                        
-                        let conv = 1;
-                        if (sourceUnit === "mm") conv = 0.1;
-                        else if (sourceUnit === "in") conv = 2.54;
-                        else if (sourceUnit === "auto") {
-                            if (/mm/i.test(line)) conv = 0.1;
-                            else if (/in/i.test(line)) conv = 2.54;
-                            else if (dim.l > 400 || dim.w > 400) conv = 0.1; 
-                        }
-                        
-                        dim.l = (dim.l * conv).toFixed(1);
-                        dim.w = (dim.w * conv).toFixed(1);
-                        dim.h = (dim.h * conv).toFixed(1);
-                        dim.qty = qty;
-                        totalQtyInLine += qty;
-                    });
-                    
-                    // 4. Distribute line weight evenly if present
-                    let wgtEa = '';
-                    if (lineWeight > 0 && totalQtyInLine > 0) {
-                        wgtEa = (lineWeight / totalQtyInLine).toFixed(1);
+                    // Convert Units
+                    let conv = 1;
+                    if (sourceUnit === "mm") conv = 0.1;
+                    else if (sourceUnit === "in") conv = 2.54;
+                    else if (sourceUnit === "auto") {
+                        if (/mm/i.test(line)) conv = 0.1;
+                        else if (/in/i.test(line)) conv = 2.54;
+                        else if (d.l > 400 || d.w > 400) conv = 0.1; 
                     }
+                    d.l = (d.l * conv).toFixed(1); d.w = (d.w * conv).toFixed(1); d.h = (d.h * conv).toFixed(1);
+
+                    // ELIMINATION STEP 1: Remove all dimension strings from text
+                    let textNoDims = text;
+                    dims.forEach(dim => { textNoDims = textNoDims.replace(dim.raw, ' '); });
+
+                    // ELIMINATION STEP 2: Find Weight (look for KG/KGS)
+                    let wgtMatch = textNoDims.match(/(\d+(?:\.\d+)?)\s*(kgs|kg|lbs|lb)/);
+                    let wgt = wgtMatch ? parseFloat(wgtMatch[1]) : '';
+                    if(wgtMatch) { textNoDims = textNoDims.replace(wgtMatch[0], ' '); }
+
+                    // ELIMINATION STEP 3: Remove trailing junk like "Dim Weight" to isolate Qty
+                    textNoDims = textNoDims.replace(/\d+(?:\.\d+)?\s*(kgs|kg|lbs|lb)/g, ' '); 
                     
-                    // 5. Package results
-                    dimsInLine.forEach(dim => {
-                        foundItems.push({ qty: dim.qty, l: dim.l, w: dim.w, h: dim.h, wgt: wgtEa });
-                    });
+                    // ELIMINATION STEP 4: Find Qty (Look for standalone integers)
+                    let qty = 1;
+                    let qtyMatch = textNoDims.match(/(?:qty|pcs|pkgs|pkg|x)\s*(\d+)/) || textNoDims.match(/(\d+)\s*(?:qty|pcs|pkgs|pkg|x)/);
+                    if (qtyMatch) {
+                        qty = parseInt(qtyMatch[1] || qtyMatch[2]);
+                    } else {
+                        // Grab the last remaining standalone integer in the line
+                        let numbers = [...textNoDims.matchAll(/(?<!\d\.)\b(\d+)\b(?!\.\d)/g)];
+                        if (numbers.length > 0) {
+                            qty = parseInt(numbers[numbers.length - 1][1]);
+                        }
+                    }
+
+                    foundItems.push({ l: d.l, w: d.w, h: d.h, qty: qty, wgt: wgt });
                 }
             });
-            
             return { items: foundItems, stackable: !isNonStackable };
         }
 
@@ -476,17 +456,14 @@
             if (!rawText.trim()) return alert("Please paste text or an image into the box.");
             document.getElementById('parseWarnings').innerText = '';
             
-            let result = extractCargoData(rawText, 'auto');
+            let result = extractCargoDataV4(rawText, 'auto');
             
             if (result.items.length > 0) {
                 document.getElementById('cargoRows').innerHTML = '';
                 document.getElementById('masterStack').checked = result.stackable;
-                result.items.forEach(it => {
-                    addRow(it.qty, it.l, it.w, it.h, it.wgt, result.stackable);
-                });
+                result.items.forEach(it => { addRow(it.qty, it.l, it.w, it.h, it.wgt, result.stackable); });
             } else {
-                alert("The parser couldn't detect L x W x H formats. Added a blank row.");
-                addRow('', '', '', '', '', true);
+                alert("The parser couldn't detect L x W x H formats. Added a blank row."); addRow('', '', '', '', '', true);
             }
             updateManifestSummary();
         }
@@ -496,7 +473,7 @@
             let sourceUnit = document.getElementById('scrubUnit').value;
             if (!rawText.trim()) return;
             
-            let result = extractCargoData(rawText, sourceUnit);
+            let result = extractCargoDataV4(rawText, sourceUnit);
             let cleanText = "";
             if (!result.stackable) cleanText += "[NON-STACKABLE]\n\n";
             
@@ -587,11 +564,33 @@
             Object.keys(CONTOURS).forEach(k => { contourSelect.innerHTML += `<option value="${k}">${CONTOURS[k].name}</option>`; });
             Object.keys(ULDS).forEach(bKey => {
                 if (ULDS[bKey].lock) { quickSelect.innerHTML += `<option value="${bKey}|${ULDS[bKey].lock}">${ULDS[bKey].name} + ${CONTOURS[ULDS[bKey].lock].name}</option>`; } 
-                else { Object.keys(CONTOURS).forEach(cKey => { if (cKey.includes("Lower") || cKey.includes("J")) { quickSelect.innerHTML += `<option value="${bKey}|${cKey}">${ULDS[bKey].name} + ${CONTOURS[cKey].name}</option>`; } }); }
+                else { Object.keys(CONTOURS).forEach(cKey => { if (cKey.includes("Lower") || cKey.includes("J") || cKey.includes("MD Center")) { quickSelect.innerHTML += `<option value="${bKey}|${cKey}">${ULDS[bKey].name} + ${CONTOURS[cKey].name}</option>`; } }); }
             });
         }
         function switchTab(tabId) { document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); if (tabId === 'items') { document.getElementById('tabItemsBtn').classList.add('active'); document.getElementById('tabItems').classList.add('active'); } else { document.getElementById('tabFleetBtn').classList.add('active'); document.getElementById('tabFleet').classList.add('active'); } }
-        function autoSelectContour() { const baseKey = document.getElementById('baseSelect').value; const contourSelect = document.getElementById('contourSelect'); const orientationSelect = document.getElementById('orientationSelect'); contourSelect.disabled = false; orientationSelect.disabled = true; orientationSelect.style.backgroundColor = '#e5e7eb'; if (baseKey === 'PLA') { contourSelect.value = 'Contour_PLA_Belly'; contourSelect.style.backgroundColor = '#fef08a'; contourSelect.disabled = true; orientationSelect.value = 'lateral'; orientationSelect.style.backgroundColor = '#fef08a'; orientationSelect.disabled = true; } else { orientationSelect.value = 'longitudinal'; if (baseKey === 'PMC' || baseKey === 'PAJ' || baseKey === 'PZA' || baseKey === 'PGE') { orientationSelect.disabled = false; orientationSelect.style.backgroundColor = '#f9fafb'; } if (ULDS[baseKey] && ULDS[baseKey].lock) { contourSelect.value = ULDS[baseKey].lock; contourSelect.style.backgroundColor = '#fef08a'; } else { contourSelect.style.backgroundColor = '#f9fafb'; } } setTimeout(() => { if (!contourSelect.disabled) contourSelect.style.backgroundColor = '#f9fafb'; }, 1000); }
+        
+        function autoSelectContour() { 
+            const baseKey = document.getElementById('baseSelect').value; 
+            const contourSelect = document.getElementById('contourSelect'); 
+            const orientationSelect = document.getElementById('orientationSelect'); 
+            
+            contourSelect.disabled = false; orientationSelect.disabled = false; 
+            orientationSelect.style.backgroundColor = '#f9fafb'; contourSelect.style.backgroundColor = '#f9fafb';
+            
+            if (baseKey === 'PLA') { 
+                contourSelect.value = 'Contour_PLA_Belly'; contourSelect.style.backgroundColor = '#fef08a'; contourSelect.disabled = true; 
+                orientationSelect.value = 'lateral'; orientationSelect.style.backgroundColor = '#fef08a'; orientationSelect.disabled = true; 
+            } else if (baseKey === 'PZA' || baseKey === 'PGE') {
+                contourSelect.value = 'Contour_MD_Center'; contourSelect.style.backgroundColor = '#fef08a'; contourSelect.disabled = true; 
+                orientationSelect.value = 'center'; orientationSelect.style.backgroundColor = '#fef08a'; orientationSelect.disabled = true; 
+            } else { 
+                orientationSelect.value = 'longitudinal'; 
+                if (ULDS[baseKey] && ULDS[baseKey].lock) { 
+                    contourSelect.value = ULDS[baseKey].lock; contourSelect.style.backgroundColor = '#fef08a'; 
+                } 
+            } 
+            setTimeout(() => { if (!contourSelect.disabled) contourSelect.style.backgroundColor = '#f9fafb'; if (!orientationSelect.disabled) orientationSelect.style.backgroundColor = '#f9fafb'; }, 1000); 
+        }
         
         function previewSmartRecommendation() {
             const manifest = updateManifestSummary(true);
@@ -611,20 +610,16 @@
             let proposedWgt = 0; let proposedVol = 0;
             
             if (needsPZA) {
-                pendingRecommendation.push({ id: Date.now(), baseKey: 'PZA', contourKey: 'Contour_J3', qty: 1, orientation: 'lateral' });
+                pendingRecommendation.push({ id: Date.now(), baseKey: 'PZA', contourKey: 'Contour_MD_Center', qty: 1, orientation: 'center' });
                 totalCbm -= 25.5; totalWgt -= 6800;
                 proposedWgt += 6800; proposedVol += 25.5;
             }
             
             let pmcQty = 0; let akeQty = 0;
             while (totalCbm > 0.1 || totalWgt > 0.1) {
-                if (totalCbm <= 4.5 && totalWgt <= 1588) { 
-                    akeQty++; totalCbm -= 4.5; totalWgt -= 1588; 
-                } else if (totalCbm <= 9.0 && totalWgt <= 3176) { 
-                    akeQty += 2; totalCbm -= 9.0; totalWgt -= 3176; 
-                } else { 
-                    pmcQty++; totalCbm -= 15.0; totalWgt -= 5100; 
-                }
+                if (totalCbm <= 4.5 && totalWgt <= 1588) { akeQty++; totalCbm -= 4.5; totalWgt -= 1588; } 
+                else if (totalCbm <= 9.0 && totalWgt <= 3176) { akeQty += 2; totalCbm -= 9.0; totalWgt -= 3176; } 
+                else { pmcQty++; totalCbm -= 15.0; totalWgt -= 5100; }
             }
             
             if (pmcQty > 0) { 
@@ -643,13 +638,12 @@
             });
             previewHtml += `<div style="margin-top: 15px; background: #ecfdf5; border: 1px solid #10b981; padding: 10px; border-radius: 6px; font-size: 11px; font-weight: bold; color: #065f46;">Proposed Max Capacity: ~${proposedVol.toFixed(1)} CBM | ${proposedWgt.toFixed(0)} kg</div>`;
             
-            document.getElementById('previewBody').innerHTML = previewHtml;
-            toggleModal('previewModal', true);
+            document.getElementById('previewBody').innerHTML = previewHtml; toggleModal('previewModal', true);
         }
 
         function executeRecommendation() { fleetConfig = [...pendingRecommendation]; toggleModal('previewModal', false); renderFleetList(); const badge = document.getElementById('weightBadge'); badge.className = "status-badge badge-ok"; badge.innerText = "SMART PATCHING APPLIED"; }
         function addToFleet() { const baseKey = document.getElementById('baseSelect').value; const contourKey = document.getElementById('contourSelect').value; const qty = parseInt(document.getElementById('uldQtyInput').value) || 1; const orientation = document.getElementById('orientationSelect').value; fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty, orientation }); renderFleetList(); }
-        function addQuickUld() { const val = document.getElementById('quickUldType').value; if(!val) return; const parts = val.split('|'); let baseKey = parts[0]; let contourKey = parts[1]; let orientation = (baseKey === 'PZA' || baseKey === 'PGE') ? 'lateral' : 'longitudinal'; fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty: 1, orientation }); renderFleetList(); buildScene(); }
+        function addQuickUld() { const val = document.getElementById('quickUldType').value; if(!val) return; const parts = val.split('|'); let baseKey = parts[0]; let contourKey = parts[1]; let orientation = (baseKey === 'PZA' || baseKey === 'PGE') ? 'center' : 'longitudinal'; fleetConfig.push({ id: Date.now() + Math.random(), baseKey, contourKey, qty: 1, orientation }); renderFleetList(); buildScene(); }
         function changeFleetQty(id, delta) { let item = fleetConfig.find(f => f.id === id); if (item) { item.qty += delta; if (item.qty < 1) item.qty = 1; renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); } }
         function removeFromFleet(id) { fleetConfig = fleetConfig.filter(f => f.id !== id); renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
         function clearFleet() { fleetConfig = []; renderFleetList(); if (document.getElementById('stage3').classList.contains('active')) buildScene(); }
@@ -660,21 +654,15 @@
             let maxFleetWeight = 0; let maxFleetVol = 0; let totalPositions = 0; 
             fleetConfig.forEach(f => { 
                 const b = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey]; 
-                maxFleetWeight += (b.maxWeight * f.qty); 
-                totalPositions += (b.positions || 1) * f.qty; 
+                maxFleetWeight += (b.maxWeight * f.qty); totalPositions += (b.positions || 1) * f.qty; 
                 let volCBM = (b.length * b.width * c.maxHeight) / 1000000; 
                 if (c.type !== "flat") volCBM *= 0.85; maxFleetVol += (volCBM * f.qty); 
             }); 
-            document.getElementById('weightText').innerText = `Total: ${manifest.weight.toFixed(1)} kg / Fleet Max: ${maxFleetWeight} kg`; 
-            document.getElementById('volumeText').innerText = `Aircraft Footprint: ${totalPositions} Positions | Fleet Vol: ${maxFleetVol.toFixed(1)} CBM`; 
-            
+            document.getElementById('weightText').innerText = `Total: ${manifest.weight.toFixed(1)} kg / Fleet Max: ${maxFleetWeight} kg`; document.getElementById('volumeText').innerText = `Aircraft Footprint: ${totalPositions} Positions | Fleet Vol: ${maxFleetVol.toFixed(1)} CBM`; 
             const badge = document.getElementById('weightBadge'); 
             if (fleetConfig.length === 0) { badge.className = "status-badge badge-warn"; badge.innerText = "EMPTY FLEET"; return; } 
-            
             let breach = false; 
-            if (document.getElementById('stage3').classList.contains('active') && cargoGroup.children.length > 0 && drawnUlds.length > 0) { 
-                cargoGroup.children.forEach(m => { if (checkEnvelopeIntersection(m)) breach = true; }); 
-            } 
+            if (document.getElementById('stage3').classList.contains('active') && cargoGroup.children.length > 0 && drawnUlds.length > 0) { cargoGroup.children.forEach(m => { if (checkEnvelopeIntersection(m)) breach = true; }); } 
             if (breach) { badge.className = "status-badge badge-fail"; badge.innerText = "ENVELOPE BREACH"; } 
             else if (manifest.weight > maxFleetWeight) { badge.className = "status-badge badge-warn"; badge.innerText = "OVERWEIGHT"; } 
             else if (manifest.cbm > maxFleetVol) { badge.className = "status-badge badge-warn"; badge.innerText = "OVER VOLUME"; } 
@@ -682,8 +670,7 @@
         }
 
         function checkEnvelopeIntersection(mesh) { 
-            let box = new THREE.Box3().setFromObject(mesh); 
-            let centerVec = new THREE.Vector3(); box.getCenter(centerVec); 
+            let box = new THREE.Box3().setFromObject(mesh); let centerVec = new THREE.Vector3(); box.getCenter(centerVec); 
             if (mesh.userData.isOverflowing) return false; 
             let activeUld = null; 
             for (let u of drawnUlds) { if (centerVec.x >= u.startX - 25 && centerVec.x <= u.endX + 25) { activeUld = u; break; } } 
@@ -697,8 +684,7 @@
             if (c.type === "main-deck-asymmetric") { 
                 let startH = c.slopeStartH || 150; let offset = c.taperOffset || 60; let effOffset = Math.min(offset, hW - 5); 
                 if (yMax > startH) { 
-                    let ratio = (yMax - startH) / (c.maxHeight - startH); 
-                    let allowedMinZ = -hW + (ratio * effOffset); 
+                    let ratio = (yMax - startH) / (c.maxHeight - startH); let allowedMinZ = -hW + (ratio * effOffset); 
                     if (zMin < allowedMinZ) return "Penetrates Left Slope."; 
                     if (activeUld.isLateral || activeUld.isCenter) { let allowedMaxZ = hW - (ratio * effOffset); if (zMax > allowedMaxZ) return "Penetrates Right Slope."; } 
                 } else { if (zMin < -hW) return "Overhangs Base."; } 
@@ -726,7 +712,7 @@
                 const originalBase = ULDS[f.baseKey]; const c = CONTOURS[f.contourKey];
                 for (let i = 0; i < f.qty; i++) {
                     let renderBase = { ...originalBase }; let isLateral = f.orientation === 'lateral'; let isCenter = f.orientation === 'center';
-                    if (isLateral) { renderBase.length = originalBase.width; renderBase.width = originalBase.length; }
+                    if (isLateral || isCenter) { renderBase.length = originalBase.width; renderBase.width = originalBase.length; }
                     let centerX = currentX + (renderBase.length/2); 
                     drawnUlds.push({ base: renderBase, contourKey: f.contourKey, centerX: centerX, startX: currentX, endX: currentX + renderBase.length, isLateral, isCenter });
                     drawSharpEnvelope(renderBase, c, centerX, isLateral || isCenter); currentX += renderBase.length + gap;
